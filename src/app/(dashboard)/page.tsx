@@ -11,7 +11,11 @@ import {
   Clock, 
   Filter,
   Loader2,
-  Percent
+  Percent,
+  ChevronRight,
+  BarChart3,
+  Target,
+  ArrowUpRight
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -20,7 +24,8 @@ import {
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer,
-  Cell
+  Cell,
+  YAxis
 } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { 
@@ -29,12 +34,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
 import Link from 'next/link';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
 
-// Função para formatar horas decimais (ex: 0.25 -> 15min)
+// --- Utilitários de Formatação ---
+const formatBRL = (val: number) => 
+  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
+
 function formatHours(hours: number) {
   const totalMinutes = Math.round((hours || 0) * 60);
   const h = Math.floor(totalMinutes / 60);
@@ -44,22 +53,89 @@ function formatHours(hours: number) {
   return `${h}h ${m}min`;
 }
 
-const StatCard = ({ title, value, subtext, icon: Icon, colorClass }: any) => (
-  <Card className="border-border/50 bg-card/40 hover:bg-card/60 transition-colors">
-    <CardContent className="p-4">
-      <div className="flex justify-between items-start mb-2">
-        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{title}</p>
-        <div className={cn("p-2 rounded-lg bg-secondary/50", colorClass)}>
-          <Icon className="w-4 h-4" />
+// --- Componentes Reutilizáveis ---
+
+const HeroCard = ({ title, value, subtext, icon: Icon, trend }: any) => (
+  <Card className="relative overflow-hidden border-none bg-gradient-to-br from-primary/20 to-card shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <CardContent className="p-6">
+      <div className="flex justify-between items-start">
+        <div className="space-y-1">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest">{title}</p>
+          <h3 className="text-3xl font-headline font-bold text-foreground">{value}</h3>
+          <p className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
+            {trend && <ArrowUpRight className="w-3 h-3 text-primary" />}
+            {subtext}
+          </p>
+        </div>
+        <div className="p-3 rounded-2xl bg-primary/10 text-primary">
+          <Icon className="w-6 h-6" />
         </div>
       </div>
-      <div className="space-y-1">
-        <h3 className="text-2xl font-headline font-bold">{value}</h3>
+      <div className="absolute -bottom-2 -right-2 opacity-5">
+        <Icon className="w-24 h-24" />
+      </div>
+    </CardContent>
+  </Card>
+);
+
+const OperationCard = ({ title, value, subtext, icon: Icon, colorClass }: any) => (
+  <Card className="border-border/50 bg-card/40 hover:bg-card/60 transition-all duration-300">
+    <CardContent className="p-4">
+      <div className="flex items-center gap-3 mb-3">
+        <div className={cn("p-2 rounded-xl bg-secondary", colorClass)}>
+          <Icon className="w-4 h-4" />
+        </div>
+        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{title}</p>
+      </div>
+      <div className="space-y-0.5">
+        <h4 className="text-xl font-headline font-bold">{value}</h4>
         <p className="text-[10px] text-muted-foreground">{subtext}</p>
       </div>
     </CardContent>
   </Card>
 );
+
+const EfficiencyCard = ({ percentage }: { percentage: number }) => {
+  const getStatus = (p: number) => {
+    if (p >= 80) return { label: 'Excelente', color: 'text-primary', bar: 'bg-primary' };
+    if (p >= 60) return { label: 'Bom', color: 'text-accent', bar: 'bg-accent' };
+    return { label: 'Ajustar', color: 'text-orange-400', bar: 'bg-orange-400' };
+  };
+  const status = getStatus(percentage);
+
+  return (
+    <Card className="border-border/50 bg-card/40">
+      <CardContent className="p-4 space-y-4">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <Target className="w-4 h-4 text-muted-foreground" />
+            <span className="text-[10px] font-bold text-muted-foreground uppercase">Eficiência Operacional</span>
+          </div>
+          <span className={cn("text-xs font-bold", status.color)}>{status.label}</span>
+        </div>
+        <div className="space-y-2">
+          <div className="flex justify-between items-end">
+            <span className="text-2xl font-headline font-bold">{percentage.toFixed(1)}%</span>
+            <span className="text-[10px] text-muted-foreground">Tempo produtivo / ativo</span>
+          </div>
+          <Progress value={percentage} className={cn("h-1.5", status.bar)} />
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+const AnalyticsRow = ({ label, value, sublabel }: any) => (
+  <div className="flex justify-between items-center py-3 border-b border-white/5 last:border-0">
+    <div className="space-y-0.5">
+      <p className="text-xs font-medium text-foreground">{label}</p>
+      <p className="text-[10px] text-muted-foreground uppercase">{sublabel}</p>
+    </div>
+    <span className="text-sm font-bold font-headline">{value}</span>
+  </div>
+);
+
+// --- Componente Principal ---
 
 export default function Dashboard() {
   const [filter, setFilter] = useState('Semana Atual');
@@ -80,7 +156,7 @@ export default function Dashboard() {
         const response = await api.get(`/dashboard?start=${startDateStr}&end=${endDateStr}`);
         setData(response.data);
       } catch (error) {
-        console.error('Error fetching dashboard data:', error);
+        console.error('Dashboard Error:', error);
       } finally {
         setLoading(false);
       }
@@ -90,8 +166,9 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+        <Loader2 className="w-10 h-10 text-primary animate-spin" />
+        <p className="text-sm text-muted-foreground animate-pulse">Sincronizando seus lucros...</p>
       </div>
     );
   }
@@ -99,13 +176,7 @@ export default function Dashboard() {
   const summary = data?.summary || {};
   const days = data?.days || {};
 
-  const chartData = Object.entries(days).map(([date, dayData]: [string, any]) => ({
-    day: dayData.dayName ? dayData.dayName.split('-')[0].substring(0, 3) : date.substring(8, 10),
-    earnings: dayData.financial?.grossAmount || 0,
-    profit: dayData.financial?.netProfit || 0,
-    color: '#10B981'
-  }));
-
+  // Cálculos de Backend/Frontend
   const grossAmount = Number(summary.grossAmount || 0);
   const netProfit = Number(summary.netProfit || 0);
   const totalExpenses = Number(summary.totalExpenses || 0);
@@ -113,147 +184,153 @@ export default function Dashboard() {
   const totalHours = Number(summary.totalHours || 0);
   const productiveHours = Number(summary.productiveHours || 0);
 
-  const margin = grossAmount > 0 ? (netProfit / grossAmount) * 100 : 0;
+  // Eficiência e Ratios
+  const efficiency = totalHours > 0 ? (productiveHours / totalHours) * 100 : 0;
+  const netPerHour = productiveHours > 0 ? netProfit / productiveHours : 0;
+  const netPerKm = totalKm > 0 ? netProfit / totalKm : 0;
+  const grossPerKm = totalKm > 0 ? grossAmount / totalKm : 0;
+  const grossPerHour = productiveHours > 0 ? grossAmount / productiveHours : 0;
+  const costPerKm = totalKm > 0 ? totalExpenses / totalKm : 0;
+
+  const chartData = Object.entries(days).map(([date, dayData]: [string, any]) => ({
+    day: dayData.dayName ? dayData.dayName.substring(0, 3) : date.substring(8, 10),
+    earnings: dayData.financial?.grossAmount || 0,
+    profit: dayData.financial?.netProfit || 0,
+  }));
 
   return (
-    <div className="p-6 space-y-8 animate-in fade-in duration-500">
+    <div className="p-6 space-y-10 max-w-md mx-auto pb-28">
+      
+      {/* HEADER */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-headline font-bold">Resumo Financeiro</h2>
-          <p className="text-sm text-muted-foreground">Visão geral do seu desempenho</p>
+          <h2 className="text-2xl font-headline font-bold tracking-tight">Painel de Controle</h2>
+          <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Sua inteligência financeira</p>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2 border-border/50">
-              <Filter className="w-4 h-4" />
-              {filter}
+            <Button variant="outline" size="sm" className="h-8 gap-2 border-border/50 bg-card/50">
+              <Filter className="w-3.5 h-3.5 text-primary" />
+              <span className="text-xs font-bold">{filter}</span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end" className="bg-card border-border">
             <DropdownMenuItem onClick={() => setFilter('Semana Atual')}>Semana Atual</DropdownMenuItem>
             <DropdownMenuItem onClick={() => setFilter('Mês Atual')}>Mês Atual</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <StatCard 
-          title="Ganho Bruto" 
-          value={`R$ ${grossAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} 
-          subtext="Total recebido" 
-          icon={DollarSign} 
-          colorClass="text-primary"
-        />
-        <StatCard 
-          title="Lucro Líquido" 
-          value={`R$ ${netProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} 
-          subtext={`${margin.toFixed(0)}% de margem`} 
-          icon={TrendingUp} 
-          colorClass="text-accent"
-        />
-        <StatCard 
-          title="Custos Totais" 
-          value={`R$ ${totalExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} 
-          subtext="Combustível e Manutenção" 
-          icon={Fuel} 
-          colorClass="text-orange-400"
-        />
-        <StatCard 
-          title="KM Rodados" 
-          value={`${totalKm.toFixed(1)} km`} 
-          subtext="Total no período" 
-          icon={Route} 
-          colorClass="text-blue-400"
-        />
-      </div>
+      {/* 1. HERO METRICS */}
+      <section className="space-y-4">
+        <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] px-1">Indicadores de Sucesso</h3>
+        <div className="grid grid-cols-1 gap-4">
+          <HeroCard 
+            title="Lucro Líquido" 
+            value={formatBRL(netProfit)} 
+            subtext="Dinheiro real no seu bolso" 
+            icon={TrendingUp}
+            trend={true}
+          />
+          <div className="grid grid-cols-2 gap-4">
+            <Card className="border-border/50 bg-card/40">
+              <CardContent className="p-4 space-y-2 text-center">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase">Lucro / Hora</p>
+                <p className="text-lg font-headline font-bold text-primary">{formatBRL(netPerHour)}</p>
+              </CardContent>
+            </Card>
+            <Card className="border-border/50 bg-card/40">
+              <CardContent className="p-4 space-y-2 text-center">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase">KM Rodados</p>
+                <p className="text-lg font-headline font-bold text-blue-400">{totalKm.toFixed(1)} km</p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
 
-      <Card className="border-border/50 bg-card/40">
-        <CardHeader className="p-4 pb-0">
-          <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Ganhos por Dia</CardTitle>
-        </CardHeader>
-        <CardContent className="p-4 pt-4 h-[200px]">
-          {chartData.length > 0 ? (
+      {/* 2. OPERAÇÃO */}
+      <section className="space-y-4">
+        <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] px-1">Gestão da Operação</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <OperationCard 
+            title="Faturamento Bruto" 
+            value={formatBRL(grossAmount)} 
+            subtext="Total recebido" 
+            icon={DollarSign} 
+            colorClass="text-primary"
+          />
+          <OperationCard 
+            title="Despesas Totais" 
+            value={formatBRL(totalExpenses)} 
+            subtext="Custos operacionais" 
+            icon={Fuel} 
+            colorClass="text-orange-400"
+          />
+          <OperationCard 
+            title="Tempo Produtivo" 
+            value={formatHours(productiveHours)} 
+            subtext="Horas trabalhadas" 
+            icon={Clock} 
+            colorClass="text-blue-400"
+          />
+          <OperationCard 
+            title="Tempo Ativo" 
+            value={formatHours(totalHours)} 
+            subtext="Horas em turno" 
+            icon={Clock} 
+            colorClass="text-accent"
+          />
+        </div>
+        <EfficiencyCard percentage={efficiency} />
+      </section>
+
+      {/* 3. ANALYTICS */}
+      <section className="space-y-4">
+        <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] px-1">Análise de Performance</h3>
+        
+        <Card className="border-border/50 bg-card/40 overflow-hidden">
+          <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Faturamento Semanal</CardTitle>
+            <BarChart3 className="w-4 h-4 text-primary" />
+          </CardHeader>
+          <CardContent className="p-4 pt-0 h-[180px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1E293B" />
-                <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fill: '#64748B', fontSize: 12}} />
+                <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fill: '#64748B', fontSize: 10}} />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#0D1011', border: '1px solid #1E293B', borderRadius: '8px' }}
-                  itemStyle={{ color: '#10B981' }}
-                  formatter={(value: any) => [`R$ ${Number(value).toFixed(2)}`, 'Ganhos']}
+                  contentStyle={{ backgroundColor: '#0D1011', border: '1px solid #1E293B', borderRadius: '12px' }}
+                  cursor={{fill: 'rgba(16, 185, 129, 0.05)'}}
+                  formatter={(value: any) => [formatBRL(value), 'Faturamento']}
                 />
                 <Bar dataKey="earnings" radius={[4, 4, 0, 0]}>
                   {chartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} opacity={0.8} />
+                    <Cell key={`cell-${index}`} fill={entry.earnings > 0 ? '#10B981' : '#1E293B'} fillOpacity={0.8} />
                   ))}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
-          ) : (
-            <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
-              Sem dados suficientes para o gráfico.
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      <div className="space-y-4">
-        <h3 className="font-headline font-semibold">Resumo de Tempo</h3>
-        
-        <div className="grid grid-cols-2 gap-4">
-          <div className="p-4 rounded-xl border border-border/50 bg-card/20 flex flex-col items-center gap-1 text-center">
-             <Clock className="w-4 h-4 text-primary mb-1" />
-             <span className="text-xl font-bold text-primary">{formatHours(productiveHours)}</span>
-             <span className="text-[10px] text-muted-foreground uppercase font-medium">Trabalhadas</span>
-          </div>
-          <div className="p-4 rounded-xl border border-border/50 bg-card/20 flex flex-col items-center gap-1 text-center">
-             <Clock className="w-4 h-4 text-blue-400 mb-1" />
-             <span className="text-xl font-bold text-blue-400">{formatHours(totalHours)}</span>
-             <span className="text-[10px] text-muted-foreground uppercase font-medium">Horas Ativas</span>
-          </div>
-        </div>
+        <Card className="border-border/50 bg-card/40">
+          <CardContent className="p-4 divide-y divide-white/5">
+            <AnalyticsRow label="Lucro por KM" value={formatBRL(netPerKm)} sublabel="Saldo líquido" />
+            <AnalyticsRow label="Faturamento por KM" value={formatBRL(grossPerKm)} sublabel="Saldo bruto" />
+            <AnalyticsRow label="Lucro por Hora" value={formatBRL(netPerHour)} sublabel="Saldo líquido" />
+            <AnalyticsRow label="Faturamento por Hora" value={formatBRL(grossPerHour)} sublabel="Saldo bruto" />
+            <AnalyticsRow label="Custo por KM" value={formatBRL(costPerKm)} sublabel="Eficiência de custo" />
+          </CardContent>
+        </Card>
+      </section>
 
-        <h3 className="font-headline font-semibold pt-2">Métricas de Eficiência</h3>
-        <div className="grid grid-cols-1 gap-4">
-          <div className="p-4 rounded-xl border border-border/50 bg-card/20 space-y-4">
-            <div className="space-y-3">
-              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Base: Ganho Bruto</p>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">Ganho Bruto / Hora Trabalhada</span>
-                <span className="font-bold text-primary">
-                  R$ {productiveHours > 0 ? (grossAmount / productiveHours).toFixed(2) : '0.00'}/h
-                </span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">Ganho Bruto / KM</span>
-                <span className="font-bold text-blue-400">
-                  R$ {totalKm > 0 ? (grossAmount / totalKm).toFixed(2) : '0.00'}/km
-                </span>
-              </div>
-            </div>
-
-            <div className="pt-2 space-y-3 border-t border-white/5">
-              <p className="text-[10px] text-accent uppercase font-bold tracking-widest">Base: Lucro Líquido</p>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">Lucro Líquido / Hora Trabalhada</span>
-                <span className="font-bold text-accent">
-                  R$ {productiveHours > 0 ? (netProfit / productiveHours).toFixed(2) : '0.00'}/h
-                </span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">Lucro Líquido / KM</span>
-                <span className="font-bold text-accent">
-                  R$ {totalKm > 0 ? (netProfit / totalKm).toFixed(2) : '0.00'}/km
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex justify-center pb-4">
-        <Button variant="link" className="text-primary p-0 h-auto" asChild>
-          <Link href="/history">Ver Histórico Completo</Link>
+      <div className="flex justify-center pb-8 pt-4">
+        <Button variant="link" className="text-primary text-xs font-bold uppercase tracking-widest gap-2" asChild>
+          <Link href="/history">
+            Acessar Histórico Completo
+            <ChevronRight className="w-3 h-3" />
+          </Link>
         </Button>
       </div>
     </div>
