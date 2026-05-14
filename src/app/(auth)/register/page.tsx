@@ -1,3 +1,4 @@
+
 "use client"
 
 import React from 'react';
@@ -11,6 +12,7 @@ import { Card, CardHeader, CardContent, CardFooter, CardTitle, CardDescription }
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
+import api from '@/lib/api';
 
 const schema = z.object({
   name: z.string().min(3, { message: "Nome deve ter pelo menos 3 caracteres" }),
@@ -27,12 +29,15 @@ export default function RegisterPage() {
 
   const onSubmit = async (data: any) => {
     try {
-      // Mock registration
-      await new Promise(r => setTimeout(r, 1000));
-      login('mock_token', { id: '1', name: data.name, email: data.email });
+      const response = await api.post('/auth/register', data);
+      login(response.data.token, response.data.user);
       toast({ title: "Bem-vindo!", description: "Sua conta foi criada com sucesso." });
-    } catch (error) {
-      toast({ variant: 'destructive', title: 'Erro ao cadastrar', description: 'Ocorreu um erro. Tente novamente.' });
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao cadastrar',
+        description: error.response?.data?.message || 'Ocorreu um erro ao criar sua conta. Tente novamente.'
+      });
     }
   };
 

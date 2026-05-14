@@ -1,26 +1,49 @@
+
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Sparkles, Brain, Clock, MapPin, CheckCircle2, RefreshCw } from 'lucide-react';
+import { Sparkles, Brain, Clock, MapPin, CheckCircle2, RefreshCw, Loader2, AlertCircle } from 'lucide-react';
 import { aiProductivityAssistant, AIProductivityAssistantOutput } from '@/ai/flows/ai-productivity-assistant-flow';
-
-const mockShifts = [
-  { date: '2026-05-01', totalEarnings: 120, netProfit: 85, totalHours: 5, totalKm: 60, earningsPerHour: 24, earningsPerKm: 2 },
-  { date: '2026-05-02', totalEarnings: 150, netProfit: 110, totalHours: 6, totalKm: 80, earningsPerHour: 25, earningsPerKm: 1.8 },
-  { date: '2026-05-03', totalEarnings: 180, netProfit: 130, totalHours: 7, totalKm: 90, earningsPerHour: 25.7, earningsPerKm: 2 },
-  { date: '2026-05-04', totalEarnings: 250, netProfit: 190, totalHours: 8, totalKm: 120, earningsPerHour: 31.2, earningsPerKm: 2.1 },
-];
+import api from '@/lib/api';
 
 export default function AIAssistantPage() {
   const [loading, setLoading] = useState(false);
+  const [fetchingShifts, setFetchingShifts] = useState(true);
   const [analysis, setAnalysis] = useState<AIProductivityAssistantOutput | null>(null);
+  const [shifts, setShifts] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function getShifts() {
+      try {
+        const response = await api.get('/shifts');
+        setShifts(response.data);
+      } catch (error) {
+        console.error('Error fetching shifts for AI:', error);
+      } finally {
+        setFetchingShifts(false);
+      }
+    }
+    getShifts();
+  }, []);
 
   const runAnalysis = async () => {
+    if (shifts.length === 0) return;
     setLoading(true);
     try {
-      const result = await aiProductivityAssistant({ shifts: mockShifts });
+      // Mapping real API data to the AI flow input format
+      const result = await aiProductivityAssistant({ 
+        shifts: shifts.map(s => ({
+          date: s.date,
+          totalEarnings: s.totalEarnings,
+          netProfit: s.netProfit,
+          totalHours: s.totalHours,
+          totalKm: s.totalKm,
+          earningsPerHour: s.earningsPerHour,
+          earningsPerKm: s.earningsPerKm
+        }))
+      });
       setAnalysis(result);
     } catch (error) {
       console.error(error);
@@ -28,6 +51,15 @@ export default function AIAssistantPage() {
       setLoading(false);
     }
   };
+
+  if (fetchingShifts) {
+    return (
+      <div className="p-6 flex flex-col items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-8 h-8 text-primary animate-spin mb-4" />
+        <p className="text-sm text-muted-foreground">Carregando seus dados para análise...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -37,20 +69,32 @@ export default function AIAssistantPage() {
         </div>
         <div>
           <h2 className="text-2xl font-headline font-bold">Assistente AI</h2>
-          <p className="text-sm text-muted-foreground">Otimize seus ganhos com inteligência artificial.</p>
+          <p className="text-sm text-muted-foreground">Otimize seus ganhos com seus dados reais.</p>
         </div>
       </div>
 
-      {!analysis && !loading && (
+      {shifts.length === 0 && (
+        <Card className="border-orange-500/20 bg-orange-500/5">
+          <CardContent className="p-6 text-center space-y-4">
+            <AlertCircle className="w-10 h-10 text-orange-500 mx-auto" />
+            <div className="space-y-1">
+              <h3 className="text-lg font-headline font-bold">Sem dados suficientes</h3>
+              <p className="text-sm text-muted-foreground">Você ainda não tem turnos registrados para análise. Comece um turno para gerar dados!</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {shifts.length > 0 && !analysis && !loading && (
         <Card className="border-primary/20 bg-primary/5">
           <CardContent className="p-8 text-center space-y-6">
             <Sparkles className="w-12 h-12 text-primary mx-auto animate-pulse" />
             <div className="space-y-2">
               <h3 className="text-lg font-headline font-bold">Pronto para a análise?</h3>
-              <p className="text-sm text-muted-foreground">Vou analisar seus últimos 7 dias de trabalho para encontrar padrões e sugerir como ganhar mais por hora.</p>
+              <p className="text-sm text-muted-foreground">Vou analisar seus {shifts.length} turnos registrados para encontrar padrões e sugerir como ganhar mais por hora.</p>
             </div>
             <Button onClick={runAnalysis} className="w-full font-bold">
-              GERAR INSIGHTS
+              GERAR INSIGHTS REAIS
             </Button>
           </CardContent>
         </Card>
@@ -61,7 +105,7 @@ export default function AIAssistantPage() {
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-32 rounded-2xl bg-secondary/50 animate-pulse" />
           ))}
-          <p className="text-center text-sm text-muted-foreground">Processando seus dados...</p>
+          <p className="text-center text-sm text-muted-foreground">Analisando seus dados com IA...</p>
         </div>
       )}
 
@@ -81,13 +125,13 @@ export default function AIAssistantPage() {
           <div className="grid grid-cols-2 gap-4">
             <Card className="bg-secondary/40 border-none">
               <CardContent className="p-4">
-                <p className="text-[10px] uppercase text-muted-foreground mb-1">Ganho Médio/Hora</p>
+                <p className="text-[10px] uppercase text-muted-foreground mb-1">Média Real / Hora</p>
                 <p className="text-xl font-headline font-bold text-primary">R$ {analysis.averageEarningsPerHour.toFixed(2)}</p>
               </CardContent>
             </Card>
             <Card className="bg-secondary/40 border-none">
               <CardContent className="p-4">
-                <p className="text-[10px] uppercase text-muted-foreground mb-1">Ganho Médio/KM</p>
+                <p className="text-[10px] uppercase text-muted-foreground mb-1">Média Real / KM</p>
                 <p className="text-xl font-headline font-bold text-accent">R$ {analysis.averageEarningsPerKm.toFixed(2)}</p>
               </CardContent>
             </Card>
@@ -122,7 +166,7 @@ export default function AIAssistantPage() {
           </div>
 
           <Button onClick={runAnalysis} variant="outline" className="w-full gap-2 border-border/50">
-            <RefreshCw className="w-4 h-4" /> REFAZER ANÁLISE
+            <RefreshCw className="w-4 h-4" /> ATUALIZAR INSIGHTS
           </Button>
         </div>
       )}

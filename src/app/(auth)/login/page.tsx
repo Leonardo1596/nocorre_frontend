@@ -1,3 +1,4 @@
+
 "use client"
 
 import React from 'react';
@@ -11,6 +12,7 @@ import { Card, CardHeader, CardContent, CardFooter, CardTitle, CardDescription }
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
+import api from '@/lib/api';
 
 const schema = z.object({
   email: z.string().email({ message: "Email inválido" }),
@@ -26,19 +28,14 @@ export default function LoginPage() {
 
   const onSubmit = async (data: any) => {
     try {
-      // Simulation of API call as requested
-      // const response = await api.post('/auth/login', data);
-      // login(response.data.token, response.data.user);
-      
-      // Mock for development
-      await new Promise(r => setTimeout(r, 1000));
-      login('mock_token', { id: '1', name: 'Motorista Pro', email: data.email });
-      
-    } catch (error) {
+      const response = await api.post('/auth/login', data);
+      login(response.data.token, response.data.user);
+      toast({ title: "Bem-vindo de volta!", description: "Login realizado com sucesso." });
+    } catch (error: any) {
       toast({
         variant: 'destructive',
         title: 'Erro ao entrar',
-        description: 'Verifique suas credenciais e tente novamente.',
+        description: error.response?.data?.message || 'Verifique suas credenciais e tente novamente.',
       });
     }
   };
