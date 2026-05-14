@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
@@ -57,25 +58,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const [isInitialized, setIsInitialized] = useState(false);
 
+  // Carregar dados iniciais
   useEffect(() => {
     const savedVehicle = localStorage.getItem('nocorre_vehicle');
     if (savedVehicle) setVehicle(JSON.parse(savedVehicle));
     
     const savedShift = localStorage.getItem('nocorre_shift');
-    if (savedShift) setCurrentShift(JSON.parse(savedShift));
+    if (savedShift) {
+      const parsed = JSON.parse(savedShift);
+      if (parsed.isActive) setCurrentShift(parsed);
+    }
 
     const savedSession = localStorage.getItem('nocorre_session');
-    if (savedSession) setCurrentSession(JSON.parse(savedSession));
+    if (savedSession) {
+      const parsed = JSON.parse(savedSession);
+      if (parsed.isActive) setCurrentSession(parsed);
+    }
     
     setIsInitialized(true);
   }, []);
 
+  // Persistir Turno sempre que mudar
   useEffect(() => {
     if (isInitialized) {
       localStorage.setItem('nocorre_shift', JSON.stringify(currentShift));
     }
   }, [currentShift, isInitialized]);
 
+  // Persistir Sessão sempre que mudar
   useEffect(() => {
     if (isInitialized) {
       localStorage.setItem('nocorre_session', JSON.stringify(currentSession));
@@ -99,9 +109,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       vehicle, 
       updateVehicle, 
       currentShift, 
-      setCurrentShift, 
+      setCurrentShift: (val) => setCurrentShift(val), 
       currentSession, 
-      setCurrentSession,
+      setCurrentSession: (val) => setCurrentSession(val),
       resetApp
     }}>
       {children}

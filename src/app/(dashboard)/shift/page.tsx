@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useEffect } from 'react';
@@ -73,13 +74,16 @@ export default function ShiftPage() {
     setLoading(true);
     try {
       const response = await api.post('/shifts/start');
+      const id = response.data._id || response.data.id;
+      
       setCurrentShift({ 
-        id: response.data.id, 
+        id: id, 
         startTime: new Date().toISOString(), 
         isActive: true 
       });
       toast({ title: "Turno Iniciado", description: "Bom trabalho e dirija com segurança!" });
     } catch (error) {
+      console.error(error);
       toast({ variant: 'destructive', title: "Erro", description: "Não foi possível iniciar o turno." });
     } finally {
       setLoading(false);
@@ -87,7 +91,10 @@ export default function ShiftPage() {
   };
 
   const finishShift = async () => {
-    if (!currentShift.id) return;
+    if (!currentShift.id) {
+      toast({ variant: 'destructive', title: "Erro", description: "ID do turno não encontrado." });
+      return;
+    }
     setLoading(true);
     try {
       await api.patch(`/shifts/${currentShift.id}/finish`);
@@ -95,6 +102,7 @@ export default function ShiftPage() {
       setCurrentSession({ id: null, startTime: null, isActive: false });
       toast({ title: "Turno Finalizado", description: "Turno encerrado com sucesso." });
     } catch (error) {
+      console.error(error);
       toast({ variant: 'destructive', title: "Erro", description: "Não foi possível finalizar o turno." });
     } finally {
       setLoading(false);
@@ -105,20 +113,30 @@ export default function ShiftPage() {
     setLoading(true);
     try {
       const response = await api.post('/work-sessions/start');
+      const id = response.data._id || response.data.id;
+
       setCurrentSession({ 
-        id: response.data.id, 
+        id: id, 
         startTime: new Date().toISOString(), 
         isActive: true 
       });
+      toast({ title: "Trabalho Iniciado", description: "Sessão produtiva ativa." });
     } catch (error) {
+      console.error(error);
       toast({ variant: 'destructive', title: "Erro", description: "Não foi possível iniciar a sessão." });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleFinishSessionSubmit = async () => {
-    if (!currentSession.id) return;
+  const handleFinishSessionSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    
+    if (!currentSession.id) {
+      toast({ variant: 'destructive', title: "Erro", description: "ID da sessão não encontrado." });
+      return;
+    }
+
     setLoading(true);
     try {
       const payload = {
@@ -135,6 +153,7 @@ export default function ShiftPage() {
       setFormData({ grossAmount: '', foodExpense: '', otherExpense: '', productiveKm: '' });
       toast({ title: "Sessão Finalizada", description: "Dados da sessão salvos com sucesso." });
     } catch (error) {
+      console.error(error);
       toast({ variant: 'destructive', title: "Erro", description: "Não foi possível salvar os dados da sessão." });
     } finally {
       setLoading(false);
@@ -200,12 +219,12 @@ export default function ShiftPage() {
               <div className="grid grid-cols-2 gap-4 pt-2">
                 <div className="space-y-1">
                   <p className="text-[10px] text-muted-foreground uppercase">ID do Turno</p>
-                  <p className="text-xs font-mono text-muted-foreground truncate max-w-[100px]">{currentShift.id}</p>
+                  <p className="text-xs font-mono text-muted-foreground truncate max-w-[120px]">{currentShift.id || 'N/A'}</p>
                 </div>
                 {currentSession.isActive && (
                   <div className="space-y-1">
                     <p className="text-[10px] text-muted-foreground uppercase">ID da Sessão</p>
-                    <p className="text-xs font-mono text-muted-foreground truncate max-w-[100px]">{currentSession.id}</p>
+                    <p className="text-xs font-mono text-muted-foreground truncate max-w-[120px]">{currentSession.id || 'N/A'}</p>
                   </div>
                 )}
               </div>
@@ -257,60 +276,66 @@ export default function ShiftPage() {
             <DialogDescription>Insira os dados deste período de trabalho (opcional).</DialogDescription>
           </DialogHeader>
           
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="grossAmount">Ganho Bruto (R$)</Label>
-                <Input 
-                  id="grossAmount" 
-                  type="number" 
-                  placeholder="0.00" 
-                  value={formData.grossAmount}
-                  onChange={(e) => setFormData({...formData, grossAmount: e.target.value})}
-                />
+          <form onSubmit={handleFinishSessionSubmit} className="space-y-4">
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="grossAmount">Ganho Bruto (R$)</Label>
+                  <Input 
+                    id="grossAmount" 
+                    type="number" 
+                    step="0.01"
+                    placeholder="0.00" 
+                    value={formData.grossAmount}
+                    onChange={(e) => setFormData({...formData, grossAmount: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="productiveKm">KM Rodados</Label>
+                  <Input 
+                    id="productiveKm" 
+                    type="number" 
+                    step="0.1"
+                    placeholder="0.0" 
+                    value={formData.productiveKm}
+                    onChange={(e) => setFormData({...formData, productiveKm: e.target.value})}
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="productiveKm">KM Rodados</Label>
-                <Input 
-                  id="productiveKm" 
-                  type="number" 
-                  placeholder="0.0" 
-                  value={formData.productiveKm}
-                  onChange={(e) => setFormData({...formData, productiveKm: e.target.value})}
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="foodExpense">Alimentação (R$)</Label>
+                  <Input 
+                    id="foodExpense" 
+                    type="number" 
+                    step="0.01"
+                    placeholder="0.00" 
+                    value={formData.foodExpense}
+                    onChange={(e) => setFormData({...formData, foodExpense: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="otherExpense">Outros Custos (R$)</Label>
+                  <Input 
+                    id="otherExpense" 
+                    type="number" 
+                    step="0.01"
+                    placeholder="0.00" 
+                    value={formData.otherExpense}
+                    onChange={(e) => setFormData({...formData, otherExpense: e.target.value})}
+                  />
+                </div>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="foodExpense">Alimentação (R$)</Label>
-                <Input 
-                  id="foodExpense" 
-                  type="number" 
-                  placeholder="0.00" 
-                  value={formData.foodExpense}
-                  onChange={(e) => setFormData({...formData, foodExpense: e.target.value})}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="otherExpense">Outros Custos (R$)</Label>
-                <Input 
-                  id="otherExpense" 
-                  type="number" 
-                  placeholder="0.00" 
-                  value={formData.otherExpense}
-                  onChange={(e) => setFormData({...formData, otherExpense: e.target.value})}
-                />
-              </div>
-            </div>
-          </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="ghost" onClick={() => setShowFinishDialog(false)}>CANCELAR</Button>
-            <Button onClick={handleFinishSessionSubmit} disabled={loading} className="font-bold">
-              {loading ? <Loader2 className="animate-spin mr-2" /> : null}
-              CONFIRMAR E FINALIZAR
-            </Button>
-          </DialogFooter>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button type="button" variant="ghost" onClick={() => setShowFinishDialog(false)}>CANCELAR</Button>
+              <Button type="submit" disabled={loading} className="font-bold">
+                {loading ? <Loader2 className="animate-spin mr-2 w-4 h-4" /> : null}
+                CONFIRMAR E FINALIZAR
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>
