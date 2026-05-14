@@ -31,6 +31,7 @@ import {
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
 import Link from 'next/link';
+import { format, startOfWeek, endOfWeek } from 'date-fns';
 
 const StatCard = ({ title, value, subtext, icon: Icon, colorClass }: any) => (
   <Card className="border-border/50 bg-card/40 hover:bg-card/60 transition-colors">
@@ -52,36 +53,23 @@ const StatCard = ({ title, value, subtext, icon: Icon, colorClass }: any) => (
 export default function Dashboard() {
   const [filter, setFilter] = useState('Semana Atual');
   const [loading, setLoading] = useState(true);
-  const [shifts, setShifts] = useState<any[]>([]);
-  const [stats, setStats] = useState({
-    totalEarnings: 0,
-    totalProfit: 0,
-    totalFuel: 0,
-    totalKm: 0,
-    margin: 0
-  });
+  const [data, setData] = useState<any>(null);
 
   useEffect(() => {
     async function fetchData() {
       try {
         setLoading(true);
-        const response = await api.get('/shifts');
-        const data = Array.isArray(response.data) ? response.data : [];
-        setShifts(data);
+        
+        // Calcular datas da semana atual (Segunda a Domingo)
+        const now = new Date();
+        const start = startOfWeek(now, { weekStartsOn: 1 });
+        const end = endOfWeek(now, { weekStartsOn: 1 });
+        
+        const startDateStr = format(start, 'yyyy-MM-dd');
+        const endDateStr = format(end, 'yyyy-MM-dd');
 
-        const totalEarnings = data.reduce((acc: number, curr: any) => acc + (Number(curr.totalEarnings) || 0), 0);
-        const totalProfit = data.reduce((acc: number, curr: any) => acc + (Number(curr.netProfit) || 0), 0);
-        const totalKm = data.reduce((acc: number, curr: any) => acc + (Number(curr.totalKm) || 0), 0);
-        const totalFuel = totalEarnings - totalProfit;
-        const margin = totalEarnings > 0 ? (totalProfit / totalEarnings) * 100 : 0;
-
-        setStats({
-          totalEarnings,
-          totalProfit,
-          totalFuel,
-          totalKm,
-          margin
-        });
+        const response = await api.get(`/dashboard?start=${startDateStr}&end=${endDateStr}`);
+        setData(response.data);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
@@ -99,12 +87,20 @@ export default function Dashboard() {
     );
   }
 
-  const chartData = shifts.slice(-7).map((s: any) => ({
-    day: s.date ? new Date(s.date).toLocaleDateString('pt-BR', { weekday: 'short' }) : '-',
-    earnings: Number(s.totalEarnings) || 0,
-    profit: Number(s.netProfit) || 0,
+  const summary = data?.summary || {};
+  const days = data?.days || {};
+  
+  // Mapear dados do gráfico a partir do objeto 'days'
+  const chartData = Object.entries(days).map(([date, dayData]: [string, any]) => ({
+    day: dayData.dayName.split('-')[0].substring(0, 3), // Pegar as 3 primeiras letras do dia
+    earnings: dayData.financial?.grossAmount || 0,
+    profit: dayData.financial?.netProfit || 0,
     color: '#10B981'
   }));
+
+  const margin = summary.grossAmount > 0 
+    ? (summary.netProfit / summary.grossAmount) * 100 
+    : 0;
 
   return (
     <div className="p-6 space-y-8 animate-in fade-in duration-500">
@@ -122,7 +118,6 @@ export default function Dashboard() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => setFilter('Semana Atual')}>Semana Atual</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setFilter('Semana Anterior')}>Semana Anterior</DropdownMenuItem>
             <DropdownMenuItem onClick={() => setFilter('Mês Atual')}>Mês Atual</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -131,28 +126,28 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 gap-4">
         <StatCard 
           title="Ganho Bruto" 
-          value={`R$ ${(stats.totalEarnings || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} 
-          subtext="Baseado em dados reais" 
+          value={`R$ ${(summary.grossAmount || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} 
+          subtext="Total recebido das plataformas" 
           icon={DollarSign} 
           colorClass="text-primary"
         />
         <StatCard 
           title="Lucro Líquido" 
-          value={`R$ ${(stats.totalProfit || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} 
-          subtext={`${(stats.margin || 0).toFixed(0)}% de margem`} 
+          value={`R$ ${(summary.netProfit || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} 
+          subtext={`${margin.toFixed(0)}% de margem`} 
           icon={TrendingUp} 
           colorClass="text-accent"
         />
         <StatCard 
-          title="Custo Estimado" 
-          value={`R$ ${(stats.totalFuel || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} 
-          subtext="Combustível e Manutenção" 
+          title="Custos Totais" 
+          value={`R$ ${(summary.totalExpenses || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} 
+          subtext="Combustível, Manutenção e outros" 
           icon={Fuel} 
           colorClass="text-orange-400"
         />
         <StatCard 
           title="KM Rodados" 
-          value={`${stats.totalKm || 0} km`} 
+          value={`${(summary.totalKm || 0).toFixed(1)} km`} 
           subtext="Total no período" 
           icon={Route} 
           colorClass="text-blue-400"
@@ -161,7 +156,7 @@ export default function Dashboard() {
 
       <Card className="border-border/50 bg-card/40">
         <CardHeader className="p-4 pb-0">
-          <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Desempenho Recente</CardTitle>
+          <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Ganhos por Dia</CardTitle>
         </CardHeader>
         <CardContent className="p-4 pt-4 h-[200px]">
           {chartData.length > 0 ? (
@@ -172,6 +167,7 @@ export default function Dashboard() {
                 <Tooltip 
                   contentStyle={{ backgroundColor: '#0D1011', border: '1px solid #1E293B', borderRadius: '8px' }}
                   itemStyle={{ color: '#10B981' }}
+                  formatter={(value: any) => [`R$ ${Number(value).toFixed(2)}`, 'Ganhos']}
                 />
                 <Bar dataKey="earnings" radius={[4, 4, 0, 0]}>
                   {chartData.map((entry, index) => (
@@ -190,33 +186,33 @@ export default function Dashboard() {
 
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="font-headline font-semibold">Últimos Corres</h3>
-          <Button variant="link" className="text-primary p-0 h-auto" asChild>
-            <Link href="/history">Ver tudo</Link>
-          </Button>
+          <h3 className="font-headline font-semibold">Resumo de Horas</h3>
+          <div className="flex items-center gap-2 text-primary font-bold">
+            <Clock className="w-4 h-4" />
+            <span>{(summary.totalHours || 0).toFixed(1)}h trabalhadas</span>
+          </div>
         </div>
-        <div className="space-y-3">
-          {shifts.slice(0, 3).map((shift, i) => (
-            <div key={i} className="flex items-center justify-between p-4 rounded-xl border border-border/50 bg-card/20">
-              <div className="space-y-1">
-                <p className="text-sm font-medium">
-                  {shift.date ? new Date(shift.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : '-'}
-                </p>
-                <div className="flex items-center gap-3 text-[10px] text-muted-foreground uppercase tracking-wider">
-                  <span className="flex items-center gap-1"><Route className="w-3 h-3" /> {Number(shift.totalKm) || 0}km</span>
-                  <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {Number(shift.totalHours) || 0}h</span>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-primary font-bold">R$ {(Number(shift.netProfit) || 0).toFixed(2)}</p>
-                <p className="text-[10px] text-muted-foreground">Lucro Líquido</p>
-              </div>
-            </div>
-          ))}
-          {shifts.length === 0 && (
-            <p className="text-center py-4 text-muted-foreground text-sm">Nenhum turno registrado ainda.</p>
-          )}
+        
+        <div className="p-4 rounded-xl border border-border/50 bg-card/20 space-y-3">
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-muted-foreground">Ganhos por Hora</span>
+            <span className="font-bold text-primary">
+              R$ {summary.totalHours > 0 ? (summary.grossAmount / summary.totalHours).toFixed(2) : '0.00'}/h
+            </span>
+          </div>
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-muted-foreground">Ganhos por KM</span>
+            <span className="font-bold text-blue-400">
+              R$ {summary.totalKm > 0 ? (summary.grossAmount / summary.totalKm).toFixed(2) : '0.00'}/km
+            </span>
+          </div>
         </div>
+      </div>
+
+      <div className="flex justify-center pb-4">
+        <Button variant="link" className="text-primary p-0 h-auto" asChild>
+          <Link href="/history">Ver Histórico Completo</Link>
+        </Button>
       </div>
     </div>
   );
