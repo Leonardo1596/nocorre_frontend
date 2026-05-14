@@ -3,16 +3,38 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Play, Pause, StopCircle, Car, Timer, Zap } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription,
+  DialogFooter
+} from '@/components/ui/dialog';
+import { Play, Pause, StopCircle, Car, Timer, Zap, Loader2 } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import api from '@/lib/api';
 
 export default function ShiftPage() {
   const { currentShift, setCurrentShift, currentSession, setCurrentSession } = useApp();
   const { toast } = useToast();
+  
   const [elapsed, setElapsed] = useState(0);
   const [sessionElapsed, setSessionElapsed] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [showFinishDialog, setShowFinishDialog] = useState(false);
+
+  // Form for finishing session
+  const [formData, setFormData] = useState({
+    grossAmount: '',
+    foodExpense: '',
+    otherExpense: '',
+    productiveKm: ''
+  });
 
   useEffect(() => {
     let interval: any;
@@ -21,6 +43,8 @@ export default function ShiftPage() {
         const start = new Date(currentShift.startTime!).getTime();
         setElapsed(Math.floor((Date.now() - start) / 1000));
       }, 1000);
+    } else {
+      setElapsed(0);
     }
     return () => clearInterval(interval);
   }, [currentShift]);
@@ -32,6 +56,8 @@ export default function ShiftPage() {
         const start = new Date(currentSession.startTime!).getTime();
         setSessionElapsed(Math.floor((Date.now() - start) / 1000));
       }, 1000);
+    } else {
+      setSessionElapsed(0);
     }
     return () => clearInterval(interval);
   }, [currentSession]);
@@ -43,23 +69,76 @@ export default function ShiftPage() {
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  const startShift = () => {
-    setCurrentShift({ id: 's1', startTime: new Date().toISOString(), isActive: true });
-    toast({ title: "Turno Iniciado", description: "Bom trabalho e dirija com segurança!" });
+  const startShift = async () => {
+    setLoading(true);
+    try {
+      const response = await api.post('/shifts/start');
+      setCurrentShift({ 
+        id: response.data.id, 
+        startTime: new Date().toISOString(), 
+        isActive: true 
+      });
+      toast({ title: "Turno Iniciado", description: "Bom trabalho e dirija com segurança!" });
+    } catch (error) {
+      toast({ variant: 'destructive', title: "Erro", description: "Não foi possível iniciar o turno." });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const finishShift = () => {
-    setCurrentShift({ id: null, startTime: null, isActive: false });
-    setCurrentSession({ id: null, startTime: null, isActive: false });
-    toast({ title: "Turno Finalizado", description: "Turno encerrado com sucesso." });
+  const finishShift = async () => {
+    if (!currentShift.id) return;
+    setLoading(true);
+    try {
+      await api.patch(`/shifts/${currentShift.id}/finish`);
+      setCurrentShift({ id: null, startTime: null, isActive: false });
+      setCurrentSession({ id: null, startTime: null, isActive: false });
+      toast({ title: "Turno Finalizado", description: "Turno encerrado com sucesso." });
+    } catch (error) {
+      toast({ variant: 'destructive', title: "Erro", description: "Não foi possível finalizar o turno." });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const startSession = () => {
-    setCurrentSession({ id: 'ses1', startTime: new Date().toISOString(), isActive: true });
+  const startWorkSession = async () => {
+    setLoading(true);
+    try {
+      const response = await api.post('/work-sessions/start');
+      setCurrentSession({ 
+        id: response.data.id, 
+        startTime: new Date().toISOString(), 
+        isActive: true 
+      });
+    } catch (error) {
+      toast({ variant: 'destructive', title: "Erro", description: "Não foi possível iniciar a sessão." });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const finishSession = () => {
-    setCurrentSession({ id: null, startTime: null, isActive: false });
+  const handleFinishSessionSubmit = async () => {
+    if (!currentSession.id) return;
+    setLoading(true);
+    try {
+      const payload = {
+        grossAmount: formData.grossAmount ? Number(formData.grossAmount) : undefined,
+        foodExpense: formData.foodExpense ? Number(formData.foodExpense) : undefined,
+        otherExpense: formData.otherExpense ? Number(formData.otherExpense) : undefined,
+        productiveKm: formData.productiveKm ? Number(formData.productiveKm) : undefined,
+      };
+
+      await api.patch(`/work-sessions/${currentSession.id}/finish`, payload);
+      
+      setCurrentSession({ id: null, startTime: null, isActive: false });
+      setShowFinishDialog(false);
+      setFormData({ grossAmount: '', foodExpense: '', otherExpense: '', productiveKm: '' });
+      toast({ title: "Sessão Finalizada", description: "Dados da sessão salvos com sucesso." });
+    } catch (error) {
+      toast({ variant: 'destructive', title: "Erro", description: "Não foi possível salvar os dados da sessão." });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -75,9 +154,10 @@ export default function ShiftPage() {
       {!currentShift.isActive ? (
         <Button 
           onClick={startShift} 
+          disabled={loading}
           className="w-full h-16 text-lg font-headline font-bold gap-3 rounded-2xl shadow-lg shadow-primary/20"
         >
-          <Play className="fill-current" />
+          {loading ? <Loader2 className="animate-spin" /> : <Play className="fill-current" />}
           COMEÇAR TURNO
         </Button>
       ) : (
@@ -119,13 +199,15 @@ export default function ShiftPage() {
 
               <div className="grid grid-cols-2 gap-4 pt-2">
                 <div className="space-y-1">
-                  <p className="text-[10px] text-muted-foreground uppercase">Lucro Estimado</p>
-                  <p className="text-lg font-bold">R$ --</p>
+                  <p className="text-[10px] text-muted-foreground uppercase">ID do Turno</p>
+                  <p className="text-xs font-mono text-muted-foreground truncate max-w-[100px]">{currentShift.id}</p>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-[10px] text-muted-foreground uppercase">KM Estimado</p>
-                  <p className="text-lg font-bold">-- km</p>
-                </div>
+                {currentSession.isActive && (
+                  <div className="space-y-1">
+                    <p className="text-[10px] text-muted-foreground uppercase">ID da Sessão</p>
+                    <p className="text-xs font-mono text-muted-foreground truncate max-w-[100px]">{currentSession.id}</p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -133,16 +215,18 @@ export default function ShiftPage() {
           <div className="grid grid-cols-1 gap-4 pt-4">
             {!currentSession.isActive ? (
               <Button 
-                onClick={startSession}
+                onClick={startWorkSession}
+                disabled={loading}
                 className="w-full h-16 bg-accent hover:bg-accent/90 text-accent-foreground font-headline font-bold gap-3 rounded-2xl"
               >
-                <Timer className="w-6 h-6" />
+                {loading ? <Loader2 className="animate-spin" /> : <Timer className="w-6 h-6" />}
                 INICIAR TRABALHO
               </Button>
             ) : (
               <Button 
-                onClick={finishSession}
+                onClick={() => setShowFinishDialog(true)}
                 variant="secondary"
+                disabled={loading}
                 className="w-full h-16 font-headline font-bold gap-3 rounded-2xl"
               >
                 <Pause className="w-6 h-6" />
@@ -153,14 +237,82 @@ export default function ShiftPage() {
             <Button 
               onClick={finishShift}
               variant="outline"
+              disabled={loading || currentSession.isActive}
               className="w-full h-14 border-destructive/50 text-destructive hover:bg-destructive/10 font-headline font-bold gap-3 rounded-2xl"
             >
-              <StopCircle className="w-5 h-5" />
+              {loading ? <Loader2 className="animate-spin" /> : <StopCircle className="w-5 h-5" />}
               FINALIZAR TURNO
             </Button>
+            {currentSession.isActive && (
+              <p className="text-[10px] text-center text-muted-foreground">Finalize o trabalho antes de encerrar o turno.</p>
+            )}
           </div>
         </div>
       )}
+
+      <Dialog open={showFinishDialog} onOpenChange={setShowFinishDialog}>
+        <DialogContent className="max-w-[90vw] rounded-2xl bg-card border-border/50">
+          <DialogHeader>
+            <DialogTitle className="font-headline">Finalizar Sessão de Trabalho</DialogTitle>
+            <DialogDescription>Insira os dados deste período de trabalho (opcional).</DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="grossAmount">Ganho Bruto (R$)</Label>
+                <Input 
+                  id="grossAmount" 
+                  type="number" 
+                  placeholder="0.00" 
+                  value={formData.grossAmount}
+                  onChange={(e) => setFormData({...formData, grossAmount: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="productiveKm">KM Rodados</Label>
+                <Input 
+                  id="productiveKm" 
+                  type="number" 
+                  placeholder="0.0" 
+                  value={formData.productiveKm}
+                  onChange={(e) => setFormData({...formData, productiveKm: e.target.value})}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="foodExpense">Alimentação (R$)</Label>
+                <Input 
+                  id="foodExpense" 
+                  type="number" 
+                  placeholder="0.00" 
+                  value={formData.foodExpense}
+                  onChange={(e) => setFormData({...formData, foodExpense: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="otherExpense">Outros Custos (R$)</Label>
+                <Input 
+                  id="otherExpense" 
+                  type="number" 
+                  placeholder="0.00" 
+                  value={formData.otherExpense}
+                  onChange={(e) => setFormData({...formData, otherExpense: e.target.value})}
+                />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="ghost" onClick={() => setShowFinishDialog(false)}>CANCELAR</Button>
+            <Button onClick={handleFinishSessionSubmit} disabled={loading} className="font-bold">
+              {loading ? <Loader2 className="animate-spin mr-2" /> : null}
+              CONFIRMAR E FINALIZAR
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -29,6 +29,7 @@ interface AppContextType {
   setCurrentShift: (shift: ShiftState) => void;
   currentSession: SessionState;
   setCurrentSession: (session: SessionState) => void;
+  resetApp: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -54,6 +55,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     isActive: false,
   });
 
+  const [isInitialized, setIsInitialized] = useState(false);
+
   useEffect(() => {
     const savedVehicle = localStorage.getItem('nocorre_vehicle');
     if (savedVehicle) setVehicle(JSON.parse(savedVehicle));
@@ -63,20 +66,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const savedSession = localStorage.getItem('nocorre_session');
     if (savedSession) setCurrentSession(JSON.parse(savedSession));
+    
+    setIsInitialized(true);
   }, []);
+
+  useEffect(() => {
+    if (isInitialized) {
+      localStorage.setItem('nocorre_shift', JSON.stringify(currentShift));
+    }
+  }, [currentShift, isInitialized]);
+
+  useEffect(() => {
+    if (isInitialized) {
+      localStorage.setItem('nocorre_session', JSON.stringify(currentSession));
+    }
+  }, [currentSession, isInitialized]);
 
   const updateVehicle = (config: VehicleConfig) => {
     setVehicle(config);
     localStorage.setItem('nocorre_vehicle', JSON.stringify(config));
   };
 
-  useEffect(() => {
-    localStorage.setItem('nocorre_shift', JSON.stringify(currentShift));
-  }, [currentShift]);
-
-  useEffect(() => {
-    localStorage.setItem('nocorre_session', JSON.stringify(currentSession));
-  }, [currentSession]);
+  const resetApp = () => {
+    setCurrentShift({ id: null, startTime: null, isActive: false });
+    setCurrentSession({ id: null, startTime: null, isActive: false });
+    localStorage.removeItem('nocorre_shift');
+    localStorage.removeItem('nocorre_session');
+  };
 
   return (
     <AppContext.Provider value={{ 
@@ -85,7 +101,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       currentShift, 
       setCurrentShift, 
       currentSession, 
-      setCurrentSession 
+      setCurrentSession,
+      resetApp
     }}>
       {children}
     </AppContext.Provider>
