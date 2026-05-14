@@ -21,6 +21,7 @@ interface SessionState {
   id: string | null;
   startTime: string | null;
   isActive: boolean;
+  isPaused: boolean;
 }
 
 interface AppContextType {
@@ -54,6 +55,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     id: null,
     startTime: null,
     isActive: false,
+    isPaused: false,
   });
 
   const [isInitialized, setIsInitialized] = useState(false);
@@ -99,7 +101,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const resetApp = () => {
     setCurrentShift({ id: null, startTime: null, isActive: false });
-    setCurrentSession({ id: null, startTime: null, isActive: false });
+    setCurrentSession({ id: null, startTime: null, isActive: false, isPaused: false });
     localStorage.removeItem('nocorre_shift');
     localStorage.removeItem('nocorre_session');
   };

@@ -14,7 +14,7 @@ import {
   DialogDescription,
   DialogFooter
 } from '@/components/ui/dialog';
-import { Play, Pause, StopCircle, Car, Timer, Zap, Loader2 } from 'lucide-react';
+import { Play, Pause, StopCircle, Car, Timer, Zap, Loader2, RefreshCw } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -52,13 +52,12 @@ export default function ShiftPage() {
 
   useEffect(() => {
     let interval: any;
-    if (currentSession.isActive && currentSession.startTime) {
+    // Só incrementa se estiver ativo e NÃO pausado
+    if (currentSession.isActive && currentSession.startTime && !currentSession.isPaused) {
       interval = setInterval(() => {
         const start = new Date(currentSession.startTime!).getTime();
         setSessionElapsed(Math.floor((Date.now() - start) / 1000));
       }, 1000);
-    } else {
-      setSessionElapsed(0);
     }
     return () => clearInterval(interval);
   }, [currentSession]);
@@ -99,7 +98,7 @@ export default function ShiftPage() {
     try {
       await api.patch(`/shifts/${currentShift.id}/finish`);
       setCurrentShift({ id: null, startTime: null, isActive: false });
-      setCurrentSession({ id: null, startTime: null, isActive: false });
+      setCurrentSession({ id: null, startTime: null, isActive: false, isPaused: false });
       toast({ title: "Turno Finalizado", description: "Turno encerrado com sucesso." });
     } catch (error) {
       console.error(error);
@@ -118,12 +117,43 @@ export default function ShiftPage() {
       setCurrentSession({ 
         id: id, 
         startTime: new Date().toISOString(), 
-        isActive: true 
+        isActive: true,
+        isPaused: false
       });
       toast({ title: "Trabalho Iniciado", description: "Sessão produtiva ativa." });
     } catch (error) {
       console.error(error);
       toast({ variant: 'destructive', title: "Erro", description: "Não foi possível iniciar a sessão." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const pauseWorkSession = async () => {
+    if (!currentSession.id) return;
+    setLoading(true);
+    try {
+      await api.patch(`/work-sessions/${currentSession.id}/pause`);
+      setCurrentSession({ ...currentSession, isPaused: true });
+      toast({ title: "Trabalho Pausado", description: "A sessão foi pausada." });
+    } catch (error) {
+      console.error(error);
+      toast({ variant: 'destructive', title: "Erro", description: "Não foi possível pausar a sessão." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resumeWorkSession = async () => {
+    if (!currentSession.id) return;
+    setLoading(true);
+    try {
+      await api.patch(`/work-sessions/${currentSession.id}/resume`);
+      setCurrentSession({ ...currentSession, isPaused: false });
+      toast({ title: "Trabalho Retomado", description: "Bom trabalho!" });
+    } catch (error) {
+      console.error(error);
+      toast({ variant: 'destructive', title: "Erro", description: "Não foi possível retomar a sessão." });
     } finally {
       setLoading(false);
     }
@@ -148,7 +178,7 @@ export default function ShiftPage() {
 
       await api.patch(`/work-sessions/${currentSession.id}/finish`, payload);
       
-      setCurrentSession({ id: null, startTime: null, isActive: false });
+      setCurrentSession({ id: null, startTime: null, isActive: false, isPaused: false });
       setShowFinishDialog(false);
       setFormData({ grossAmount: '', foodExpense: '', otherExpense: '', productiveKm: '' });
       toast({ title: "Sessão Finalizada", description: "Dados da sessão salvos com sucesso." });
@@ -205,14 +235,18 @@ export default function ShiftPage() {
                 <div>
                   <h3 className="font-headline font-bold text-lg">Status Atual</h3>
                   <p className="text-sm text-muted-foreground">
-                    {currentSession.isActive ? 'Você está em uma sessão de trabalho' : 'Turno iniciado, aguardando sessão'}
+                    {currentSession.isActive 
+                      ? (currentSession.isPaused ? 'Trabalho Pausado' : 'Você está em uma sessão de trabalho') 
+                      : 'Turno iniciado, aguardando sessão'}
                   </p>
                 </div>
                 <div className={cn(
                   "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider",
-                  currentSession.isActive ? "bg-accent text-accent-foreground" : "bg-primary/20 text-primary"
+                  currentSession.isActive 
+                    ? (currentSession.isPaused ? "bg-orange-500/20 text-orange-500" : "bg-accent text-accent-foreground")
+                    : "bg-primary/20 text-primary"
                 )}>
-                  {currentSession.isActive ? 'Em Trabalho' : 'Aguardando'}
+                  {currentSession.isActive ? (currentSession.isPaused ? 'Pausado' : 'Em Trabalho') : 'Aguardando'}
                 </div>
               </div>
 
@@ -242,15 +276,29 @@ export default function ShiftPage() {
                 INICIAR TRABALHO
               </Button>
             ) : (
-              <Button 
-                onClick={() => setShowFinishDialog(true)}
-                variant="secondary"
-                disabled={loading}
-                className="w-full h-16 font-headline font-bold gap-3 rounded-2xl"
-              >
-                <Pause className="w-6 h-6" />
-                FINALIZAR TRABALHO
-              </Button>
+              <div className="grid grid-cols-2 gap-3">
+                <Button 
+                  onClick={currentSession.isPaused ? resumeWorkSession : pauseWorkSession}
+                  disabled={loading}
+                  variant="outline"
+                  className={cn(
+                    "h-16 font-headline font-bold gap-2 rounded-2xl",
+                    currentSession.isPaused ? "border-primary text-primary hover:bg-primary/10" : "border-orange-500 text-orange-500 hover:bg-orange-500/10"
+                  )}
+                >
+                  {loading ? <Loader2 className="animate-spin" /> : (currentSession.isPaused ? <Play className="w-5 h-5" /> : <Pause className="w-5 h-5" />)}
+                  {currentSession.isPaused ? 'RETOMAR' : 'PAUSAR'}
+                </Button>
+                <Button 
+                  onClick={() => setShowFinishDialog(true)}
+                  variant="secondary"
+                  disabled={loading}
+                  className="h-16 font-headline font-bold gap-2 rounded-2xl"
+                >
+                  <StopCircle className="w-5 h-5" />
+                  FINALIZAR
+                </Button>
+              </div>
             )}
 
             <Button 

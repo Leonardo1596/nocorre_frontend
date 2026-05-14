@@ -109,6 +109,7 @@ export default function Dashboard() {
   const totalExpenses = Number(summary.totalExpenses || 0);
   const totalKm = Number(summary.totalKm || 0);
   const totalHours = Number(summary.totalHours || 0);
+  const productiveHours = Number(summary.productiveHours || 0);
 
   const margin = grossAmount > 0 ? (netProfit / grossAmount) * 100 : 0;
 
@@ -199,7 +200,7 @@ export default function Dashboard() {
           <h3 className="font-headline font-semibold">Resumo de Horas</h3>
           <div className="flex items-center gap-2 text-primary font-bold">
             <Clock className="w-4 h-4" />
-            <span>{formatHours(totalHours)} trabalhadas</span>
+            <span>{formatHours(productiveHours)} trabalhadas</span>
           </div>
         </div>
         
