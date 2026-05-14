@@ -39,6 +39,7 @@ function formatHours(hours: number) {
   const h = Math.floor(totalMinutes / 60);
   const m = totalMinutes % 60;
   if (h === 0) return `${m}min`;
+  if (m === 0) return `${h}h`;
   return `${h}h ${m}min`;
 }
 
@@ -196,17 +197,24 @@ export default function Dashboard() {
       </Card>
 
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="font-headline font-semibold">Resumo de Horas</h3>
-          <div className="flex items-center gap-2 text-primary font-bold">
-            <Clock className="w-4 h-4" />
-            <span>{formatHours(productiveHours)} trabalhadas</span>
+        <h3 className="font-headline font-semibold">Resumo de Tempo</h3>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div className="p-4 rounded-xl border border-border/50 bg-card/20 flex flex-col items-center gap-1 text-center">
+             <Clock className="w-4 h-4 text-primary mb-1" />
+             <span className="text-xl font-bold text-primary">{formatHours(productiveHours)}</span>
+             <span className="text-[10px] text-muted-foreground uppercase font-medium">Trabalhadas</span>
+          </div>
+          <div className="p-4 rounded-xl border border-border/50 bg-card/20 flex flex-col items-center gap-1 text-center">
+             <Clock className="w-4 h-4 text-blue-400 mb-1" />
+             <span className="text-xl font-bold text-blue-400">{formatHours(totalHours)}</span>
+             <span className="text-[10px] text-muted-foreground uppercase font-medium">Horas Ativas</span>
           </div>
         </div>
         
         <div className="p-4 rounded-xl border border-border/50 bg-card/20 space-y-3">
           <div className="flex justify-between items-center text-sm">
-            <span className="text-muted-foreground">Ganhos por Hora</span>
+            <span className="text-muted-foreground">Ganhos por Hora Ativa</span>
             <span className="font-bold text-primary">
               R$ {totalHours > 0 ? (grossAmount / totalHours).toFixed(2) : '0.00'}/h
             </span>
