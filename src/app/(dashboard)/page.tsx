@@ -10,7 +10,8 @@ import {
   Route, 
   Clock, 
   Filter,
-  Loader2
+  Loader2,
+  Percent
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -211,19 +212,41 @@ export default function Dashboard() {
              <span className="text-[10px] text-muted-foreground uppercase font-medium">Horas Ativas</span>
           </div>
         </div>
-        
-        <div className="p-4 rounded-xl border border-border/50 bg-card/20 space-y-3">
-          <div className="flex justify-between items-center text-sm">
-            <span className="text-muted-foreground">Ganhos por Hora Trabalhada</span>
-            <span className="font-bold text-primary">
-              R$ {productiveHours > 0 ? (grossAmount / productiveHours).toFixed(2) : '0.00'}/h
-            </span>
-          </div>
-          <div className="flex justify-between items-center text-sm">
-            <span className="text-muted-foreground">Ganhos por KM</span>
-            <span className="font-bold text-blue-400">
-              R$ {totalKm > 0 ? (grossAmount / totalKm).toFixed(2) : '0.00'}/km
-            </span>
+
+        <h3 className="font-headline font-semibold pt-2">Métricas de Eficiência</h3>
+        <div className="grid grid-cols-1 gap-4">
+          <div className="p-4 rounded-xl border border-border/50 bg-card/20 space-y-4">
+            <div className="space-y-3">
+              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Base: Ganho Bruto</p>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">Ganho Bruto / Hora Trabalhada</span>
+                <span className="font-bold text-primary">
+                  R$ {productiveHours > 0 ? (grossAmount / productiveHours).toFixed(2) : '0.00'}/h
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">Ganho Bruto / KM</span>
+                <span className="font-bold text-blue-400">
+                  R$ {totalKm > 0 ? (grossAmount / totalKm).toFixed(2) : '0.00'}/km
+                </span>
+              </div>
+            </div>
+
+            <div className="pt-2 space-y-3 border-t border-white/5">
+              <p className="text-[10px] text-accent uppercase font-bold tracking-widest">Base: Lucro Líquido</p>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">Lucro Líquido / Hora Trabalhada</span>
+                <span className="font-bold text-accent">
+                  R$ {productiveHours > 0 ? (netProfit / productiveHours).toFixed(2) : '0.00'}/h
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">Lucro Líquido / KM</span>
+                <span className="font-bold text-accent">
+                  R$ {totalKm > 0 ? (netProfit / totalKm).toFixed(2) : '0.00'}/km
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
