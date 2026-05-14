@@ -3,9 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Play, Pause, StopCircle, Car, Timer, Zap, MapPin } from 'lucide-react';
+import { Play, Pause, StopCircle, Car, Timer, Zap } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 export default function ShiftPage() {
   const { currentShift, setCurrentShift, currentSession, setCurrentSession } = useApp();
@@ -15,7 +16,7 @@ export default function ShiftPage() {
 
   useEffect(() => {
     let interval: any;
-    if (currentShift.isActive) {
+    if (currentShift.isActive && currentShift.startTime) {
       interval = setInterval(() => {
         const start = new Date(currentShift.startTime!).getTime();
         setElapsed(Math.floor((Date.now() - start) / 1000));
@@ -26,7 +27,7 @@ export default function ShiftPage() {
 
   useEffect(() => {
     let interval: any;
-    if (currentSession.isActive) {
+    if (currentSession.isActive && currentSession.startTime) {
       interval = setInterval(() => {
         const start = new Date(currentSession.startTime!).getTime();
         setSessionElapsed(Math.floor((Date.now() - start) / 1000));
@@ -119,11 +120,11 @@ export default function ShiftPage() {
               <div className="grid grid-cols-2 gap-4 pt-2">
                 <div className="space-y-1">
                   <p className="text-[10px] text-muted-foreground uppercase">Lucro Estimado</p>
-                  <p className="text-lg font-bold">R$ 45,20</p>
+                  <p className="text-lg font-bold">R$ --</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-[10px] text-muted-foreground uppercase">KM Estimado</p>
-                  <p className="text-lg font-bold">32.4 km</p>
+                  <p className="text-lg font-bold">-- km</p>
                 </div>
               </div>
             </CardContent>

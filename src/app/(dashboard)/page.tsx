@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useEffect } from 'react';
@@ -59,8 +58,6 @@ export default function Dashboard() {
     async function fetchData() {
       try {
         setLoading(true);
-        
-        // Calcular datas da semana atual (Segunda a Domingo)
         const now = new Date();
         const start = startOfWeek(now, { weekStartsOn: 1 });
         const end = endOfWeek(now, { weekStartsOn: 1 });
@@ -90,16 +87,15 @@ export default function Dashboard() {
   const summary = data?.summary || {};
   const days = data?.days || {};
   
-  // Mapear dados do gráfico a partir do objeto 'days'
   const chartData = Object.entries(days).map(([date, dayData]: [string, any]) => ({
-    day: dayData.dayName.split('-')[0].substring(0, 3), // Pegar as 3 primeiras letras do dia
+    day: dayData.dayName ? dayData.dayName.split('-')[0].substring(0, 3) : date.substring(8, 10),
     earnings: dayData.financial?.grossAmount || 0,
     profit: dayData.financial?.netProfit || 0,
     color: '#10B981'
   }));
 
-  const margin = summary.grossAmount > 0 
-    ? (summary.netProfit / summary.grossAmount) * 100 
+  const margin = (summary.grossAmount || 0) > 0 
+    ? ((summary.netProfit || 0) / (summary.grossAmount || 1)) * 100 
     : 0;
 
   return (
@@ -197,13 +193,13 @@ export default function Dashboard() {
           <div className="flex justify-between items-center text-sm">
             <span className="text-muted-foreground">Ganhos por Hora</span>
             <span className="font-bold text-primary">
-              R$ {summary.totalHours > 0 ? (summary.grossAmount / summary.totalHours).toFixed(2) : '0.00'}/h
+              R$ {(summary.totalHours || 0) > 0 ? ((summary.grossAmount || 0) / summary.totalHours).toFixed(2) : '0.00'}/h
             </span>
           </div>
           <div className="flex justify-between items-center text-sm">
             <span className="text-muted-foreground">Ganhos por KM</span>
             <span className="font-bold text-blue-400">
-              R$ {summary.totalKm > 0 ? (summary.grossAmount / summary.totalKm).toFixed(2) : '0.00'}/km
+              R$ {(summary.totalKm || 0) > 0 ? ((summary.grossAmount || 0) / summary.totalKm).toFixed(2) : '0.00'}/km
             </span>
           </div>
         </div>
