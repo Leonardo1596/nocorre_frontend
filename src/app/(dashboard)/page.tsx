@@ -214,9 +214,9 @@ export default function Dashboard() {
         
         <div className="p-4 rounded-xl border border-border/50 bg-card/20 space-y-3">
           <div className="flex justify-between items-center text-sm">
-            <span className="text-muted-foreground">Ganhos por Hora Ativa</span>
+            <span className="text-muted-foreground">Ganhos por Hora Trabalhada</span>
             <span className="font-bold text-primary">
-              R$ {totalHours > 0 ? (grossAmount / totalHours).toFixed(2) : '0.00'}/h
+              R$ {productiveHours > 0 ? (grossAmount / productiveHours).toFixed(2) : '0.00'}/h
             </span>
           </div>
           <div className="flex justify-between items-center text-sm">
