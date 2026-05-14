@@ -15,6 +15,15 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import api from '@/lib/api';
 
+// Função para formatar horas decimais (ex: 0.25 -> 15min)
+function formatHours(hours: number) {
+  const totalMinutes = Math.round((hours || 0) * 60);
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  if (h === 0) return `${m}min`;
+  return `${h}h ${m}min`;
+}
+
 export default function HistoryPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
@@ -65,13 +74,13 @@ export default function HistoryPage() {
         <div className="space-y-4">
           {filtered.length > 0 ? filtered.map((shift) => {
             const date = shift.date ? new Date(shift.date) : null;
-            const netProfit = Number(shift.netProfit) || 0;
-            const totalKm = Number(shift.totalKm) || 0;
-            const totalHours = Number(shift.totalHours) || 0;
-            const earningsPerHour = Number(shift.earningsPerHour) || 0;
+            const netProfit = Number(shift.netProfit || 0);
+            const totalKm = Number(shift.totalKm || 0);
+            const totalHours = Number(shift.totalHours || 0);
+            const earningsPerHour = Number(shift.earningsPerHour || 0);
 
             return (
-              <Card key={shift.id} className="border-border/50 bg-card/20 hover:bg-card/40 transition-colors cursor-pointer">
+              <Card key={shift.id || shift._id} className="border-border/50 bg-card/20 hover:bg-card/40 transition-colors cursor-pointer">
                 <CardContent className="p-4 flex items-center justify-between">
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
@@ -85,8 +94,8 @@ export default function HistoryPage() {
                       )}
                     </div>
                     <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
-                      <span className="flex items-center gap-1"><Route className="w-3 h-3" /> {totalKm} km</span>
-                      <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {totalHours}h</span>
+                      <span className="flex items-center gap-1"><Route className="w-3 h-3" /> {totalKm.toFixed(1)} km</span>
+                      <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {formatHours(totalHours)}</span>
                       <span className="flex items-center gap-1"><TrendingUp className="w-3 h-3" /> R$ {earningsPerHour.toFixed(2)}/h</span>
                     </div>
                   </div>

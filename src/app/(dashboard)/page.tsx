@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useEffect } from 'react';
@@ -31,6 +32,15 @@ import { cn } from '@/lib/utils';
 import api from '@/lib/api';
 import Link from 'next/link';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
+
+// Função para formatar horas decimais (ex: 0.25 -> 15min)
+function formatHours(hours: number) {
+  const totalMinutes = Math.round((hours || 0) * 60);
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  if (h === 0) return `${m}min`;
+  return `${h}h ${m}min`;
+}
 
 const StatCard = ({ title, value, subtext, icon: Icon, colorClass }: any) => (
   <Card className="border-border/50 bg-card/40 hover:bg-card/60 transition-colors">
@@ -86,7 +96,7 @@ export default function Dashboard() {
 
   const summary = data?.summary || {};
   const days = data?.days || {};
-  
+
   const chartData = Object.entries(days).map(([date, dayData]: [string, any]) => ({
     day: dayData.dayName ? dayData.dayName.split('-')[0].substring(0, 3) : date.substring(8, 10),
     earnings: dayData.financial?.grossAmount || 0,
@@ -94,9 +104,13 @@ export default function Dashboard() {
     color: '#10B981'
   }));
 
-  const margin = (summary.grossAmount || 0) > 0 
-    ? ((summary.netProfit || 0) / (summary.grossAmount || 1)) * 100 
-    : 0;
+  const grossAmount = Number(summary.grossAmount || 0);
+  const netProfit = Number(summary.netProfit || 0);
+  const totalExpenses = Number(summary.totalExpenses || 0);
+  const totalKm = Number(summary.totalKm || 0);
+  const totalHours = Number(summary.totalHours || 0);
+
+  const margin = grossAmount > 0 ? (netProfit / grossAmount) * 100 : 0;
 
   return (
     <div className="p-6 space-y-8 animate-in fade-in duration-500">
@@ -122,28 +136,28 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 gap-4">
         <StatCard 
           title="Ganho Bruto" 
-          value={`R$ ${(summary.grossAmount || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} 
-          subtext="Total recebido das plataformas" 
+          value={`R$ ${grossAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} 
+          subtext="Total recebido" 
           icon={DollarSign} 
           colorClass="text-primary"
         />
         <StatCard 
           title="Lucro Líquido" 
-          value={`R$ ${(summary.netProfit || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} 
+          value={`R$ ${netProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} 
           subtext={`${margin.toFixed(0)}% de margem`} 
           icon={TrendingUp} 
           colorClass="text-accent"
         />
         <StatCard 
           title="Custos Totais" 
-          value={`R$ ${(summary.totalExpenses || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} 
-          subtext="Combustível, Manutenção e outros" 
+          value={`R$ ${totalExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} 
+          subtext="Combustível e Manutenção" 
           icon={Fuel} 
           colorClass="text-orange-400"
         />
         <StatCard 
           title="KM Rodados" 
-          value={`${(summary.totalKm || 0).toFixed(1)} km`} 
+          value={`${totalKm.toFixed(1)} km`} 
           subtext="Total no período" 
           icon={Route} 
           colorClass="text-blue-400"
@@ -185,7 +199,7 @@ export default function Dashboard() {
           <h3 className="font-headline font-semibold">Resumo de Horas</h3>
           <div className="flex items-center gap-2 text-primary font-bold">
             <Clock className="w-4 h-4" />
-            <span>{(summary.totalHours || 0).toFixed(1)}h trabalhadas</span>
+            <span>{formatHours(totalHours)} trabalhadas</span>
           </div>
         </div>
         
@@ -193,13 +207,13 @@ export default function Dashboard() {
           <div className="flex justify-between items-center text-sm">
             <span className="text-muted-foreground">Ganhos por Hora</span>
             <span className="font-bold text-primary">
-              R$ {(summary.totalHours || 0) > 0 ? ((summary.grossAmount || 0) / summary.totalHours).toFixed(2) : '0.00'}/h
+              R$ {totalHours > 0 ? (grossAmount / totalHours).toFixed(2) : '0.00'}/h
             </span>
           </div>
           <div className="flex justify-between items-center text-sm">
             <span className="text-muted-foreground">Ganhos por KM</span>
             <span className="font-bold text-blue-400">
-              R$ {(summary.totalKm || 0) > 0 ? ((summary.grossAmount || 0) / summary.totalKm).toFixed(2) : '0.00'}/km
+              R$ {totalKm > 0 ? (grossAmount / totalKm).toFixed(2) : '0.00'}/km
             </span>
           </div>
         </div>
