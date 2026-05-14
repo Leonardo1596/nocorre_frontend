@@ -1,3 +1,4 @@
+
 "use client"
 
 import React from 'react';
@@ -7,13 +8,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { LogOut, Car, Fuel, Wrench, Coins } from 'lucide-react';
+import { LogOut, Car, Fuel, Wrench, Coins, Moon, Sun, Monitor } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useTheme } from 'next-themes';
 
 export default function SettingsPage() {
   const { vehicle, updateVehicle } = useApp();
   const { logout, user } = useAuth();
   const { toast } = useToast();
+  const { theme, setTheme } = useTheme();
 
   const handleSave = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -44,6 +47,40 @@ export default function SettingsPage() {
         <Button variant="ghost" size="icon" onClick={logout} className="text-destructive">
           <LogOut className="w-5 h-5" />
         </Button>
+      </div>
+
+      <div className="space-y-4">
+        <h3 className="font-headline font-bold flex items-center gap-2">
+          <Monitor className="w-5 h-5 text-primary" /> Preferências Visuais
+        </h3>
+        <Card className="border-border/50 bg-card/40">
+          <CardContent className="p-4 flex items-center justify-around">
+            <Button 
+              variant={theme === 'light' ? 'default' : 'outline'} 
+              size="sm" 
+              className="gap-2"
+              onClick={() => setTheme('light')}
+            >
+              <Sun className="w-4 h-4" /> Light
+            </Button>
+            <Button 
+              variant={theme === 'dark' ? 'default' : 'outline'} 
+              size="sm" 
+              className="gap-2"
+              onClick={() => setTheme('dark')}
+            >
+              <Moon className="w-4 h-4" /> Dark
+            </Button>
+            <Button 
+              variant={theme === 'system' ? 'default' : 'outline'} 
+              size="sm" 
+              className="gap-2"
+              onClick={() => setTheme('system')}
+            >
+              <Monitor className="w-4 h-4" /> Sistema
+            </Button>
+          </CardContent>
+        </Card>
       </div>
 
       <form onSubmit={handleSave} className="space-y-6">
