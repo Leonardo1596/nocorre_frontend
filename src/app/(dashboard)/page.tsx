@@ -11,10 +11,8 @@ import {
   Clock, 
   Filter,
   Loader2,
-  Percent,
   ChevronRight,
   BarChart3,
-  Target,
   ArrowUpRight
 } from 'lucide-react';
 import { 
@@ -24,8 +22,7 @@ import {
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer,
-  Cell,
-  YAxis
+  Cell
 } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { 
@@ -34,7 +31,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
 import Link from 'next/link';
@@ -95,36 +91,6 @@ const OperationCard = ({ title, value, subtext, icon: Icon, colorClass }: any) =
   </Card>
 );
 
-const EfficiencyCard = ({ percentage }: { percentage: number }) => {
-  const getStatus = (p: number) => {
-    if (p >= 80) return { label: 'Excelente', color: 'text-primary', bar: 'bg-primary' };
-    if (p >= 60) return { label: 'Bom', color: 'text-accent', bar: 'bg-accent' };
-    return { label: 'Ajustar', color: 'text-orange-400', bar: 'bg-orange-400' };
-  };
-  const status = getStatus(percentage);
-
-  return (
-    <Card className="border-border/50 bg-card/40">
-      <CardContent className="p-4 space-y-4">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <Target className="w-4 h-4 text-muted-foreground" />
-            <span className="text-[10px] font-bold text-muted-foreground uppercase">Eficiência Operacional</span>
-          </div>
-          <span className={cn("text-xs font-bold", status.color)}>{status.label}</span>
-        </div>
-        <div className="space-y-2">
-          <div className="flex justify-between items-end">
-            <span className="text-2xl font-headline font-bold">{percentage.toFixed(1)}%</span>
-            <span className="text-[10px] text-muted-foreground">Tempo produtivo / ativo</span>
-          </div>
-          <Progress value={percentage} className={cn("h-1.5", status.bar)} />
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
-
 const AnalyticsRow = ({ label, value, sublabel }: any) => (
   <div className="flex justify-between items-center py-3 border-b border-white/5 last:border-0">
     <div className="space-y-0.5">
@@ -176,7 +142,7 @@ export default function Dashboard() {
   const summary = data?.summary || {};
   const days = data?.days || {};
 
-  // Cálculos de Backend/Frontend
+  // Valores financeiros e operacionais
   const grossAmount = Number(summary.grossAmount || 0);
   const netProfit = Number(summary.netProfit || 0);
   const totalExpenses = Number(summary.totalExpenses || 0);
@@ -184,8 +150,7 @@ export default function Dashboard() {
   const totalHours = Number(summary.totalHours || 0);
   const productiveHours = Number(summary.productiveHours || 0);
 
-  // Eficiência e Ratios
-  const efficiency = totalHours > 0 ? (productiveHours / totalHours) * 100 : 0;
+  // Cálculos de Ratios
   const netPerHour = productiveHours > 0 ? netProfit / productiveHours : 0;
   const netPerKm = totalKm > 0 ? netProfit / totalKm : 0;
   const grossPerKm = totalKm > 0 ? grossAmount / totalKm : 0;
@@ -268,21 +233,20 @@ export default function Dashboard() {
             colorClass="text-orange-400"
           />
           <OperationCard 
-            title="Tempo Produtivo" 
+            title="Horas Trabalhadas" 
             value={formatHours(productiveHours)} 
-            subtext="Horas trabalhadas" 
+            subtext="Tempo produtivo" 
             icon={Clock} 
             colorClass="text-blue-400"
           />
           <OperationCard 
-            title="Tempo Ativo" 
+            title="Horas Ativas" 
             value={formatHours(totalHours)} 
-            subtext="Horas em turno" 
+            subtext="Tempo total em turno" 
             icon={Clock} 
             colorClass="text-accent"
           />
         </div>
-        <EfficiencyCard percentage={efficiency} />
       </section>
 
       {/* 3. ANALYTICS */}
