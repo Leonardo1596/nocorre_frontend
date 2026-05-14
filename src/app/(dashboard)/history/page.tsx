@@ -3,10 +3,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Calendar, Route, Clock, Search, ChevronRight, TrendingUp, Loader2 } from 'lucide-react';
+import { Calendar, Route, Clock, Search, ChevronRight, TrendingUp, Loader2 } from 'lucide-center';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import api from '@/lib/api';
+import { Search as SearchIcon, TrendingUp as TrendingIcon } from 'lucide-react';
 
 export default function HistoryPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -17,7 +18,7 @@ export default function HistoryPage() {
     async function fetchHistory() {
       try {
         const response = await api.get('/shifts');
-        setHistory(response.data);
+        setHistory(Array.isArray(response.data) ? response.data : []);
       } catch (error) {
         console.error('Error fetching history:', error);
       } finally {
@@ -28,6 +29,7 @@ export default function HistoryPage() {
   }, []);
 
   const filtered = history.filter(h => {
+    if (!h.date) return false;
     const dateStr = new Date(h.date).toLocaleDateString('pt-BR');
     return dateStr.toLowerCase().includes(searchTerm.toLowerCase());
   });
@@ -40,7 +42,7 @@ export default function HistoryPage() {
       </div>
 
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input 
           placeholder="Buscar por data..." 
           className="pl-10 border-border/50 bg-card/40"
@@ -56,26 +58,30 @@ export default function HistoryPage() {
       ) : (
         <div className="space-y-4">
           {filtered.length > 0 ? filtered.map((shift) => {
-            const date = new Date(shift.date);
+            const date = shift.date ? new Date(shift.date) : null;
             return (
               <Card key={shift.id} className="border-border/50 bg-card/20 hover:bg-card/40 transition-colors cursor-pointer">
                 <CardContent className="p-4 flex items-center justify-between">
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold">{date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-                      <Badge variant="secondary" className="text-[10px] font-normal uppercase tracking-wider">
-                        {date.toLocaleDateString('pt-BR', { weekday: 'long' })}
-                      </Badge>
+                      <span className="text-sm font-bold">
+                        {date ? date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}
+                      </span>
+                      {date && (
+                        <Badge variant="secondary" className="text-[10px] font-normal uppercase tracking-wider">
+                          {date.toLocaleDateString('pt-BR', { weekday: 'long' })}
+                        </Badge>
+                      )}
                     </div>
                     <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
-                      <span className="flex items-center gap-1"><Route className="w-3 h-3" /> {shift.totalKm} km</span>
-                      <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {shift.totalHours}h</span>
-                      <span className="flex items-center gap-1"><TrendingUp className="w-3 h-3" /> R$ {shift.earningsPerHour.toFixed(2)}/h</span>
+                      <span className="flex items-center gap-1"><Route className="w-3 h-3" /> {Number(shift.totalKm) || 0} km</span>
+                      <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {Number(shift.totalHours) || 0}h</span>
+                      <span className="flex items-center gap-1"><TrendingIcon className="w-3 h-3" /> R$ {(Number(shift.earningsPerHour) || 0).toFixed(2)}/h</span>
                     </div>
                   </div>
                   <div className="text-right flex items-center gap-3">
                     <div className="space-y-0.5">
-                      <p className="text-lg font-headline font-bold text-primary">R$ {shift.netProfit.toFixed(2)}</p>
+                      <p className="text-lg font-headline font-bold text-primary">R$ {(Number(shift.netProfit) || 0).toFixed(2)}</p>
                       <p className="text-[10px] text-muted-foreground uppercase">Lucro Líquido</p>
                     </div>
                     <ChevronRight className="w-4 h-4 text-muted-foreground" />

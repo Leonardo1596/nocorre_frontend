@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
+import Link from 'next/link';
 
 const StatCard = ({ title, value, subtext, icon: Icon, colorClass }: any) => (
   <Card className="border-border/50 bg-card/40 hover:bg-card/60 transition-colors">
@@ -65,14 +66,13 @@ export default function Dashboard() {
       try {
         setLoading(true);
         const response = await api.get('/shifts');
-        const data = response.data;
+        const data = Array.isArray(response.data) ? response.data : [];
         setShifts(data);
 
-        // Simple calculation for MVP stats
-        const totalEarnings = data.reduce((acc: number, curr: any) => acc + curr.totalEarnings, 0);
-        const totalProfit = data.reduce((acc: number, curr: any) => acc + curr.netProfit, 0);
-        const totalKm = data.reduce((acc: number, curr: any) => acc + curr.totalKm, 0);
-        const totalFuel = totalEarnings - totalProfit; // Simplified assumption
+        const totalEarnings = data.reduce((acc: number, curr: any) => acc + (Number(curr.totalEarnings) || 0), 0);
+        const totalProfit = data.reduce((acc: number, curr: any) => acc + (Number(curr.netProfit) || 0), 0);
+        const totalKm = data.reduce((acc: number, curr: any) => acc + (Number(curr.totalKm) || 0), 0);
+        const totalFuel = totalEarnings - totalProfit;
         const margin = totalEarnings > 0 ? (totalProfit / totalEarnings) * 100 : 0;
 
         setStats({
@@ -100,9 +100,9 @@ export default function Dashboard() {
   }
 
   const chartData = shifts.slice(-7).map((s: any) => ({
-    day: new Date(s.date).toLocaleDateString('pt-BR', { weekday: 'short' }),
-    earnings: s.totalEarnings,
-    profit: s.netProfit,
+    day: s.date ? new Date(s.date).toLocaleDateString('pt-BR', { weekday: 'short' }) : '-',
+    earnings: Number(s.totalEarnings) || 0,
+    profit: Number(s.netProfit) || 0,
     color: '#10B981'
   }));
 
@@ -131,28 +131,28 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 gap-4">
         <StatCard 
           title="Ganho Bruto" 
-          value={`R$ ${stats.totalEarnings.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} 
+          value={`R$ ${(stats.totalEarnings || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} 
           subtext="Baseado em dados reais" 
           icon={DollarSign} 
           colorClass="text-primary"
         />
         <StatCard 
           title="Lucro Líquido" 
-          value={`R$ ${stats.totalProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} 
-          subtext={`${stats.margin.toFixed(0)}% de margem`} 
+          value={`R$ ${(stats.totalProfit || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} 
+          subtext={`${(stats.margin || 0).toFixed(0)}% de margem`} 
           icon={TrendingUp} 
           colorClass="text-accent"
         />
         <StatCard 
           title="Custo Estimado" 
-          value={`R$ ${stats.totalFuel.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} 
+          value={`R$ ${(stats.totalFuel || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} 
           subtext="Combustível e Manutenção" 
           icon={Fuel} 
           colorClass="text-orange-400"
         />
         <StatCard 
           title="KM Rodados" 
-          value={`${stats.totalKm} km`} 
+          value={`${stats.totalKm || 0} km`} 
           subtext="Total no período" 
           icon={Route} 
           colorClass="text-blue-400"
@@ -199,14 +199,16 @@ export default function Dashboard() {
           {shifts.slice(0, 3).map((shift, i) => (
             <div key={i} className="flex items-center justify-between p-4 rounded-xl border border-border/50 bg-card/20">
               <div className="space-y-1">
-                <p className="text-sm font-medium">{new Date(shift.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</p>
+                <p className="text-sm font-medium">
+                  {shift.date ? new Date(shift.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : '-'}
+                </p>
                 <div className="flex items-center gap-3 text-[10px] text-muted-foreground uppercase tracking-wider">
-                  <span className="flex items-center gap-1"><Route className="w-3 h-3" /> {shift.totalKm}km</span>
-                  <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {shift.totalHours}h</span>
+                  <span className="flex items-center gap-1"><Route className="w-3 h-3" /> {Number(shift.totalKm) || 0}km</span>
+                  <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {Number(shift.totalHours) || 0}h</span>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-primary font-bold">R$ {shift.netProfit.toFixed(2)}</p>
+                <p className="text-primary font-bold">R$ {(Number(shift.netProfit) || 0).toFixed(2)}</p>
                 <p className="text-[10px] text-muted-foreground">Lucro Líquido</p>
               </div>
             </div>
@@ -219,4 +221,3 @@ export default function Dashboard() {
     </div>
   );
 }
-import Link from 'next/link';
