@@ -82,6 +82,7 @@ export default function SettingsPage() {
             chainKm: Number(data.maintenance?.chain?.lifespanKm || 0),
           });
         }
+        console.log(response.data)
       } catch (error) {
         console.error('Error fetching maintenance settings:', error);
         toast({
@@ -113,6 +114,8 @@ export default function SettingsPage() {
           chain: { price: Number(newSettings.chainValue), lifespanKm: Number(newSettings.chainKm) }
         }
       };
+
+      console.log(payload)
 
       await api.put('/maintenance-settings/update', payload);
       setSettings(newSettings);

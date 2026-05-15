@@ -1,8 +1,9 @@
+
 "use client"
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { redirect, usePathname } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { LayoutDashboard, Timer, History, Settings, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -10,10 +11,22 @@ import { AppProvider } from '@/contexts/AppContext';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
+  const router = useRouter();
   const pathname = usePathname();
 
-  if (loading) return null;
-  if (!isAuthenticated) redirect('/login');
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      router.push('/login');
+    }
+  }, [isAuthenticated, loading, router]);
+
+  if (loading || !isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   const navItems = [
     { icon: LayoutDashboard, label: 'Ganhos', href: '/' },
@@ -29,7 +42,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <header className="px-6 py-4 flex items-center justify-between sticky top-0 z-10 glass-morphism">
           <span className="font-headline font-bold text-xl text-primary">NoCorre</span>
           <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs">
-            MP
+            {useAuth().user?.name?.[0] || 'U'}
           </div>
         </header>
         

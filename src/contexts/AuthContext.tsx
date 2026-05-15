@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -51,7 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('nocorre_user');
     setToken(null);
     setUser(null);
-    router.push('/login');
+    // Redirection handled by layout effect to avoid hook mismatches
   };
 
   return (
