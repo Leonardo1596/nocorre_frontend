@@ -45,7 +45,7 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
 import Link from 'next/link';
-import { format, startOfWeek, endOfWeek, addDays, isSameDay } from 'date-fns';
+import { format, startOfWeek, endOfWeek, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { DateRange } from "react-day-picker";
@@ -124,6 +124,7 @@ export default function Dashboard() {
   const [showFuelModal, setShowFuelModal] = useState(false);
   const [fuelPrice, setFuelPrice] = useState<number>(0);
   const [updatingFuel, setUpdatingFuel] = useState(false);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   // Estados do Filtro de Data
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
@@ -215,7 +216,7 @@ export default function Dashboard() {
   const totalHours = Number(summary.totalHours || 0);
 
   const netPerHour = productiveHours > 0 ? netProfit / productiveHours : 0;
-  const totalKmSafe = totalKm > 0 ? totalKm : 1; // Prevenir divisão por zero
+  const totalKmSafe = totalKm > 0 ? totalKm : 1; 
   const netPerKm = netProfit / totalKmSafe;
   const grossPerKm = grossAmount / totalKmSafe;
   const grossPerHour = productiveHours > 0 ? grossAmount / productiveHours : 0;
@@ -287,7 +288,7 @@ export default function Dashboard() {
             <ChevronLeft className="w-4 h-4" />
           </Button>
 
-          <Popover>
+          <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
             <PopoverTrigger asChild>
               <Button 
                 variant="ghost" 
@@ -303,7 +304,12 @@ export default function Dashboard() {
                 mode="range"
                 defaultMonth={dateRange?.from}
                 selected={dateRange}
-                onSelect={setDateRange}
+                onSelect={(range) => {
+                  setDateRange(range);
+                  if (range?.from && range?.to) {
+                    setIsCalendarOpen(false);
+                  }
+                }}
                 numberOfMonths={1}
                 locale={ptBR}
               />
