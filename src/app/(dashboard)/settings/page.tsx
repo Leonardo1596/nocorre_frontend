@@ -12,7 +12,7 @@ import {
   DialogContent, 
   DialogHeader, 
   DialogTitle, 
-  DialogDescription,
+  DialogDescription, 
   DialogFooter,
   DialogTrigger
 } from '@/components/ui/dialog';
@@ -69,17 +69,17 @@ export default function SettingsPage() {
       try {
         const response = await api.get('/maintenance-settings');
         if (response.data) {
-          // Garante que valores nulos sejam tratados como 0
           const data = response.data;
+          // Mapeamento da estrutura aninhada do backend para o estado flat do componente
           setSettings({
-            fuelPrice: Number(data.fuelPrice || 0),
-            kmPerLiter: Number(data.kmPerLiter || 0),
-            oilValue: Number(data.oilValue || 0),
-            oilKm: Number(data.oilKm || 0),
-            tiresValue: Number(data.tiresValue || 0),
-            tiresKm: Number(data.tiresKm || 0),
-            chainValue: Number(data.chainValue || 0),
-            chainKm: Number(data.chainKm || 0),
+            fuelPrice: Number(data.fuel?.fuelPrice || 0),
+            kmPerLiter: Number(data.fuel?.kmPerLiter || 0),
+            oilValue: Number(data.maintenance?.oil?.price || 0),
+            oilKm: Number(data.maintenance?.oil?.lifespanKm || 0),
+            tiresValue: Number(data.maintenance?.tires?.price || 0),
+            tiresKm: Number(data.maintenance?.tires?.lifespanKm || 0),
+            chainValue: Number(data.maintenance?.chain?.price || 0),
+            chainKm: Number(data.maintenance?.chain?.lifespanKm || 0),
           });
         }
       } catch (error) {
@@ -100,7 +100,21 @@ export default function SettingsPage() {
     setSaving(true);
     try {
       const newSettings = { ...settings, ...updatedFields };
-      await api.put('/maintenance-settings/update', newSettings);
+      
+      // Reconstroi a estrutura aninhada para enviar ao backend
+      const payload = {
+        fuel: {
+          fuelPrice: Number(newSettings.fuelPrice),
+          kmPerLiter: Number(newSettings.kmPerLiter)
+        },
+        maintenance: {
+          oil: { price: Number(newSettings.oilValue), lifespanKm: Number(newSettings.oilKm) },
+          tires: { price: Number(newSettings.tiresValue), lifespanKm: Number(newSettings.tiresKm) },
+          chain: { price: Number(newSettings.chainValue), lifespanKm: Number(newSettings.chainKm) }
+        }
+      };
+
+      await api.put('/maintenance-settings/update', payload);
       setSettings(newSettings);
       toast({ 
         title: "Sucesso!", 
@@ -108,6 +122,7 @@ export default function SettingsPage() {
       });
       setShowFuelModal(false);
     } catch (error) {
+      console.error('Error updating settings:', error);
       toast({
         variant: 'destructive',
         title: 'Erro ao salvar',
@@ -174,7 +189,7 @@ export default function SettingsPage() {
           <DialogContent className="max-w-[90vw] rounded-3xl">
             <DialogHeader>
               <DialogTitle className="font-headline">Preço do Litro</DialogTitle>
-              <DialogDescription>Atualize apenas o valor da gasolina.</DialogDescription>
+              <DialogDescription>Atualize apenas o valor do combustível.</DialogDescription>
             </DialogHeader>
             <div className="py-4 space-y-4">
               <div className="space-y-2">
@@ -295,9 +310,9 @@ export default function SettingsPage() {
         <Card className="border-border/50 bg-card/40">
           <CardContent className="p-2 flex items-center justify-around">
             {[
-              { id: 'light', icon: Sun, label: 'Light' },
-              { id: 'dark', icon: Moon, label: 'Dark' },
-              { id: 'system', icon: Monitor, label: 'System' },
+              { id: 'light', icon: Sun, label: 'Claro' },
+              { id: 'dark', icon: Moon, label: 'Escuro' },
+              { id: 'system', icon: Monitor, label: 'Sistema' },
             ].map((t) => (
               <Button 
                 key={t.id}
