@@ -1,20 +1,19 @@
 
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
   DollarSign, 
   TrendingUp, 
   Fuel, 
-  Route, 
   Clock, 
-  Filter,
   Loader2,
   ChevronRight,
   BarChart3,
   ArrowUpRight,
-  Plus
+  ChevronLeft,
+  Calendar as CalendarIcon
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -26,12 +25,6 @@ import {
   Cell
 } from 'recharts';
 import { Button } from '@/components/ui/button';
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import {
   Dialog,
   DialogContent,
@@ -41,13 +34,21 @@ import {
   DialogFooter,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
 import Link from 'next/link';
-import { format, startOfWeek, endOfWeek } from 'date-fns';
+import { format, startOfWeek, endOfWeek, addDays, isSameDay } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
+import { DateRange } from "react-day-picker";
 
 // --- Utilitários de Formatação ---
 const formatBRL = (val: number) => 
@@ -118,20 +119,21 @@ const AnalyticsRow = ({ label, value, sublabel }: any) => (
 
 export default function Dashboard() {
   const { toast } = useToast();
-  const [filter, setFilter] = useState('Semana Atual');
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
   const [showFuelModal, setShowFuelModal] = useState(false);
   const [fuelPrice, setFuelPrice] = useState<number>(0);
   const [updatingFuel, setUpdatingFuel] = useState(false);
 
-  async function fetchData() {
+  // Estados do Filtro de Data
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: startOfWeek(new Date(), { weekStartsOn: 1 }),
+    to: endOfWeek(new Date(), { weekStartsOn: 1 }),
+  });
+
+  const fetchData = useCallback(async (start: Date, end: Date) => {
     try {
       setLoading(true);
-      const now = new Date();
-      const start = startOfWeek(now, { weekStartsOn: 1 });
-      const end = endOfWeek(now, { weekStartsOn: 1 });
-      
       const startDateStr = format(start, 'yyyy-MM-dd');
       const endDateStr = format(end, 'yyyy-MM-dd');
 
@@ -146,20 +148,21 @@ export default function Dashboard() {
       }
     } catch (error) {
       console.error('Dashboard Error:', error);
+      toast({ variant: 'destructive', title: "Erro", description: "Falha ao sincronizar dados." });
     } finally {
       setLoading(false);
     }
-  }
+  }, [toast]);
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (dateRange?.from && dateRange?.to) {
+      fetchData(dateRange.from, dateRange.to);
+    }
+  }, [dateRange, fetchData]);
 
   const handleFuelUpdate = async () => {
     setUpdatingFuel(true);
     try {
-      // Para o PUT, precisamos da estrutura completa conforme o backend espera
-      // Buscamos as settings atuais primeiro para não sobrescrever o resto
       const settingsRes = await api.get('/maintenance-settings');
       const currentSettings = settingsRes.data;
 
@@ -174,13 +177,22 @@ export default function Dashboard() {
       await api.put('/maintenance-settings/update', payload);
       toast({ title: "Sucesso!", description: "Preço do combustível atualizado." });
       setShowFuelModal(false);
-      // Recarrega os dados para refletir mudanças nos cálculos se necessário
-      fetchData();
+      if (dateRange?.from && dateRange?.to) {
+        fetchData(dateRange.from, dateRange.to);
+      }
     } catch (error) {
       toast({ variant: 'destructive', title: "Erro", description: "Não foi possível atualizar o preço." });
     } finally {
       setUpdatingFuel(false);
     }
+  };
+
+  const navigateWeek = (direction: 'prev' | 'next') => {
+    if (!dateRange?.from || !dateRange?.to) return;
+    const offset = direction === 'prev' ? -7 : 7;
+    const newFrom = addDays(dateRange.from, offset);
+    const newTo = addDays(dateRange.to, offset);
+    setDateRange({ from: newFrom, to: newTo });
   };
 
   if (loading && !data) {
@@ -203,10 +215,11 @@ export default function Dashboard() {
   const totalHours = Number(summary.totalHours || 0);
 
   const netPerHour = productiveHours > 0 ? netProfit / productiveHours : 0;
-  const netPerKm = totalKm > 0 ? netProfit / totalKm : 0;
-  const grossPerKm = totalKm > 0 ? grossAmount / totalKm : 0;
+  const totalKmSafe = totalKm > 0 ? totalKm : 1; // Prevenir divisão por zero
+  const netPerKm = netProfit / totalKmSafe;
+  const grossPerKm = grossAmount / totalKmSafe;
   const grossPerHour = productiveHours > 0 ? grossAmount / productiveHours : 0;
-  const costPerKm = totalKm > 0 ? totalExpenses / totalKm : 0;
+  const costPerKm = totalExpenses / totalKmSafe;
 
   const chartData = Object.entries(days).map(([date, dayData]: [string, any]) => ({
     day: dayData.dayName ? dayData.dayName.substring(0, 3) : date.substring(8, 10),
@@ -214,19 +227,24 @@ export default function Dashboard() {
     profit: dayData.financial?.netProfit || 0,
   }));
 
+  const formattedRange = dateRange?.from && dateRange?.to 
+    ? `${format(dateRange.from, "dd MMM", { locale: ptBR })} - ${format(dateRange.to, "dd MMM", { locale: ptBR })}`
+    : "Selecione o período";
+
   return (
-    <div className="p-6 space-y-10 max-w-md mx-auto pb-28">
+    <div className="p-6 space-y-8 max-w-md mx-auto pb-28">
       
       {/* HEADER */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-headline font-bold tracking-tight">Painel de Controle</h2>
-          <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Sua inteligência financeira</p>
-        </div>
-        <div className="flex gap-2">
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-headline font-bold tracking-tight">Painel de Controle</h2>
+            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Sua inteligência financeira</p>
+          </div>
+          
           <Dialog open={showFuelModal} onOpenChange={setShowFuelModal}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="icon" className="h-8 w-8 border-border/50 bg-card/50 text-primary">
+              <Button variant="outline" size="icon" className="h-9 w-9 border-border/50 bg-card/50 text-primary rounded-xl shadow-sm">
                 <Fuel className="w-4 h-4" />
               </Button>
             </DialogTrigger>
@@ -256,19 +274,50 @@ export default function Dashboard() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+        </div>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 gap-2 border-border/50 bg-card/50">
-                <Filter className="w-3.5 h-3.5 text-primary" />
-                <span className="text-xs font-bold">{filter}</span>
+        {/* DATE SELECTOR */}
+        <div className="flex items-center justify-between bg-card/40 border border-border/50 rounded-2xl p-1.5 shadow-sm">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors"
+            onClick={() => navigateWeek('prev')}
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button 
+                variant="ghost" 
+                className="flex-1 h-8 gap-2 font-bold text-xs uppercase tracking-wider hover:bg-transparent"
+              >
+                <CalendarIcon className="w-3.5 h-3.5 text-primary" />
+                {formattedRange}
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-card border-border">
-              <DropdownMenuItem onClick={() => setFilter('Semana Atual')}>Semana Atual</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilter('Mês Atual')}>Mês Atual</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0 rounded-2xl border-border" align="center">
+              <Calendar
+                initialFocus
+                mode="range"
+                defaultMonth={dateRange?.from}
+                selected={dateRange}
+                onSelect={setDateRange}
+                numberOfMonths={1}
+                locale={ptBR}
+              />
+            </PopoverContent>
+          </Popover>
+
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors"
+            onClick={() => navigateWeek('next')}
+          >
+            <ChevronRight className="w-4 h-4" />
+          </Button>
         </div>
       </div>
 
