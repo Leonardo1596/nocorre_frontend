@@ -1,10 +1,10 @@
-
 "use client"
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
@@ -174,11 +174,24 @@ export default function SettingsPage() {
             <CardContent className="p-4 grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="fuelPrice" className="text-[10px] uppercase font-bold text-muted-foreground">Preço/L (R$)</Label>
-                <Input id="fuelPrice" name="fuelPrice" type="number" step="0.01" defaultValue={settings.fuelPrice} className="bg-background/50" />
+                <CurrencyInput 
+                  name="fuelPrice" 
+                  value={settings.fuelPrice} 
+                  onChange={(val) => setSettings(s => ({...s, fuelPrice: val}))}
+                  className="bg-background/50" 
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="kmPerLiter" className="text-[10px] uppercase font-bold text-muted-foreground">KM por Litro</Label>
-                <Input id="kmPerLiter" name="kmPerLiter" type="number" step="0.1" defaultValue={settings.kmPerLiter} className="bg-background/50" />
+                <Input 
+                  id="kmPerLiter" 
+                  name="kmPerLiter" 
+                  type="number" 
+                  step="0.1" 
+                  defaultValue={settings.kmPerLiter} 
+                  onChange={(e) => setSettings(s => ({...s, kmPerLiter: Number(e.target.value)}))}
+                  className="bg-background/50" 
+                />
               </div>
             </CardContent>
           </Card>
@@ -198,11 +211,22 @@ export default function SettingsPage() {
             <CardContent className="p-4 pt-0 grid grid-cols-2 gap-4">
               <div className="space-y-1">
                 <Label className="text-[9px] uppercase text-muted-foreground">Valor (R$)</Label>
-                <Input name="oilValue" type="number" defaultValue={settings.oilValue} className="h-9 text-sm" />
+                <CurrencyInput 
+                  name="oilValue" 
+                  value={settings.oilValue} 
+                  onChange={(val) => setSettings(s => ({...s, oilValue: val}))}
+                  className="h-9 text-sm" 
+                />
               </div>
               <div className="space-y-1">
                 <Label className="text-[9px] uppercase text-muted-foreground">Duração (KM)</Label>
-                <Input name="oilKm" type="number" defaultValue={settings.oilKm} className="h-9 text-sm" />
+                <Input 
+                  name="oilKm" 
+                  type="number" 
+                  defaultValue={settings.oilKm} 
+                  onChange={(e) => setSettings(s => ({...s, oilKm: Number(e.target.value)}))}
+                  className="h-9 text-sm" 
+                />
               </div>
             </CardContent>
           </Card>
@@ -215,11 +239,22 @@ export default function SettingsPage() {
             <CardContent className="p-4 pt-0 grid grid-cols-2 gap-4">
               <div className="space-y-1">
                 <Label className="text-[9px] uppercase text-muted-foreground">Valor (R$)</Label>
-                <Input name="tiresValue" type="number" defaultValue={settings.tiresValue} className="h-9 text-sm" />
+                <CurrencyInput 
+                  name="tiresValue" 
+                  value={settings.tiresValue} 
+                  onChange={(val) => setSettings(s => ({...s, tiresValue: val}))}
+                  className="h-9 text-sm" 
+                />
               </div>
               <div className="space-y-1">
                 <Label className="text-[9px] uppercase text-muted-foreground">Duração (KM)</Label>
-                <Input name="tiresKm" type="number" defaultValue={settings.tiresKm} className="h-9 text-sm" />
+                <Input 
+                  name="tiresKm" 
+                  type="number" 
+                  defaultValue={settings.tiresKm} 
+                  onChange={(e) => setSettings(s => ({...s, tiresKm: Number(e.target.value)}))}
+                  className="h-9 text-sm" 
+                />
               </div>
             </CardContent>
           </Card>
@@ -232,11 +267,22 @@ export default function SettingsPage() {
             <CardContent className="p-4 pt-0 grid grid-cols-2 gap-4">
               <div className="space-y-1">
                 <Label className="text-[9px] uppercase text-muted-foreground">Valor (R$)</Label>
-                <Input name="chainValue" type="number" defaultValue={settings.chainValue} className="h-9 text-sm" />
+                <CurrencyInput 
+                  name="chainValue" 
+                  value={settings.chainValue} 
+                  onChange={(val) => setSettings(s => ({...s, chainValue: val}))}
+                  className="h-9 text-sm" 
+                />
               </div>
               <div className="space-y-1">
                 <Label className="text-[9px] uppercase text-muted-foreground">Duração (KM)</Label>
-                <Input name="chainKm" type="number" defaultValue={settings.chainKm} className="h-9 text-sm" />
+                <Input 
+                  name="chainKm" 
+                  type="number" 
+                  defaultValue={settings.chainKm} 
+                  onChange={(e) => setSettings(s => ({...s, chainKm: Number(e.target.value)}))}
+                  className="h-9 text-sm" 
+                />
               </div>
             </CardContent>
           </Card>

@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -40,7 +39,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Input } from '@/components/ui/input';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
@@ -259,13 +258,11 @@ export default function Dashboard() {
               <div className="py-4 space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="fuelPriceInput">Preço por Litro (R$)</Label>
-                  <Input 
+                  <CurrencyInput 
                     id="fuelPriceInput" 
-                    type="number" 
-                    step="0.01" 
-                    placeholder="Ex: 5.89"
+                    placeholder="R$ 0,00"
                     value={fuelPrice}
-                    onChange={(e) => setFuelPrice(Number(e.target.value))}
+                    onChange={(val) => setFuelPrice(val)}
                   />
                 </div>
               </div>

@@ -1,10 +1,10 @@
-
 "use client"
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import { Label } from '@/components/ui/label';
 import { 
   Dialog, 
@@ -31,9 +31,9 @@ export default function ShiftPage() {
 
   // Form for finishing session
   const [formData, setFormData] = useState({
-    grossAmount: '',
-    foodExpense: '',
-    otherExpense: '',
+    grossAmount: 0,
+    foodExpense: 0,
+    otherExpense: 0,
     productiveKm: ''
   });
 
@@ -52,7 +52,6 @@ export default function ShiftPage() {
 
   useEffect(() => {
     let interval: any;
-    // Só incrementa se estiver ativo e NÃO pausado
     if (currentSession.isActive && currentSession.startTime && !currentSession.isPaused) {
       interval = setInterval(() => {
         const start = new Date(currentSession.startTime!).getTime();
@@ -170,9 +169,9 @@ export default function ShiftPage() {
     setLoading(true);
     try {
       const payload = {
-        grossAmount: formData.grossAmount ? Number(formData.grossAmount) : undefined,
-        foodExpense: formData.foodExpense ? Number(formData.foodExpense) : undefined,
-        otherExpense: formData.otherExpense ? Number(formData.otherExpense) : undefined,
+        grossAmount: Number(formData.grossAmount),
+        foodExpense: Number(formData.foodExpense),
+        otherExpense: Number(formData.otherExpense),
         productiveKm: formData.productiveKm ? Number(formData.productiveKm) : undefined,
       };
 
@@ -180,7 +179,7 @@ export default function ShiftPage() {
       
       setCurrentSession({ id: null, startTime: null, isActive: false, isPaused: false });
       setShowFinishDialog(false);
-      setFormData({ grossAmount: '', foodExpense: '', otherExpense: '', productiveKm: '' });
+      setFormData({ grossAmount: 0, foodExpense: 0, otherExpense: 0, productiveKm: '' });
       toast({ title: "Sessão Finalizada", description: "Dados da sessão salvos com sucesso." });
     } catch (error) {
       console.error(error);
@@ -329,13 +328,11 @@ export default function ShiftPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="grossAmount">Ganho Bruto (R$)</Label>
-                  <Input 
+                  <CurrencyInput 
                     id="grossAmount" 
-                    type="number" 
-                    step="0.01"
-                    placeholder="0.00" 
+                    placeholder="R$ 0,00" 
                     value={formData.grossAmount}
-                    onChange={(e) => setFormData({...formData, grossAmount: e.target.value})}
+                    onChange={(val) => setFormData({...formData, grossAmount: val})}
                   />
                 </div>
                 <div className="space-y-2">
@@ -353,24 +350,20 @@ export default function ShiftPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="foodExpense">Alimentação (R$)</Label>
-                  <Input 
+                  <CurrencyInput 
                     id="foodExpense" 
-                    type="number" 
-                    step="0.01"
-                    placeholder="0.00" 
+                    placeholder="R$ 0,00" 
                     value={formData.foodExpense}
-                    onChange={(e) => setFormData({...formData, foodExpense: e.target.value})}
+                    onChange={(val) => setFormData({...formData, foodExpense: val})}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="otherExpense">Outros Custos (R$)</Label>
-                  <Input 
+                  <CurrencyInput 
                     id="otherExpense" 
-                    type="number" 
-                    step="0.01"
-                    placeholder="0.00" 
+                    placeholder="R$ 0,00" 
                     value={formData.otherExpense}
-                    onChange={(e) => setFormData({...formData, otherExpense: e.target.value})}
+                    onChange={(val) => setFormData({...formData, otherExpense: val})}
                   />
                 </div>
               </div>
