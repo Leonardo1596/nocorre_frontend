@@ -230,7 +230,9 @@ export default function Dashboard() {
 
   const formattedRange = dateRange?.from && dateRange?.to 
     ? `${format(dateRange.from, "dd MMM", { locale: ptBR })} - ${format(dateRange.to, "dd MMM", { locale: ptBR })}`
-    : "Selecione o período";
+    : dateRange?.from
+      ? format(dateRange.from, "dd MMM", { locale: ptBR })
+      : "Selecione o período";
 
   return (
     <div className="p-6 space-y-8 max-w-md mx-auto pb-28">
@@ -302,10 +304,10 @@ export default function Dashboard() {
               <Calendar
                 initialFocus
                 mode="range"
-                defaultMonth={dateRange?.from}
                 selected={dateRange}
                 onSelect={(range) => {
                   setDateRange(range);
+                  // Somente fecha quando um intervalo completo (Início e Fim) for selecionado
                   if (range?.from && range?.to) {
                     setIsCalendarOpen(false);
                   }
