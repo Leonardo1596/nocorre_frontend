@@ -69,7 +69,18 @@ export default function SettingsPage() {
       try {
         const response = await api.get('/maintenance-settings');
         if (response.data) {
-          setSettings(response.data);
+          // Garante que valores nulos sejam tratados como 0
+          const data = response.data;
+          setSettings({
+            fuelPrice: Number(data.fuelPrice || 0),
+            kmPerLiter: Number(data.kmPerLiter || 0),
+            oilValue: Number(data.oilValue || 0),
+            oilKm: Number(data.oilKm || 0),
+            tiresValue: Number(data.tiresValue || 0),
+            tiresKm: Number(data.tiresKm || 0),
+            chainValue: Number(data.chainValue || 0),
+            chainKm: Number(data.chainKm || 0),
+          });
         }
       } catch (error) {
         console.error('Error fetching maintenance settings:', error);
@@ -127,7 +138,7 @@ export default function SettingsPage() {
     return (
       <div className="p-6 flex flex-col items-center justify-center min-h-[60vh]">
         <Loader2 className="w-8 h-8 text-primary animate-spin mb-4" />
-        <p className="text-sm text-muted-foreground">Carregando configurações...</p>
+        <p className="text-sm text-muted-foreground">Sincronizando configurações...</p>
       </div>
     );
   }
