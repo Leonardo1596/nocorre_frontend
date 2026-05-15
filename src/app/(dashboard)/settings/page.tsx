@@ -8,15 +8,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogDescription, 
-  DialogFooter,
-  DialogTrigger
-} from '@/components/ui/dialog';
-import { 
   LogOut, 
   Car, 
   Fuel, 
@@ -28,7 +19,6 @@ import {
   Droplets, 
   Disc, 
   Settings2,
-  ChevronRight,
   CircleDollarSign
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -52,7 +42,6 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [showFuelModal, setShowFuelModal] = useState(false);
   const [settings, setSettings] = useState<MaintenanceSettings>({
     fuelPrice: 0,
     kmPerLiter: 0,
@@ -70,7 +59,6 @@ export default function SettingsPage() {
         const response = await api.get('/maintenance-settings');
         if (response.data) {
           const data = response.data;
-          // Mapeamento da estrutura aninhada do backend para o estado flat do componente
           setSettings({
             fuelPrice: Number(data.fuel?.fuelPrice || 0),
             kmPerLiter: Number(data.fuel?.kmPerLiter || 0),
@@ -82,7 +70,6 @@ export default function SettingsPage() {
             chainKm: Number(data.maintenance?.chain?.lifespanKm || 0),
           });
         }
-        console.log(response.data)
       } catch (error) {
         console.error('Error fetching maintenance settings:', error);
         toast({
@@ -102,7 +89,6 @@ export default function SettingsPage() {
     try {
       const newSettings = { ...settings, ...updatedFields };
       
-      // Reconstroi a estrutura aninhada para enviar ao backend
       const payload = {
         fuel: {
           fuelPrice: Number(newSettings.fuelPrice),
@@ -115,15 +101,12 @@ export default function SettingsPage() {
         }
       };
 
-      console.log(payload)
-
       await api.put('/maintenance-settings/update', payload);
       setSettings(newSettings);
       toast({ 
         title: "Sucesso!", 
         description: "Configurações atualizadas com sucesso." 
       });
-      setShowFuelModal(false);
     } catch (error) {
       console.error('Error updating settings:', error);
       toast({
@@ -177,48 +160,6 @@ export default function SettingsPage() {
         <Button variant="ghost" size="icon" onClick={logout} className="text-destructive">
           <LogOut className="w-5 h-5" />
         </Button>
-      </div>
-
-      {/* Acesso Rápido - Combustível */}
-      <div className="space-y-4">
-        <Dialog open={showFuelModal} onOpenChange={setShowFuelModal}>
-          <DialogTrigger asChild>
-            <Button className="w-full h-14 rounded-2xl bg-primary/10 text-primary hover:bg-primary/20 border-none font-bold gap-3 text-sm">
-              <Fuel className="w-5 h-5" />
-              ATUALIZAR PREÇO COMBUSTÍVEL
-              <ChevronRight className="w-4 h-4 ml-auto opacity-50" />
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-[90vw] rounded-3xl">
-            <DialogHeader>
-              <DialogTitle className="font-headline">Preço do Litro</DialogTitle>
-              <DialogDescription>Atualize apenas o valor do combustível.</DialogDescription>
-            </DialogHeader>
-            <div className="py-4 space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="quickFuel">Novo Preço (R$)</Label>
-                <Input 
-                  id="quickFuel" 
-                  type="number" 
-                  step="0.01" 
-                  placeholder="Ex: 5.89"
-                  defaultValue={settings.fuelPrice}
-                  onChange={(e) => setSettings({...settings, fuelPrice: Number(e.target.value)})}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button 
-                onClick={() => handleUpdate({ fuelPrice: settings.fuelPrice })} 
-                disabled={saving}
-                className="w-full h-12 font-bold"
-              >
-                {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                CONFIRMAR VALOR
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </div>
 
       {/* Formulário Principal */}

@@ -13,7 +13,8 @@ import {
   Loader2,
   ChevronRight,
   BarChart3,
-  ArrowUpRight
+  ArrowUpRight,
+  Plus
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -31,10 +32,22 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
 import Link from 'next/link';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 // --- Utilitários de Formatação ---
 const formatBRL = (val: number) => 
@@ -104,33 +117,73 @@ const AnalyticsRow = ({ label, value, sublabel }: any) => (
 // --- Componente Principal ---
 
 export default function Dashboard() {
+  const { toast } = useToast();
   const [filter, setFilter] = useState('Semana Atual');
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
+  const [showFuelModal, setShowFuelModal] = useState(false);
+  const [fuelPrice, setFuelPrice] = useState<number>(0);
+  const [updatingFuel, setUpdatingFuel] = useState(false);
+
+  async function fetchData() {
+    try {
+      setLoading(true);
+      const now = new Date();
+      const start = startOfWeek(now, { weekStartsOn: 1 });
+      const end = endOfWeek(now, { weekStartsOn: 1 });
+      
+      const startDateStr = format(start, 'yyyy-MM-dd');
+      const endDateStr = format(end, 'yyyy-MM-dd');
+
+      const [dashRes, settingsRes] = await Promise.all([
+        api.get(`/dashboard?start=${startDateStr}&end=${endDateStr}`),
+        api.get('/maintenance-settings')
+      ]);
+
+      setData(dashRes.data);
+      if (settingsRes.data?.fuel?.fuelPrice) {
+        setFuelPrice(Number(settingsRes.data.fuel.fuelPrice));
+      }
+    } catch (error) {
+      console.error('Dashboard Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    async function fetchData() {
-      try {
-        setLoading(true);
-        const now = new Date();
-        const start = startOfWeek(now, { weekStartsOn: 1 });
-        const end = endOfWeek(now, { weekStartsOn: 1 });
-        
-        const startDateStr = format(start, 'yyyy-MM-dd');
-        const endDateStr = format(end, 'yyyy-MM-dd');
-
-        const response = await api.get(`/dashboard?start=${startDateStr}&end=${endDateStr}`);
-        setData(response.data);
-      } catch (error) {
-        console.error('Dashboard Error:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
     fetchData();
   }, []);
 
-  if (loading) {
+  const handleFuelUpdate = async () => {
+    setUpdatingFuel(true);
+    try {
+      // Para o PUT, precisamos da estrutura completa conforme o backend espera
+      // Buscamos as settings atuais primeiro para não sobrescrever o resto
+      const settingsRes = await api.get('/maintenance-settings');
+      const currentSettings = settingsRes.data;
+
+      const payload = {
+        ...currentSettings,
+        fuel: {
+          ...currentSettings.fuel,
+          fuelPrice: Number(fuelPrice)
+        }
+      };
+
+      await api.put('/maintenance-settings/update', payload);
+      toast({ title: "Sucesso!", description: "Preço do combustível atualizado." });
+      setShowFuelModal(false);
+      // Recarrega os dados para refletir mudanças nos cálculos se necessário
+      fetchData();
+    } catch (error) {
+      toast({ variant: 'destructive', title: "Erro", description: "Não foi possível atualizar o preço." });
+    } finally {
+      setUpdatingFuel(false);
+    }
+  };
+
+  if (loading && !data) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4">
         <Loader2 className="w-10 h-10 text-primary animate-spin" />
@@ -142,15 +195,13 @@ export default function Dashboard() {
   const summary = data?.summary || {};
   const days = data?.days || {};
 
-  // Valores financeiros e operacionais
   const grossAmount = Number(summary.grossAmount || 0);
   const netProfit = Number(summary.netProfit || 0);
   const totalExpenses = Number(summary.totalExpenses || 0);
   const totalKm = Number(summary.totalKm || 0);
-  const totalHours = Number(summary.totalHours || 0);
   const productiveHours = Number(summary.productiveHours || 0);
+  const totalHours = Number(summary.totalHours || 0);
 
-  // Cálculos de Ratios
   const netPerHour = productiveHours > 0 ? netProfit / productiveHours : 0;
   const netPerKm = totalKm > 0 ? netProfit / totalKm : 0;
   const grossPerKm = totalKm > 0 ? grossAmount / totalKm : 0;
@@ -172,18 +223,53 @@ export default function Dashboard() {
           <h2 className="text-2xl font-headline font-bold tracking-tight">Painel de Controle</h2>
           <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Sua inteligência financeira</p>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="h-8 gap-2 border-border/50 bg-card/50">
-              <Filter className="w-3.5 h-3.5 text-primary" />
-              <span className="text-xs font-bold">{filter}</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="bg-card border-border">
-            <DropdownMenuItem onClick={() => setFilter('Semana Atual')}>Semana Atual</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setFilter('Mês Atual')}>Mês Atual</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex gap-2">
+          <Dialog open={showFuelModal} onOpenChange={setShowFuelModal}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="icon" className="h-8 w-8 border-border/50 bg-card/50 text-primary">
+                <Fuel className="w-4 h-4" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-[90vw] rounded-3xl">
+              <DialogHeader>
+                <DialogTitle className="font-headline">Preço do Combustível</DialogTitle>
+                <DialogDescription>Atualize o valor do litro para cálculos precisos.</DialogDescription>
+              </DialogHeader>
+              <div className="py-4 space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="fuelPriceInput">Preço por Litro (R$)</Label>
+                  <Input 
+                    id="fuelPriceInput" 
+                    type="number" 
+                    step="0.01" 
+                    placeholder="Ex: 5.89"
+                    value={fuelPrice}
+                    onChange={(e) => setFuelPrice(Number(e.target.value))}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button onClick={handleFuelUpdate} disabled={updatingFuel} className="w-full h-12 font-bold">
+                  {updatingFuel && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  ATUALIZAR AGORA
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 gap-2 border-border/50 bg-card/50">
+                <Filter className="w-3.5 h-3.5 text-primary" />
+                <span className="text-xs font-bold">{filter}</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-card border-border">
+              <DropdownMenuItem onClick={() => setFilter('Semana Atual')}>Semana Atual</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFilter('Mês Atual')}>Mês Atual</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {/* 1. HERO METRICS */}
