@@ -119,7 +119,7 @@ export function GpsProvider({
              */
             if (
               accuracy &&
-              accuracy > 20
+              accuracy > 50
             ) {
               console.log(
                 "GPS ignorado por baixa precisão:",
@@ -177,9 +177,9 @@ export function GpsProvider({
 
             /**
              * IGNORE SMALL MOVEMENTS
-             * LESS THAN 5 METERS
+             * LESS THAN 1 METER
              */
-            if (distance < 0.005) {
+            if (distance < 0.001) {
               lastPositionRef.current =
                 newPosition;
 
