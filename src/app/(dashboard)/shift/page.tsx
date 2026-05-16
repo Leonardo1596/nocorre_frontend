@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, {
@@ -156,10 +157,6 @@ export default function ShiftPage() {
       ) {
         try {
           await startTracking();
-
-          console.log(
-            "GPS restaurado automaticamente"
-          );
         } catch (error) {
           console.error(
             "Erro ao restaurar GPS:",
@@ -172,7 +169,8 @@ export default function ShiftPage() {
     restoreTracking();
   }, [
     currentShift.isActive,
-    isTracking
+    isTracking,
+    startTracking
   ]);
 
   function formatTime(seconds: number) {
@@ -223,17 +221,13 @@ export default function ShiftPage() {
         description:
           "GPS ativo e rastreamento iniciado."
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      console.log(
-        "MESSAGE:",
-        error.response?.data?.message
-      );
       toast({
         variant: "destructive",
         title: "Erro",
         description:
-          "Não foi possível iniciar o turno."
+          error.response?.data?.message || "Não foi possível iniciar o turno."
       });
     } finally {
       setLoading(false);
@@ -258,12 +252,15 @@ export default function ShiftPage() {
     setLoading(true);
 
     try {
+      // Capturamos o KM final antes de parar o tracking
+      const finalKm = totalKm;
+
       await stopTracking();
 
       await api.patch(
         `/shifts/${currentShift.id}/finish`,
         {
-          totalKm
+          totalKm: finalKm
         }
       );
 
@@ -285,7 +282,7 @@ export default function ShiftPage() {
       toast({
         title: "Turno finalizado",
         description:
-          "Rastreamento encerrado."
+          `Rastreamento encerrado. Total de ${finalKm.toFixed(2)} km.`
       });
     } catch (error) {
       console.error(error);
@@ -432,6 +429,9 @@ export default function ShiftPage() {
     setLoading(true);
 
     try {
+      // Capturamos o KM acumulado até este exato momento
+      const currentKmAccumulated = totalKm;
+
       await api.patch(
         `/work-sessions/${currentSession.id}/finish`,
         {
@@ -450,8 +450,7 @@ export default function ShiftPage() {
               formData.otherExpense
             ),
 
-          productiveKm:
-            totalKm
+          productiveKm: currentKmAccumulated
         }
       );
 
@@ -472,7 +471,8 @@ export default function ShiftPage() {
 
       toast({
         title:
-          "Sessão finalizada"
+          "Sessão finalizada",
+        description: `Registrado faturamento e ${currentKmAccumulated.toFixed(2)} km percorridos.`
       });
     } catch (error) {
       console.error(error);
@@ -562,7 +562,10 @@ export default function ShiftPage() {
               <div className="space-y-2 text-sm">
                 <p>
                   Status:
-                  <span className="ml-2 font-bold text-primary">
+                  <span className={cn(
+                    "ml-2 font-bold",
+                    isTracking ? "text-primary" : "text-destructive"
+                  )}>
                     {isTracking
                       ? "ATIVO"
                       : "INATIVO"}
@@ -570,7 +573,7 @@ export default function ShiftPage() {
                 </p>
 
                 <p>
-                  KM Total:
+                  KM Acumulado:
                   <span className="ml-2 font-bold">
                     {totalKm.toFixed(
                       2
@@ -580,23 +583,12 @@ export default function ShiftPage() {
                 </p>
 
                 {currentPosition && (
-                  <>
-                    <p className="text-xs text-muted-foreground break-all">
-                      LAT:
-                      {" "}
-                      {
-                        currentPosition.lat
-                      }
+                  <div className="pt-2 border-t border-border mt-2">
+                    <p className="text-[10px] text-muted-foreground uppercase mb-1">Última Posição</p>
+                    <p className="text-[10px] text-muted-foreground break-all">
+                      LAT: {currentPosition.lat.toFixed(6)} | LNG: {currentPosition.lng.toFixed(6)}
                     </p>
-
-                    <p className="text-xs text-muted-foreground break-all">
-                      LNG:
-                      {" "}
-                      {
-                        currentPosition.lng
-                      }
-                    </p>
-                  </>
+                  </div>
                 )}
               </div>
             </CardContent>
@@ -656,7 +648,7 @@ export default function ShiftPage() {
             <Button
               onClick={finishShift}
               disabled={
-                currentSession.isActive
+                currentSession.isActive || loading
               }
               variant="destructive"
               className="h-14 rounded-2xl font-bold"
@@ -695,7 +687,7 @@ export default function ShiftPage() {
           >
             <div className="space-y-2">
               <Label>
-                Ganho Bruto
+                Faturamento Bruto
               </Label>
 
               <CurrencyInput
@@ -751,13 +743,13 @@ export default function ShiftPage() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full font-bold"
+                className="w-full h-12 font-bold rounded-xl"
               >
                 {loading ? (
                   <Loader2 className="animate-spin mr-2 w-4 h-4" />
                 ) : null}
 
-                FINALIZAR SESSÃO
+                FINALIZAR SESSÃO E REGISTRAR KM
               </Button>
             </DialogFooter>
           </form>
