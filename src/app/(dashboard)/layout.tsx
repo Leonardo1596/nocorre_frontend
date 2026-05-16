@@ -4,7 +4,7 @@
 import React, { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, usePathname } from 'next/navigation';
-import { LayoutDashboard, Timer, History, Settings, Sparkles } from 'lucide-react';
+import { LayoutDashboard, Timer, History, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { AppProvider } from '@/contexts/AppContext';
@@ -32,7 +32,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { icon: LayoutDashboard, label: 'Ganhos', href: '/' },
     { icon: Timer, label: 'No Corre', href: '/shift' },
     { icon: History, label: 'Histórico', href: '/history' },
-    { icon: Sparkles, label: 'AI Dicas', href: '/ai-assistant' },
     { icon: Settings, label: 'Ajustes', href: '/settings' },
   ];
 
