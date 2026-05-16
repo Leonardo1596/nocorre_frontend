@@ -224,7 +224,7 @@ export default function HistoryPage() {
 
                           <span className="flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            {data.distance.productiveHours?.toFixed(1) || 0}h
+                            {data.distance.productiveHoursHuman || "0min"}
                           </span>
                         </div>
                       </div>
