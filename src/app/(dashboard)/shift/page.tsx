@@ -1,193 +1,492 @@
-"use client"
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { CurrencyInput } from '@/components/ui/currency-input';
-import { Label } from '@/components/ui/label';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
+import React, {
+  useState,
+  useEffect
+} from "react";
+
+import { Button } from "@/components/ui/button";
+
+import {
+  Card,
+  CardContent
+} from "@/components/ui/card";
+
+import { Input } from "@/components/ui/input";
+
+import { CurrencyInput } from "@/components/ui/currency-input";
+
+import { Label } from "@/components/ui/label";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
   DialogDescription,
   DialogFooter
-} from '@/components/ui/dialog';
-import { Play, Pause, StopCircle, Car, Timer, Zap, Loader2, RefreshCw } from 'lucide-react';
-import { useApp } from '@/contexts/AppContext';
-import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
-import api from '@/lib/api';
+} from "@/components/ui/dialog";
+
+import {
+  Play,
+  Pause,
+  StopCircle,
+  Car,
+  Timer,
+  Zap,
+  Loader2,
+  MapPin
+} from "lucide-react";
+
+import { useApp } from "@/contexts/AppContext";
+
+import { useToast } from "@/hooks/use-toast";
+
+import { cn } from "@/lib/utils";
+
+import api from "@/lib/api";
+
+import { useGps } from "@/modules/gps/context/GpsContext";
 
 export default function ShiftPage() {
-  const { currentShift, setCurrentShift, currentSession, setCurrentSession } = useApp();
+  const {
+    currentShift,
+    setCurrentShift,
+    currentSession,
+    setCurrentSession
+  } = useApp();
+
   const { toast } = useToast();
-  
-  const [elapsed, setElapsed] = useState(0);
-  const [sessionElapsed, setSessionElapsed] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [showFinishDialog, setShowFinishDialog] = useState(false);
 
-  // Form for finishing session
-  const [formData, setFormData] = useState({
-    grossAmount: 0,
-    foodExpense: 0,
-    otherExpense: 0,
-    productiveKm: ''
-  });
+  const {
+    startTracking,
+    stopTracking,
+    totalKm,
+    currentPosition,
+    isTracking,
+    resetTracking
+  } = useGps();
 
+  const [elapsed, setElapsed] =
+    useState(0);
+
+  const [
+    sessionElapsed,
+    setSessionElapsed
+  ] = useState(0);
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const [
+    showFinishDialog,
+    setShowFinishDialog
+  ] = useState(false);
+
+  /**
+   * FINISH SESSION FORM
+   */
+  const [formData, setFormData] =
+    useState({
+      grossAmount: 0,
+      foodExpense: 0,
+      otherExpense: 0
+    });
+
+  /**
+   * SHIFT TIMER
+   */
   useEffect(() => {
     let interval: any;
-    if (currentShift.isActive && currentShift.startTime) {
+
+    if (
+      currentShift.isActive &&
+      currentShift.startTime
+    ) {
       interval = setInterval(() => {
-        const start = new Date(currentShift.startTime!).getTime();
-        setElapsed(Math.floor((Date.now() - start) / 1000));
+        const start = new Date(
+          currentShift.startTime!
+        ).getTime();
+
+        setElapsed(
+          Math.floor(
+            (Date.now() - start) / 1000
+          )
+        );
       }, 1000);
     } else {
       setElapsed(0);
     }
+
     return () => clearInterval(interval);
   }, [currentShift]);
 
+  /**
+   * SESSION TIMER
+   */
   useEffect(() => {
     let interval: any;
-    if (currentSession.isActive && currentSession.startTime && !currentSession.isPaused) {
+
+    if (
+      currentSession.isActive &&
+      currentSession.startTime &&
+      !currentSession.isPaused
+    ) {
       interval = setInterval(() => {
-        const start = new Date(currentSession.startTime!).getTime();
-        setSessionElapsed(Math.floor((Date.now() - start) / 1000));
+        const start = new Date(
+          currentSession.startTime!
+        ).getTime();
+
+        setSessionElapsed(
+          Math.floor(
+            (Date.now() - start) / 1000
+          )
+        );
       }, 1000);
     }
+
     return () => clearInterval(interval);
   }, [currentSession]);
 
-  const formatTime = (seconds: number) => {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  };
+  useEffect(() => {
+    async function restoreTracking() {
+      if (
+        currentShift.isActive &&
+        !isTracking
+      ) {
+        try {
+          await startTracking();
 
-  const startShift = async () => {
+          console.log(
+            "GPS restaurado automaticamente"
+          );
+        } catch (error) {
+          console.error(
+            "Erro ao restaurar GPS:",
+            error
+          );
+        }
+      }
+    }
+
+    restoreTracking();
+  }, [
+    currentShift.isActive,
+    isTracking
+  ]);
+
+  function formatTime(seconds: number) {
+    const h = Math.floor(
+      seconds / 3600
+    );
+
+    const m = Math.floor(
+      (seconds % 3600) / 60
+    );
+
+    const s = seconds % 60;
+
+    return `${h
+      .toString()
+      .padStart(2, "0")}:${m
+        .toString()
+        .padStart(2, "0")}:${s
+          .toString()
+          .padStart(2, "0")}`;
+  }
+
+  /**
+   * START SHIFT
+   */
+  async function startShift() {
     setLoading(true);
+
     try {
-      const response = await api.post('/shifts/start');
-      const id = response.data._id || response.data.id;
-      
-      setCurrentShift({ 
-        id: id, 
-        startTime: new Date().toISOString(), 
-        isActive: true 
+      const response =
+        await api.post("/shifts/start");
+
+      const id =
+        response.data._id ||
+        response.data.id;
+
+      await startTracking();
+
+      setCurrentShift({
+        id,
+        startTime:
+          new Date().toISOString(),
+        isActive: true
       });
-      toast({ title: "Turno Iniciado", description: "Bom trabalho e dirija com segurança!" });
+
+      toast({
+        title: "Turno iniciado",
+        description:
+          "GPS ativo e rastreamento iniciado."
+      });
     } catch (error) {
       console.error(error);
-      toast({ variant: 'destructive', title: "Erro", description: "Não foi possível iniciar o turno." });
+      console.log(
+        "MESSAGE:",
+        error.response?.data?.message
+      );
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description:
+          "Não foi possível iniciar o turno."
+      });
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  const finishShift = async () => {
+  /**
+   * FINISH SHIFT
+   */
+  async function finishShift() {
     if (!currentShift.id) {
-      toast({ variant: 'destructive', title: "Erro", description: "ID do turno não encontrado." });
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description:
+          "ID do turno não encontrado."
+      });
+
       return;
     }
+
     setLoading(true);
+
     try {
-      await api.patch(`/shifts/${currentShift.id}/finish`);
-      setCurrentShift({ id: null, startTime: null, isActive: false });
-      setCurrentSession({ id: null, startTime: null, isActive: false, isPaused: false });
-      toast({ title: "Turno Finalizado", description: "Turno encerrado com sucesso." });
+      await stopTracking();
+
+      await api.patch(
+        `/shifts/${currentShift.id}/finish`,
+        {
+          totalKm
+        }
+      );
+
+      resetTracking();
+
+      setCurrentShift({
+        id: null,
+        startTime: null,
+        isActive: false
+      });
+
+      setCurrentSession({
+        id: null,
+        startTime: null,
+        isActive: false,
+        isPaused: false
+      });
+
+      toast({
+        title: "Turno finalizado",
+        description:
+          "Rastreamento encerrado."
+      });
     } catch (error) {
       console.error(error);
-      toast({ variant: 'destructive', title: "Erro", description: "Não foi possível finalizar o turno." });
+
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description:
+          "Não foi possível finalizar o turno."
+      });
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  const startWorkSession = async () => {
+  /**
+   * START SESSION
+   */
+  async function startWorkSession() {
     setLoading(true);
-    try {
-      const response = await api.post('/work-sessions/start');
-      const id = response.data._id || response.data.id;
 
-      setCurrentSession({ 
-        id: id, 
-        startTime: new Date().toISOString(), 
+    try {
+      const response =
+        await api.post(
+          "/work-sessions/start"
+        );
+
+      const id =
+        response.data._id ||
+        response.data.id;
+
+      setCurrentSession({
+        id,
+        startTime:
+          new Date().toISOString(),
         isActive: true,
         isPaused: false
       });
-      toast({ title: "Trabalho Iniciado", description: "Sessão produtiva ativa." });
+
+      toast({
+        title:
+          "Sessão iniciada",
+        description:
+          "Modo produtivo ativo."
+      });
     } catch (error) {
       console.error(error);
-      toast({ variant: 'destructive', title: "Erro", description: "Não foi possível iniciar a sessão." });
+
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description:
+          "Não foi possível iniciar sessão."
+      });
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  const pauseWorkSession = async () => {
+  /**
+   * PAUSE SESSION
+   */
+  async function pauseWorkSession() {
     if (!currentSession.id) return;
+
     setLoading(true);
+
     try {
-      await api.patch(`/work-sessions/${currentSession.id}/pause`);
-      setCurrentSession({ ...currentSession, isPaused: true });
-      toast({ title: "Trabalho Pausado", description: "A sessão foi pausada." });
+      await api.patch(
+        `/work-sessions/${currentSession.id}/pause`
+      );
+
+      setCurrentSession({
+        ...currentSession,
+        isPaused: true
+      });
+
+      toast({
+        title:
+          "Sessão pausada"
+      });
     } catch (error) {
       console.error(error);
-      toast({ variant: 'destructive', title: "Erro", description: "Não foi possível pausar a sessão." });
+
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description:
+          "Não foi possível pausar."
+      });
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  const resumeWorkSession = async () => {
+  /**
+   * RESUME SESSION
+   */
+  async function resumeWorkSession() {
     if (!currentSession.id) return;
+
     setLoading(true);
+
     try {
-      await api.patch(`/work-sessions/${currentSession.id}/resume`);
-      setCurrentSession({ ...currentSession, isPaused: false });
-      toast({ title: "Trabalho Retomado", description: "Bom trabalho!" });
+      await api.patch(
+        `/work-sessions/${currentSession.id}/resume`
+      );
+
+      setCurrentSession({
+        ...currentSession,
+        isPaused: false
+      });
+
+      toast({
+        title:
+          "Sessão retomada"
+      });
     } catch (error) {
       console.error(error);
-      toast({ variant: 'destructive', title: "Erro", description: "Não foi possível retomar a sessão." });
+
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description:
+          "Não foi possível retomar."
+      });
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  const handleFinishSessionSubmit = async (e?: React.FormEvent) => {
+  /**
+   * FINISH SESSION
+   */
+  async function handleFinishSessionSubmit(
+    e?: React.FormEvent
+  ) {
     if (e) e.preventDefault();
-    
+
     if (!currentSession.id) {
-      toast({ variant: 'destructive', title: "Erro", description: "ID da sessão não encontrado." });
       return;
     }
 
     setLoading(true);
-    try {
-      const payload = {
-        grossAmount: Number(formData.grossAmount),
-        foodExpense: Number(formData.foodExpense),
-        otherExpense: Number(formData.otherExpense),
-        productiveKm: formData.productiveKm ? Number(formData.productiveKm) : undefined,
-      };
 
-      await api.patch(`/work-sessions/${currentSession.id}/finish`, payload);
-      
-      setCurrentSession({ id: null, startTime: null, isActive: false, isPaused: false });
+    try {
+      await api.patch(
+        `/work-sessions/${currentSession.id}/finish`,
+        {
+          grossAmount:
+            Number(
+              formData.grossAmount
+            ),
+
+          foodExpense:
+            Number(
+              formData.foodExpense
+            ),
+
+          otherExpense:
+            Number(
+              formData.otherExpense
+            ),
+
+          productiveKm:
+            totalKm
+        }
+      );
+
+      setCurrentSession({
+        id: null,
+        startTime: null,
+        isActive: false,
+        isPaused: false
+      });
+
       setShowFinishDialog(false);
-      setFormData({ grossAmount: 0, foodExpense: 0, otherExpense: 0, productiveKm: '' });
-      toast({ title: "Sessão Finalizada", description: "Dados da sessão salvos com sucesso." });
+
+      setFormData({
+        grossAmount: 0,
+        foodExpense: 0,
+        otherExpense: 0
+      });
+
+      toast({
+        title:
+          "Sessão finalizada"
+      });
     } catch (error) {
       console.error(error);
-      toast({ variant: 'destructive', title: "Erro", description: "Não foi possível salvar os dados da sessão." });
+
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description:
+          "Não foi possível finalizar sessão."
+      });
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   return (
     <div className="p-6 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -195,185 +494,270 @@ export default function ShiftPage() {
         <div className="inline-flex p-3 rounded-full bg-primary/10 mb-2">
           <Car className="w-8 h-8 text-primary" />
         </div>
-        <h2 className="text-2xl font-headline font-bold">Gerenciador de Turno</h2>
-        <p className="text-sm text-muted-foreground">Registre seu tempo produtivo com precisão.</p>
+
+        <h2 className="text-2xl font-headline font-bold">
+          Gerenciador de Turno
+        </h2>
+
+        <p className="text-sm text-muted-foreground">
+          Rastreamento inteligente
+          com GPS em tempo real.
+        </p>
       </div>
 
       {!currentShift.isActive ? (
-        <Button 
-          onClick={startShift} 
+        <Button
+          onClick={startShift}
           disabled={loading}
-          className="w-full h-16 text-lg font-headline font-bold gap-3 rounded-2xl shadow-lg shadow-primary/20"
+          className="w-full h-16 text-lg font-headline font-bold gap-3 rounded-2xl"
         >
-          {loading ? <Loader2 className="animate-spin" /> : <Play className="fill-current" />}
+          {loading ? (
+            <Loader2 className="animate-spin" />
+          ) : (
+            <Play className="fill-current" />
+          )}
+
           COMEÇAR TURNO
         </Button>
       ) : (
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <Card className="border-primary/30 bg-primary/5">
-              <CardContent className="p-4 space-y-1">
-                <p className="text-[10px] font-medium text-muted-foreground uppercase">Tempo de Turno</p>
-                <p className="text-xl font-headline font-bold text-primary">{formatTime(elapsed)}</p>
+              <CardContent className="p-4">
+                <p className="text-[10px] uppercase text-muted-foreground">
+                  Tempo de Turno
+                </p>
+
+                <p className="text-xl font-bold text-primary">
+                  {formatTime(elapsed)}
+                </p>
               </CardContent>
             </Card>
+
             <Card className="border-accent/30 bg-accent/5">
-              <CardContent className="p-4 space-y-1">
-                <p className="text-[10px] font-medium text-muted-foreground uppercase">Tempo Produtivo</p>
-                <p className="text-xl font-headline font-bold text-accent">{formatTime(sessionElapsed)}</p>
+              <CardContent className="p-4">
+                <p className="text-[10px] uppercase text-muted-foreground">
+                  Tempo Produtivo
+                </p>
+
+                <p className="text-xl font-bold text-accent">
+                  {formatTime(
+                    sessionElapsed
+                  )}
+                </p>
               </CardContent>
             </Card>
           </div>
 
-          <Card className="bg-secondary/30 border-none overflow-hidden relative">
-            <div className="absolute top-0 right-0 p-4 opacity-10">
-              <Zap className="w-24 h-24" />
-            </div>
-            <CardContent className="p-6 relative z-10 space-y-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h3 className="font-headline font-bold text-lg">Status Atual</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {currentSession.isActive 
-                      ? (currentSession.isPaused ? 'Trabalho Pausado' : 'Você está em uma sessão de trabalho') 
-                      : 'Turno iniciado, aguardando sessão'}
-                  </p>
-                </div>
-                <div className={cn(
-                  "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider",
-                  currentSession.isActive 
-                    ? (currentSession.isPaused ? "bg-orange-500/20 text-orange-500" : "bg-accent text-accent-foreground")
-                    : "bg-primary/20 text-primary"
-                )}>
-                  {currentSession.isActive ? (currentSession.isPaused ? 'Pausado' : 'Em Trabalho') : 'Aguardando'}
-                </div>
+          <Card>
+            <CardContent className="p-5 space-y-4">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-primary" />
+
+                <h3 className="font-bold">
+                  Rastreamento GPS
+                </h3>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 pt-2">
-                <div className="space-y-1">
-                  <p className="text-[10px] text-muted-foreground uppercase">ID do Turno</p>
-                  <p className="text-xs font-mono text-muted-foreground truncate max-w-[120px]">{currentShift.id || 'N/A'}</p>
-                </div>
-                {currentSession.isActive && (
-                  <div className="space-y-1">
-                    <p className="text-[10px] text-muted-foreground uppercase">ID da Sessão</p>
-                    <p className="text-xs font-mono text-muted-foreground truncate max-w-[120px]">{currentSession.id || 'N/A'}</p>
-                  </div>
+              <div className="space-y-2 text-sm">
+                <p>
+                  Status:
+                  <span className="ml-2 font-bold text-primary">
+                    {isTracking
+                      ? "ATIVO"
+                      : "INATIVO"}
+                  </span>
+                </p>
+
+                <p>
+                  KM Total:
+                  <span className="ml-2 font-bold">
+                    {totalKm.toFixed(
+                      2
+                    )}{" "}
+                    km
+                  </span>
+                </p>
+
+                {currentPosition && (
+                  <>
+                    <p className="text-xs text-muted-foreground break-all">
+                      LAT:
+                      {" "}
+                      {
+                        currentPosition.lat
+                      }
+                    </p>
+
+                    <p className="text-xs text-muted-foreground break-all">
+                      LNG:
+                      {" "}
+                      {
+                        currentPosition.lng
+                      }
+                    </p>
+                  </>
                 )}
               </div>
             </CardContent>
           </Card>
 
-          <div className="grid grid-cols-1 gap-4 pt-4">
+          <div className="grid grid-cols-1 gap-4">
             {!currentSession.isActive ? (
-              <Button 
-                onClick={startWorkSession}
+              <Button
+                onClick={
+                  startWorkSession
+                }
                 disabled={loading}
-                className="w-full h-16 bg-accent hover:bg-accent/90 text-accent-foreground font-headline font-bold gap-3 rounded-2xl"
+                className="h-16 rounded-2xl font-bold"
               >
-                {loading ? <Loader2 className="animate-spin" /> : <Timer className="w-6 h-6" />}
+                <Timer className="w-5 h-5 mr-2" />
+
                 INICIAR TRABALHO
               </Button>
             ) : (
               <div className="grid grid-cols-2 gap-3">
-                <Button 
-                  onClick={currentSession.isPaused ? resumeWorkSession : pauseWorkSession}
-                  disabled={loading}
+                <Button
+                  onClick={
+                    currentSession.isPaused
+                      ? resumeWorkSession
+                      : pauseWorkSession
+                  }
                   variant="outline"
-                  className={cn(
-                    "h-16 font-headline font-bold gap-2 rounded-2xl",
-                    currentSession.isPaused ? "border-primary text-primary hover:bg-primary/10" : "border-orange-500 text-orange-500 hover:bg-orange-500/10"
+                  className="h-16 rounded-2xl font-bold"
+                >
+                  {currentSession.isPaused ? (
+                    <Play className="w-5 h-5 mr-2" />
+                  ) : (
+                    <Pause className="w-5 h-5 mr-2" />
                   )}
-                >
-                  {loading ? <Loader2 className="animate-spin" /> : (currentSession.isPaused ? <Play className="w-5 h-5" /> : <Pause className="w-5 h-5" />)}
-                  {currentSession.isPaused ? 'RETOMAR' : 'PAUSAR'}
+
+                  {currentSession.isPaused
+                    ? "RETOMAR"
+                    : "PAUSAR"}
                 </Button>
-                <Button 
-                  onClick={() => setShowFinishDialog(true)}
+
+                <Button
+                  onClick={() =>
+                    setShowFinishDialog(
+                      true
+                    )
+                  }
                   variant="secondary"
-                  disabled={loading}
-                  className="h-16 font-headline font-bold gap-2 rounded-2xl"
+                  className="h-16 rounded-2xl font-bold"
                 >
-                  <StopCircle className="w-5 h-5" />
+                  <StopCircle className="w-5 h-5 mr-2" />
+
                   FINALIZAR
                 </Button>
               </div>
             )}
 
-            <Button 
+            <Button
               onClick={finishShift}
-              variant="outline"
-              disabled={loading || currentSession.isActive}
-              className="w-full h-14 border-destructive/50 text-destructive hover:bg-destructive/10 font-headline font-bold gap-3 rounded-2xl"
+              disabled={
+                currentSession.isActive
+              }
+              variant="destructive"
+              className="h-14 rounded-2xl font-bold"
             >
-              {loading ? <Loader2 className="animate-spin" /> : <StopCircle className="w-5 h-5" />}
+              <StopCircle className="w-5 h-5 mr-2" />
+
               FINALIZAR TURNO
             </Button>
-            {currentSession.isActive && (
-              <p className="text-[10px] text-center text-muted-foreground">Finalize o trabalho antes de encerrar o turno.</p>
-            )}
           </div>
         </div>
       )}
 
-      <Dialog open={showFinishDialog} onOpenChange={setShowFinishDialog}>
-        <DialogContent className="max-w-[90vw] rounded-2xl bg-card border-border/50">
+      <Dialog
+        open={showFinishDialog}
+        onOpenChange={
+          setShowFinishDialog
+        }
+      >
+        <DialogContent className="rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="font-headline">Finalizar Sessão de Trabalho</DialogTitle>
-            <DialogDescription>Insira os dados deste período de trabalho (opcional).</DialogDescription>
+            <DialogTitle>
+              Finalizar Sessão
+            </DialogTitle>
+
+            <DialogDescription>
+              Informe os ganhos e
+              despesas da sessão.
+            </DialogDescription>
           </DialogHeader>
-          
-          <form onSubmit={handleFinishSessionSubmit} className="space-y-4">
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="grossAmount">Ganho Bruto (R$)</Label>
-                  <CurrencyInput 
-                    id="grossAmount" 
-                    placeholder="R$ 0,00" 
-                    value={formData.grossAmount}
-                    onChange={(val) => setFormData({...formData, grossAmount: val})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="productiveKm">KM Rodados</Label>
-                  <Input 
-                    id="productiveKm" 
-                    type="number" 
-                    step="0.1"
-                    placeholder="0.0" 
-                    value={formData.productiveKm}
-                    onChange={(e) => setFormData({...formData, productiveKm: e.target.value})}
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="foodExpense">Alimentação (R$)</Label>
-                  <CurrencyInput 
-                    id="foodExpense" 
-                    placeholder="R$ 0,00" 
-                    value={formData.foodExpense}
-                    onChange={(val) => setFormData({...formData, foodExpense: val})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="otherExpense">Outros Custos (R$)</Label>
-                  <CurrencyInput 
-                    id="otherExpense" 
-                    placeholder="R$ 0,00" 
-                    value={formData.otherExpense}
-                    onChange={(val) => setFormData({...formData, otherExpense: val})}
-                  />
-                </div>
-              </div>
+
+          <form
+            onSubmit={
+              handleFinishSessionSubmit
+            }
+            className="space-y-4"
+          >
+            <div className="space-y-2">
+              <Label>
+                Ganho Bruto
+              </Label>
+
+              <CurrencyInput
+                value={
+                  formData.grossAmount
+                }
+                onChange={val =>
+                  setFormData({
+                    ...formData,
+                    grossAmount: val
+                  })
+                }
+              />
             </div>
 
-            <DialogFooter className="gap-2 sm:gap-0">
-              <Button type="button" variant="ghost" onClick={() => setShowFinishDialog(false)}>CANCELAR</Button>
-              <Button type="submit" disabled={loading} className="font-bold">
-                {loading ? <Loader2 className="animate-spin mr-2 w-4 h-4" /> : null}
-                CONFIRMAR E FINALIZAR
+            <div className="space-y-2">
+              <Label>
+                Alimentação
+              </Label>
+
+              <CurrencyInput
+                value={
+                  formData.foodExpense
+                }
+                onChange={val =>
+                  setFormData({
+                    ...formData,
+                    foodExpense: val
+                  })
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>
+                Outros Custos
+              </Label>
+
+              <CurrencyInput
+                value={
+                  formData.otherExpense
+                }
+                onChange={val =>
+                  setFormData({
+                    ...formData,
+                    otherExpense: val
+                  })
+                }
+              />
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="submit"
+                disabled={loading}
+                className="w-full font-bold"
+              >
+                {loading ? (
+                  <Loader2 className="animate-spin mr-2 w-4 h-4" />
+                ) : null}
+
+                FINALIZAR SESSÃO
               </Button>
             </DialogFooter>
           </form>

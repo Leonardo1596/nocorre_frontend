@@ -1,27 +1,50 @@
+import type { Metadata } from "next";
 
-import type { Metadata } from 'next';
-import './globals.css';
-import { AuthProvider } from '@/contexts/AuthContext';
-import { Toaster } from '@/components/ui/toaster';
-import { ThemeProvider } from '@/components/theme-provider';
+import "./globals.css";
+
+import { AuthProvider } from "@/contexts/AuthContext";
+
+import { Toaster } from "@/components/ui/toaster";
+
+import { ThemeProvider } from "@/components/theme-provider";
+
+import { GpsProvider } from "@/modules/gps/context/GpsContext";
 
 export const metadata: Metadata = {
-  title: 'NoCorre - Inteligência para Motoristas',
-  description: 'Controle de ganhos e produtividade para motoristas de aplicativo.',
+  title: "NoCorre - Inteligência para Motoristas",
+
+  description:
+    "Controle de ganhos e produtividade para motoristas de aplicativo."
 };
 
 export default function RootLayout({
-  children,
+  children
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" suppressHydrationWarning>
+    <html
+      lang="pt-BR"
+      suppressHydrationWarning
+    >
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        <link
+          rel="preconnect"
+          href="https://fonts.googleapis.com"
+        />
+
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
+
+        <link
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
       </head>
+
       <body className="font-body antialiased bg-background overflow-x-hidden">
         <ThemeProvider
           attribute="class"
@@ -30,8 +53,11 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider>
-            {children}
-            <Toaster />
+            <GpsProvider>
+              {children}
+
+              <Toaster />
+            </GpsProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>
