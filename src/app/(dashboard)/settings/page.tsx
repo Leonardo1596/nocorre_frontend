@@ -137,9 +137,9 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <div className="p-6 flex flex-col items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 text-primary animate-spin mb-4" />
-        <p className="text-sm text-muted-foreground">Sincronizando configurações...</p>
+      <div className="min-h-[80vh] flex flex-col items-center justify-center gap-4">
+        <Loader2 className="w-10 h-10 text-primary animate-spin" />
+        <p className="text-sm text-muted-foreground animate-pulse font-medium">Sincronizando configurações...</p>
       </div>
     );
   }
