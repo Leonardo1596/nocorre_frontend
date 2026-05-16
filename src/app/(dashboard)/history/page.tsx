@@ -67,6 +67,15 @@ export default function HistoryPage() {
     setDateRange({ from: newFrom, to: newTo });
   };
 
+  if (loading && !dashboard) {
+    return (
+      <div className="min-h-[80vh] flex flex-col items-center justify-center gap-4">
+        <Loader2 className="w-10 h-10 text-primary animate-spin" />
+        <p className="text-sm text-muted-foreground animate-pulse font-medium">Sincronizando seu histórico...</p>
+      </div>
+    );
+  }
+
   const formattedRange = dateRange?.from && dateRange?.to 
     ? `${format(dateRange.from, "dd MMM", { locale: ptBR })} - ${format(dateRange.to, "dd MMM", { locale: ptBR })}`
     : dateRange?.from
@@ -88,7 +97,7 @@ export default function HistoryPage() {
         </p>
       </div>
 
-      {/* DATE SELECTOR (Igual ao do Dashboard) */}
+      {/* DATE SELECTOR */}
       <div className="flex items-center justify-between bg-card/40 border border-border/50 rounded-2xl p-1.5 shadow-sm">
         <Button 
           variant="ghost" 
@@ -136,126 +145,126 @@ export default function HistoryPage() {
         </Button>
       </div>
 
-      {loading ? (
-        <div className="flex justify-center py-20">
-          <Loader2 className="w-8 h-8 text-primary animate-spin" />
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {/* SUMMARY */}
-          {dashboard?.summary && (
-            <div className="grid grid-cols-2 gap-3">
-              <Card className="border-border/50 bg-card/40">
-                <CardContent className="p-3">
-                  <p className="text-[9px] uppercase font-bold text-muted-foreground">
-                    Lucro líquido
-                  </p>
-                  <p className="text-lg font-bold text-primary">
-                    R$ {dashboard.summary.netProfit.toFixed(2).replace(".", ",")}
-                  </p>
-                </CardContent>
-              </Card>
+      <div className="space-y-6">
+        {/* SUMMARY */}
+        {dashboard?.summary && (
+          <div className="grid grid-cols-2 gap-3">
+            <Card className="border-border/50 bg-card/40">
+              <CardContent className="p-3">
+                <p className="text-[9px] uppercase font-bold text-muted-foreground">
+                  Lucro líquido
+                </p>
+                <p className="text-lg font-bold text-primary">
+                  R$ {dashboard.summary.netProfit.toFixed(2).replace(".", ",")}
+                </p>
+              </CardContent>
+            </Card>
 
-              <Card className="border-border/50 bg-card/40">
-                <CardContent className="p-3">
-                  <p className="text-[9px] uppercase font-bold text-muted-foreground">
-                    Km total
-                  </p>
-                  <p className="text-lg font-bold">
-                    {dashboard.summary.totalKm.toFixed(1)} km
-                  </p>
-                </CardContent>
-              </Card>
+            <Card className="border-border/50 bg-card/40">
+              <CardContent className="p-3">
+                <p className="text-[9px] uppercase font-bold text-muted-foreground">
+                  Km total
+                </p>
+                <p className="text-lg font-bold">
+                  {dashboard.summary.totalKm.toFixed(1)} km
+                </p>
+              </CardContent>
+            </Card>
 
-              <Card className="border-border/50 bg-card/40">
-                <CardContent className="p-3">
-                  <p className="text-[9px] uppercase font-bold text-muted-foreground">
-                    Trabalho
-                  </p>
-                  <p className="text-lg font-bold">
-                    {dashboard.summary.productiveHoursHuman || "0h"}
-                  </p>
-                </CardContent>
-              </Card>
+            <Card className="border-border/50 bg-card/40">
+              <CardContent className="p-3">
+                <p className="text-[9px] uppercase font-bold text-muted-foreground">
+                  Trabalho
+                </p>
+                <p className="text-lg font-bold">
+                  {dashboard.summary.productiveHoursHuman || "0h"}
+                </p>
+              </CardContent>
+            </Card>
 
-              <Card className="border-border/50 bg-card/40">
-                <CardContent className="p-3">
-                  <p className="text-[9px] uppercase font-bold text-muted-foreground">
-                    Faturamento
+            <Card className="border-border/50 bg-card/40">
+              <CardContent className="p-3">
+                <p className="text-[9px] uppercase font-bold text-muted-foreground">
+                  Faturamento
+                </p>
+                <p className="text-lg font-bold">
+                  R$ {dashboard.summary.grossAmount.toFixed(2).replace(".", ",")}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* DAYS */}
+        <div className="space-y-3">
+          <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">Detalhamento Diário</h3>
+          {daysArray.length > 0 ? (
+            daysArray.map(([date, data]: any) => {
+              return (
+                <Card
+                  key={date}
+                  className="border-border/50 bg-card/20 hover:bg-card/40 transition-colors cursor-pointer"
+                >
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold">
+                          {format(new Date(date), "dd/MM")}
+                        </span>
+
+                        <Badge
+                          variant="secondary"
+                          className="text-[9px] font-bold uppercase tracking-wider h-4"
+                        >
+                          {data.dayName}
+                        </Badge>
+                      </div>
+
+                      <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Route className="w-3 h-3" />
+                          {data.distance.productiveKm.toFixed(1)} km
+                        </span>
+
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {data.distance.productiveHoursHuman || "0min"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="text-right flex items-center gap-3">
+                      <div className="space-y-0.5">
+                        <p className="text-lg font-headline font-bold text-primary">
+                          R$ {data.financial.netProfit.toFixed(2).replace(".", ",")}
+                        </p>
+                        <p className="text-[9px] text-muted-foreground uppercase font-bold">
+                          Líquido
+                        </p>
+                      </div>
+
+                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })
+          ) : (
+            <div className="py-20 text-center space-y-4">
+              {loading ? (
+                <Loader2 className="w-8 h-8 text-primary animate-spin mx-auto" />
+              ) : (
+                <>
+                  <CalendarIcon className="w-12 h-12 text-muted-foreground mx-auto opacity-20" />
+                  <p className="text-sm text-muted-foreground">
+                    Nenhum registro neste período.
                   </p>
-                  <p className="text-lg font-bold">
-                    R$ {dashboard.summary.grossAmount.toFixed(2).replace(".", ",")}
-                  </p>
-                </CardContent>
-              </Card>
+                </>
+              )}
             </div>
           )}
-
-          {/* DAYS */}
-          <div className="space-y-3">
-            <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">Detalhamento Diário</h3>
-            {daysArray.length > 0 ? (
-              daysArray.map(([date, data]: any) => {
-                return (
-                  <Card
-                    key={date}
-                    className="border-border/50 bg-card/20 hover:bg-card/40 transition-colors cursor-pointer"
-                  >
-                    <CardContent className="p-4 flex items-center justify-between">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-bold">
-                            {format(new Date(date), "dd/MM")}
-                          </span>
-
-                          <Badge
-                            variant="secondary"
-                            className="text-[9px] font-bold uppercase tracking-wider h-4"
-                          >
-                            {data.dayName}
-                          </Badge>
-                        </div>
-
-                        <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Route className="w-3 h-3" />
-                            {data.distance.productiveKm.toFixed(1)} km
-                          </span>
-
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {data.distance.productiveHoursHuman || "0min"}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="text-right flex items-center gap-3">
-                        <div className="space-y-0.5">
-                          <p className="text-lg font-headline font-bold text-primary">
-                            R$ {data.financial.netProfit.toFixed(2).replace(".", ",")}
-                          </p>
-                          <p className="text-[9px] text-muted-foreground uppercase font-bold">
-                            Líquido
-                          </p>
-                        </div>
-
-                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })
-            ) : (
-              <div className="py-20 text-center space-y-4">
-                <CalendarIcon className="w-12 h-12 text-muted-foreground mx-auto opacity-20" />
-                <p className="text-sm text-muted-foreground">
-                  Nenhum registro neste período.
-                </p>
-              </div>
-            )}
-          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
