@@ -246,8 +246,9 @@ export default function Dashboard() {
           
           <Dialog open={showFuelModal} onOpenChange={setShowFuelModal}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="icon" className="h-9 w-9 border-border/50 bg-card/50 text-primary rounded-xl shadow-sm">
+              <Button variant="outline" className="h-9 gap-2 border-border/50 bg-card/50 text-primary rounded-xl shadow-sm px-3">
                 <Fuel className="w-4 h-4" />
+                <span className="text-[10px] font-bold uppercase">Abastecer</span>
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-[90vw] rounded-3xl">
@@ -304,7 +305,6 @@ export default function Dashboard() {
                 selected={dateRange}
                 onSelect={(range) => {
                   setDateRange(range);
-                  // Somente fecha quando um intervalo completo (Início e Fim) for selecionado
                   if (range?.from && range?.to) {
                     setIsCalendarOpen(false);
                   }
