@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
@@ -20,8 +19,18 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import api from "@/lib/api";
-import { format, startOfWeek, endOfWeek, addDays } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+
+import {
+  format,
+  startOfWeek,
+  endOfWeek,
+  addDays,
+  parse,
+  startOfDay,
+  endOfDay,
+} from "date-fns";
+
+import { ptBR } from "date-fns/locale";
 import { DateRange } from "react-day-picker";
 
 export default function HistoryPage() {
@@ -38,11 +47,16 @@ export default function HistoryPage() {
   const fetchHistory = useCallback(async (start: Date, end: Date) => {
     try {
       setLoading(true);
-      const startDateStr = format(start, 'yyyy-MM-dd');
-      const endDateStr = format(end, 'yyyy-MM-dd');
+
+      // Garante range completo do dia
+      const startDate = startOfDay(start);
+      const endDate = endOfDay(end);
+
+      const startDateStr = startDate.toISOString();
+      const endDateStr = endDate.toISOString();
 
       const response = await api.get(
-        `/dashboard?start=${startDateStr}&end=${endDateStr}`
+        `/dashboard?start=${encodeURIComponent(startDateStr)}&end=${encodeURIComponent(endDateStr)}`
       );
 
       setDashboard(response.data);
@@ -59,28 +73,44 @@ export default function HistoryPage() {
     }
   }, [dateRange, fetchHistory]);
 
-  const navigateWeek = (direction: 'prev' | 'next') => {
+  const navigateWeek = (direction: "prev" | "next") => {
     if (!dateRange?.from || !dateRange?.to) return;
-    const offset = direction === 'prev' ? -7 : 7;
+
+    const offset = direction === "prev" ? -7 : 7;
+
     const newFrom = addDays(dateRange.from, offset);
     const newTo = addDays(dateRange.to, offset);
-    setDateRange({ from: newFrom, to: newTo });
+
+    setDateRange({
+      from: newFrom,
+      to: newTo,
+    });
   };
 
   if (loading && !dashboard) {
     return (
       <div className="min-h-[80vh] flex flex-col items-center justify-center gap-4">
         <Loader2 className="w-10 h-10 text-primary animate-spin" />
-        <p className="text-sm text-muted-foreground animate-pulse font-medium">Sincronizando seu histórico...</p>
+
+        <p className="text-sm text-muted-foreground animate-pulse font-medium">
+          Sincronizando seu histórico...
+        </p>
       </div>
     );
   }
 
-  const formattedRange = dateRange?.from && dateRange?.to 
-    ? `${format(dateRange.from, "dd MMM", { locale: ptBR })} - ${format(dateRange.to, "dd MMM", { locale: ptBR })}`
-    : dateRange?.from
-      ? format(dateRange.from, "dd MMM", { locale: ptBR })
-      : "Selecione o período";
+  const formattedRange =
+    dateRange?.from && dateRange?.to
+      ? `${format(dateRange.from, "dd MMM", {
+        locale: ptBR,
+      })} - ${format(dateRange.to, "dd MMM", {
+        locale: ptBR,
+      })}`
+      : dateRange?.from
+        ? format(dateRange.from, "dd MMM", {
+          locale: ptBR,
+        })
+        : "Selecione o período";
 
   const daysArray = dashboard?.days
     ? Object.entries(dashboard.days)
@@ -92,6 +122,7 @@ export default function HistoryPage() {
         <h2 className="text-2xl font-headline font-bold">
           Histórico de Corres
         </h2>
+
         <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
           Revise seu desempenho por período
         </p>
@@ -99,32 +130,41 @@ export default function HistoryPage() {
 
       {/* DATE SELECTOR */}
       <div className="flex items-center justify-between bg-card/40 border border-border/50 rounded-2xl p-1.5 shadow-sm">
-        <Button 
-          variant="ghost" 
-          size="icon" 
+        <Button
+          variant="ghost"
+          size="icon"
           className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors"
-          onClick={() => navigateWeek('prev')}
+          onClick={() => navigateWeek("prev")}
         >
           <ChevronLeft className="w-4 h-4" />
         </Button>
 
-        <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+        <Popover
+          open={isCalendarOpen}
+          onOpenChange={setIsCalendarOpen}
+        >
           <PopoverTrigger asChild>
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               className="flex-1 h-8 gap-2 font-bold text-xs uppercase tracking-wider hover:bg-transparent"
             >
               <CalendarIcon className="w-3.5 h-3.5 text-primary" />
+
               {formattedRange}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0 rounded-2xl border-border" align="center">
+
+          <PopoverContent
+            className="w-auto p-0 rounded-2xl border-border"
+            align="center"
+          >
             <Calendar
               initialFocus
               mode="range"
               selected={dateRange}
               onSelect={(range) => {
                 setDateRange(range);
+
                 if (range?.from && range?.to) {
                   setIsCalendarOpen(false);
                 }
@@ -135,11 +175,11 @@ export default function HistoryPage() {
           </PopoverContent>
         </Popover>
 
-        <Button 
-          variant="ghost" 
-          size="icon" 
+        <Button
+          variant="ghost"
+          size="icon"
           className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors"
-          onClick={() => navigateWeek('next')}
+          onClick={() => navigateWeek("next")}
         >
           <ChevronRight className="w-4 h-4" />
         </Button>
@@ -154,8 +194,12 @@ export default function HistoryPage() {
                 <p className="text-[9px] uppercase font-bold text-muted-foreground">
                   Lucro líquido
                 </p>
+
                 <p className="text-lg font-bold text-primary">
-                  R$ {dashboard.summary.netProfit.toFixed(2).replace(".", ",")}
+                  R${" "}
+                  {dashboard.summary.netProfit
+                    .toFixed(2)
+                    .replace(".", ",")}
                 </p>
               </CardContent>
             </Card>
@@ -165,6 +209,7 @@ export default function HistoryPage() {
                 <p className="text-[9px] uppercase font-bold text-muted-foreground">
                   Km total
                 </p>
+
                 <p className="text-lg font-bold">
                   {dashboard.summary.totalKm.toFixed(1)} km
                 </p>
@@ -174,8 +219,9 @@ export default function HistoryPage() {
             <Card className="border-border/50 bg-card/40">
               <CardContent className="p-3">
                 <p className="text-[9px] uppercase font-bold text-muted-foreground">
-                  Trabalho
+                  Horas produtivas
                 </p>
+
                 <p className="text-lg font-bold">
                   {dashboard.summary.productiveHoursHuman || "0h"}
                 </p>
@@ -187,8 +233,12 @@ export default function HistoryPage() {
                 <p className="text-[9px] uppercase font-bold text-muted-foreground">
                   Faturamento
                 </p>
+
                 <p className="text-lg font-bold">
-                  R$ {dashboard.summary.grossAmount.toFixed(2).replace(".", ",")}
+                  R${" "}
+                  {dashboard.summary.grossAmount
+                    .toFixed(2)
+                    .replace(".", ",")}
                 </p>
               </CardContent>
             </Card>
@@ -197,9 +247,20 @@ export default function HistoryPage() {
 
         {/* DAYS */}
         <div className="space-y-3">
-          <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">Detalhamento Diário</h3>
+          <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">
+            Detalhamento Diário
+          </h3>
+
           {daysArray.length > 0 ? (
             daysArray.map(([date, data]: any) => {
+
+              // CORREÇÃO DO TIMEZONE
+              const parsedDate = parse(
+                date,
+                "yyyy-MM-dd",
+                new Date()
+              );
+
               return (
                 <Card
                   key={date}
@@ -209,7 +270,7 @@ export default function HistoryPage() {
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-bold">
-                          {format(new Date(date), "dd/MM")}
+                          {format(parsedDate, "dd/MM")}
                         </span>
 
                         <Badge
@@ -223,11 +284,13 @@ export default function HistoryPage() {
                       <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Route className="w-3 h-3" />
+
                           {data.distance.productiveKm.toFixed(2)} km
                         </span>
 
                         <span className="flex items-center gap-1">
                           <Clock className="w-3 h-3" />
+
                           {data.distance.productiveHoursHuman || "0min"}
                         </span>
                       </div>
@@ -236,8 +299,12 @@ export default function HistoryPage() {
                     <div className="text-right flex items-center gap-3">
                       <div className="space-y-0.5">
                         <p className="text-lg font-headline font-bold text-primary">
-                          R$ {data.financial.netProfit.toFixed(2).replace(".", ",")}
+                          R${" "}
+                          {data.financial.netProfit
+                            .toFixed(2)
+                            .replace(".", ",")}
                         </p>
+
                         <p className="text-[9px] text-muted-foreground uppercase font-bold">
                           Líquido
                         </p>
@@ -256,6 +323,7 @@ export default function HistoryPage() {
               ) : (
                 <>
                   <CalendarIcon className="w-12 h-12 text-muted-foreground mx-auto opacity-20" />
+
                   <p className="text-sm text-muted-foreground">
                     Nenhum registro neste período.
                   </p>
