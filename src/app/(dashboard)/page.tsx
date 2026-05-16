@@ -347,7 +347,7 @@ export default function Dashboard() {
             <Card className="border-border/50 bg-card/40">
               <CardContent className="p-4 space-y-2 text-center">
                 <p className="text-[10px] font-bold text-muted-foreground uppercase">KM Rodados</p>
-                <p className="text-lg font-headline font-bold text-blue-400">{totalKm.toFixed(1)} km</p>
+                <p className="text-lg font-headline font-bold text-blue-400">{totalKm.toFixed(2)} km</p>
               </CardContent>
             </Card>
           </div>

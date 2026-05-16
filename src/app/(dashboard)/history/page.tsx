@@ -223,7 +223,7 @@ export default function HistoryPage() {
                       <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Route className="w-3 h-3" />
-                          {data.distance.productiveKm.toFixed(1)} km
+                          {data.distance.productiveKm.toFixed(2)} km
                         </span>
 
                         <span className="flex items-center gap-1">
