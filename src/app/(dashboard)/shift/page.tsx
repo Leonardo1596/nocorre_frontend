@@ -2,7 +2,8 @@
 
 import React, {
   useState,
-  useEffect
+  useEffect,
+  useRef
 } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,7 @@ import api from "@/lib/api";
 import GPS from "@/lib/gps";
 
 import { Capacitor } from "@capacitor/core";
+import type { PluginListenerHandle } from '@capacitor/core';
 
 export default function ShiftPage() {
   const {
@@ -73,27 +75,55 @@ export default function ShiftPage() {
   const [gpsStatus, setGpsStatus] = useState("inactive");
   const [lastLocation, setLastLocation] = useState<{ latitude: number; longitude: number } | null>(null);
 
+  const locationUpdateListener = useRef<PluginListenerHandle | null>(null);
+  const gpsStatusChangeListener = useRef<PluginListenerHandle | null>(null);
+
   useEffect(() => {
-    if (Capacitor.isNativePlatform()) {
-      GPS.startLocationUpdates();
+    const initGps = async () => {
+      if (Capacitor.isNativePlatform()) {
+        try {
+          await GPS.startLocationUpdates();
 
-      GPS.getGpsStatus().then(result => {
-        setGpsStatus(result.status);
-      });
+          const status = await GPS.getGpsStatus();
+          setGpsStatus(status.status);
 
-      const locationUpdateListener = GPS.addListener("locationUpdate", (location) => {
-        setLastLocation(location);
-      });
+          locationUpdateListener.current = await GPS.addListener("locationUpdate", (location) => {
+            setLastLocation(location);
+          });
 
-      const gpsStatusChangeListener = GPS.addListener("gpsStatusChange", (result) => {
-        setGpsStatus(result.status);
-      });
+          gpsStatusChangeListener.current = await GPS.addListener("gpsStatusChange", (result) => {
+            setGpsStatus(result.status);
+          });
 
-      return () => {
-        locationUpdateListener.remove();
-        gpsStatusChangeListener.remove();
+        } catch (error) {
+          console.error("Error initializing GPS", error);
+          toast({
+            variant: "destructive",
+            title: "Erro de GPS",
+            description: "Não foi possível iniciar o rastreamento GPS."
+          });
+        }
+      }
+    };
+
+    initGps();
+
+    return () => {
+      const cleanup = async () => {
+        if (locationUpdateListener.current) {
+          await locationUpdateListener.current.remove();
+          locationUpdateListener.current = null;
+        }
+        if (gpsStatusChangeListener.current) {
+          await gpsStatusChangeListener.current.remove();
+          gpsStatusChangeListener.current = null;
+        }
+        if (Capacitor.isNativePlatform()) {
+          await GPS.stopLocationUpdates();
+        }
       };
-    }
+      cleanup();
+    };
   }, []);
 
 
