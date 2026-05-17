@@ -17,6 +17,6 @@ export interface GpsPlugin {
   removeAllListeners(): Promise<void>;
 }
 
-const GPS = registerPlugin<GpsPlugin>('GPS');
+const GPS = registerPlugin<GpsPlugin>('MyGPS');
 
 export default GPS;

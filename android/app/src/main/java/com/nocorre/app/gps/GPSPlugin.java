@@ -8,7 +8,7 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 
 @CapacitorPlugin(
-    name = "GPS",
+    name = "MyGPS",
     permissions = {
         @Permission(
             alias = "location",
@@ -64,12 +64,6 @@ public class GPSPlugin extends Plugin {
         }
     }
 
-    @Override
-    protected void handleRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        super.handleRequestPermissionsResult(requestCode, permissions, grantResults);
-    }
-    
-    // Callback to send location updates to the web view
     private void onLocationUpdate(android.location.Location location) {
         JSObject ret = new JSObject();
         ret.put("latitude", location.getLatitude());
@@ -77,10 +71,9 @@ public class GPSPlugin extends Plugin {
         notifyListeners("locationUpdate", ret);
     }
 
-    // Callback to send GPS status changes to the web view
-    private void onGpsStatusChange(boolean enabled) {
+    private void onGpsStatusChange(String status) {
         JSObject ret = new JSObject();
-        ret.put("status", enabled ? "active" : "inactive");
+        ret.put("status", status);
         notifyListeners("gpsStatusChange", ret);
     }
 }
