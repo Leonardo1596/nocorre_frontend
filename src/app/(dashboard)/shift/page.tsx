@@ -40,6 +40,10 @@ import { useToast } from "@/hooks/use-toast";
 
 import api from "@/lib/api";
 
+import GPS from "@/lib/gps";
+
+import { Capacitor } from "@capacitor/core";
+
 export default function ShiftPage() {
   const {
     currentShift,
@@ -65,6 +69,33 @@ export default function ShiftPage() {
     showFinishDialog,
     setShowFinishDialog
   ] = useState(false);
+
+  const [gpsStatus, setGpsStatus] = useState("inactive");
+  const [lastLocation, setLastLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      GPS.startLocationUpdates();
+
+      GPS.getGpsStatus().then(result => {
+        setGpsStatus(result.status);
+      });
+
+      const locationUpdateListener = GPS.addListener("locationUpdate", (location) => {
+        setLastLocation(location);
+      });
+
+      const gpsStatusChangeListener = GPS.addListener("gpsStatusChange", (result) => {
+        setGpsStatus(result.status);
+      });
+
+      return () => {
+        locationUpdateListener.remove();
+        gpsStatusChangeListener.remove();
+      };
+    }
+  }, []);
+
 
   /**
    * FINISH SESSION FORM
@@ -209,7 +240,8 @@ export default function ShiftPage() {
 
     try {
       await api.patch(
-        `/shifts/${currentShift.id}/finish`
+        `/shifts/${currentShift.id}/finish`,
+        { totalKm: 0 }
       );
 
       setCurrentShift({
@@ -228,14 +260,14 @@ export default function ShiftPage() {
       toast({
         title: "Turno finalizado"
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
 
       toast({
         variant: "destructive",
         title: "Erro",
         description:
-          "Não foi possível finalizar o turno."
+          error.response?.data?.message || "Não foi possível finalizar o turno."
       });
     } finally {
       setLoading(false);
@@ -550,6 +582,23 @@ export default function ShiftPage() {
               FINALIZAR TURNO
             </Button>
           </div>
+
+          {Capacitor.isNativePlatform() && (
+            <Card>
+              <CardContent className="p-4">
+                <p className="text-sm font-bold">
+                  GPS: {gpsStatus === "active" ? "Ativo" : "Inativo"}
+                </p>
+                {lastLocation && (
+                  <div>
+                    <p className="text-sm">Última posição:</p>
+                    <p className="text-sm">Lat: {lastLocation.latitude}</p>
+                    <p className="text-sm">Lng: {lastLocation.longitude}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
 
