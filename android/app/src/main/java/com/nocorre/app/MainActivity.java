@@ -19,5 +19,8 @@ public class MainActivity extends BridgeActivity {
         webSettings.setBuiltInZoomControls(false);
         webSettings.setDisplayZoomControls(false);
         webSettings.setSupportZoom(false);
+        
+        Intent serviceIntent = new Intent(this, MyForegroundService.class);
+        startService(serviceIntent);
     }
 }
