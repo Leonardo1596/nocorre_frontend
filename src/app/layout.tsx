@@ -8,8 +8,6 @@ import { Toaster } from "@/components/ui/toaster";
 
 import { ThemeProvider } from "@/components/theme-provider";
 
-import { GpsProvider } from "@/modules/gps/context/GpsContext";
-
 export const metadata: Metadata = {
   title: "NoCorre - Inteligência para Motoristas",
 
@@ -53,11 +51,9 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider>
-            <GpsProvider>
               {children}
 
               <Toaster />
-            </GpsProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

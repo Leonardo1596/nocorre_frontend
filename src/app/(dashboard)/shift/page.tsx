@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, {
@@ -12,8 +11,6 @@ import {
   Card,
   CardContent
 } from "@/components/ui/card";
-
-import { Input } from "@/components/ui/input";
 
 import { CurrencyInput } from "@/components/ui/currency-input";
 
@@ -34,20 +31,14 @@ import {
   StopCircle,
   Car,
   Timer,
-  Zap,
-  Loader2,
-  MapPin
+  Loader2
 } from "lucide-react";
 
 import { useApp } from "@/contexts/AppContext";
 
 import { useToast } from "@/hooks/use-toast";
 
-import { cn } from "@/lib/utils";
-
 import api from "@/lib/api";
-
-import { useGps } from "@/modules/gps/context/GpsContext";
 
 export default function ShiftPage() {
   const {
@@ -58,15 +49,6 @@ export default function ShiftPage() {
   } = useApp();
 
   const { toast } = useToast();
-
-  const {
-    startTracking,
-    stopTracking,
-    totalKm,
-    currentPosition,
-    isTracking,
-    resetTracking
-  } = useGps();
 
   const [elapsed, setElapsed] =
     useState(0);
@@ -149,30 +131,6 @@ export default function ShiftPage() {
     return () => clearInterval(interval);
   }, [currentSession]);
 
-  useEffect(() => {
-    async function restoreTracking() {
-      if (
-        currentShift.isActive &&
-        !isTracking
-      ) {
-        try {
-          await startTracking();
-        } catch (error) {
-          console.error(
-            "Erro ao restaurar GPS:",
-            error
-          );
-        }
-      }
-    }
-
-    restoreTracking();
-  }, [
-    currentShift.isActive,
-    isTracking,
-    startTracking
-  ]);
-
   function formatTime(seconds: number) {
     const h = Math.floor(
       seconds / 3600
@@ -207,8 +165,6 @@ export default function ShiftPage() {
         response.data._id ||
         response.data.id;
 
-      await startTracking();
-
       setCurrentShift({
         id,
         startTime:
@@ -217,17 +173,17 @@ export default function ShiftPage() {
       });
 
       toast({
-        title: "Turno iniciado",
-        description:
-          "GPS ativo e rastreamento iniciado."
+        title: "Turno iniciado"
       });
     } catch (error: any) {
       console.error(error);
+
       toast({
         variant: "destructive",
         title: "Erro",
         description:
-          error.response?.data?.message || "Não foi possível iniciar o turno."
+          error.response?.data?.message ||
+          "Não foi possível iniciar o turno."
       });
     } finally {
       setLoading(false);
@@ -252,19 +208,9 @@ export default function ShiftPage() {
     setLoading(true);
 
     try {
-      // Capturamos o KM final antes de parar o tracking
-      const finalKm = totalKm;
-
-      await stopTracking();
-
       await api.patch(
-        `/shifts/${currentShift.id}/finish`,
-        {
-          totalKm: finalKm
-        }
+        `/shifts/${currentShift.id}/finish`
       );
-
-      resetTracking();
 
       setCurrentShift({
         id: null,
@@ -280,9 +226,7 @@ export default function ShiftPage() {
       });
 
       toast({
-        title: "Turno finalizado",
-        description:
-          `Rastreamento encerrado. Total de ${finalKm.toFixed(2)} km.`
+        title: "Turno finalizado"
       });
     } catch (error) {
       console.error(error);
@@ -429,9 +373,6 @@ export default function ShiftPage() {
     setLoading(true);
 
     try {
-      // Capturamos o KM acumulado até este exato momento
-      const currentKmAccumulated = totalKm;
-
       await api.patch(
         `/work-sessions/${currentSession.id}/finish`,
         {
@@ -448,9 +389,7 @@ export default function ShiftPage() {
           otherExpense:
             Number(
               formData.otherExpense
-            ),
-
-          productiveKm: currentKmAccumulated
+            )
         }
       );
 
@@ -471,8 +410,7 @@ export default function ShiftPage() {
 
       toast({
         title:
-          "Sessão finalizada",
-        description: `Registrado faturamento e ${currentKmAccumulated.toFixed(2)} km percorridos.`
+          "Sessão finalizada"
       });
     } catch (error) {
       console.error(error);
@@ -500,8 +438,7 @@ export default function ShiftPage() {
         </h2>
 
         <p className="text-sm text-muted-foreground">
-          Rastreamento inteligente
-          com GPS em tempo real.
+          Controle do seu turno de trabalho.
         </p>
       </div>
 
@@ -548,51 +485,6 @@ export default function ShiftPage() {
               </CardContent>
             </Card>
           </div>
-
-          <Card>
-            <CardContent className="p-5 space-y-4">
-              <div className="flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-primary" />
-
-                <h3 className="font-bold">
-                  Rastreamento GPS
-                </h3>
-              </div>
-
-              <div className="space-y-2 text-sm">
-                <p>
-                  Status:
-                  <span className={cn(
-                    "ml-2 font-bold",
-                    isTracking ? "text-primary" : "text-destructive"
-                  )}>
-                    {isTracking
-                      ? "ATIVO"
-                      : "INATIVO"}
-                  </span>
-                </p>
-
-                <p>
-                  KM Acumulado:
-                  <span className="ml-2 font-bold">
-                    {totalKm.toFixed(
-                      2
-                    )}{" "}
-                    km
-                  </span>
-                </p>
-
-                {currentPosition && (
-                  <div className="pt-2 border-t border-border mt-2">
-                    <p className="text-[10px] text-muted-foreground uppercase mb-1">Última Posição</p>
-                    <p className="text-[10px] text-muted-foreground break-all">
-                      LAT: {currentPosition.lat.toFixed(6)} | LNG: {currentPosition.lng.toFixed(6)}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
 
           <div className="grid grid-cols-1 gap-4">
             {!currentSession.isActive ? (
@@ -749,7 +641,7 @@ export default function ShiftPage() {
                   <Loader2 className="animate-spin mr-2 w-4 h-4" />
                 ) : null}
 
-                FINALIZAR SESSÃO E REGISTRAR KM
+                FINALIZAR SESSÃO
               </Button>
             </DialogFooter>
           </form>
