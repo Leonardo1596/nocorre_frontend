@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 
 import { useApp } from "@/contexts/AppContext";
+import { useGps } from "@/modules/gps/context/GpsContext";
 
 import { useToast } from "@/hooks/use-toast";
 
@@ -48,6 +49,8 @@ export default function ShiftPage() {
     currentSession,
     setCurrentSession
   } = useApp();
+
+  const { isGpsEnabled, currentLocation, startGpsTracking } = useGps();
 
   const { toast } = useToast();
 
@@ -175,6 +178,8 @@ export default function ShiftPage() {
     setLoading(true);
 
     try {
+      
+      await startGpsTracking();
 
       const response =
         await api.post("/shifts/start");
@@ -563,6 +568,27 @@ export default function ShiftPage() {
             </Card>
 
           </div>
+
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-[10px] uppercase text-muted-foreground">
+                Status do GPS
+              </p>
+              <p className="text-sm font-bold">
+                {isGpsEnabled ? "GPS Ativo" : "GPS Inativo"}
+              </p>
+              {currentLocation && (
+                <>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Latitude: {currentLocation.coords.latitude}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Longitude: {currentLocation.coords.longitude}
+                  </p>
+                </>
+              )}
+            </CardContent>
+          </Card>
 
           <div className="grid grid-cols-1 gap-4">
 
