@@ -50,7 +50,7 @@ export default function ShiftPage() {
     setCurrentSession
   } = useApp();
 
-  const { isGpsEnabled, currentLocation, startGpsTracking } = useGps();
+  const { isTracking, currentPosition, startTracking, totalKm, stopTracking, resetTracking } = useGps();
 
   const { toast } = useToast();
 
@@ -179,7 +179,7 @@ export default function ShiftPage() {
 
     try {
       
-      await startGpsTracking();
+      await startTracking();
 
       const response =
         await api.post("/shifts/start");
@@ -239,10 +239,14 @@ export default function ShiftPage() {
 
     try {
 
+      await stopTracking();
+
       await api.patch(
         `/shifts/${currentShift.id}/finish`,
-        { totalKm: 60 }
+        { totalKm }
       );
+      
+      resetTracking();
 
       setCurrentShift({
         id: null,
@@ -575,18 +579,29 @@ export default function ShiftPage() {
                 Status do GPS
               </p>
               <p className="text-sm font-bold">
-                {isGpsEnabled ? "GPS Ativo" : "GPS Inativo"}
+                {isTracking ? "GPS Ativo" : "GPS Inativo"}
               </p>
-              {currentLocation && (
+              {currentPosition && (
                 <>
                   <p className="text-xs text-muted-foreground mt-2">
-                    Latitude: {currentLocation.coords.latitude}
+                    Latitude: {currentPosition.lat}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Longitude: {currentLocation.coords.longitude}
+                    Longitude: {currentPosition.lng}
                   </p>
                 </>
               )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-[10px] uppercase text-muted-foreground">
+                Distância Percorrida
+              </p>
+              <p className="text-xl font-bold">
+                {totalKm.toFixed(2)} km
+              </p>
             </CardContent>
           </Card>
 
