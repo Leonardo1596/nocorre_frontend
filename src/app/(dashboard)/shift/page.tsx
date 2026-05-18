@@ -203,12 +203,12 @@ export default function ShiftPage() {
 
       console.error(error);
 
+      const message = error.message || error.response?.data?.message || "Não foi possível iniciar o turno.";
+
       toast({
         variant: "destructive",
-        title: "Erro",
-        description:
-          error.response?.data?.message ||
-          "Não foi possível iniciar o turno."
+        title: "Erro ao iniciar turno",
+        description: message
       });
 
     } finally {

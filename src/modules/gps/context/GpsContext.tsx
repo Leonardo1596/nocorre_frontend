@@ -36,15 +36,10 @@ interface Coordinates {
 
 interface GpsContextData {
   currentPosition: Coordinates | null;
-
   totalKm: number;
-
   isTracking: boolean;
-
   startTracking: () => Promise<void>;
-
   stopTracking: () => Promise<void>;
-
   resetTracking: () => void;
 }
 
@@ -89,6 +84,10 @@ export function GpsProvider({
         "Permissão:",
         permission
       );
+
+      if (permission.state !== 'granted') {
+        throw new Error("A permissão de localização é necessária para iniciar o turno. Por favor, ative nas configurações do seu dispositivo.");
+      }
 
       /**
        * START FOREGROUND SERVICE
@@ -224,6 +223,9 @@ export function GpsProvider({
       );
 
       setIsTracking(false);
+      
+      // Re-throw the error to be caught by the calling function
+      throw error;
     }
   }
 
