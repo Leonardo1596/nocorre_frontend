@@ -3,7 +3,6 @@
 import React, {
   useState,
   useEffect,
-  useRef
 } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -41,12 +40,8 @@ import { useToast } from "@/hooks/use-toast";
 
 import api from "@/lib/api";
 
-import GPS from "@/lib/gps";
-
-import { Capacitor } from "@capacitor/core";
-import type { PluginListenerHandle } from '@capacitor/core';
-
 export default function ShiftPage() {
+
   const {
     currentShift,
     setCurrentShift,
@@ -72,61 +67,6 @@ export default function ShiftPage() {
     setShowFinishDialog
   ] = useState(false);
 
-  const [gpsStatus, setGpsStatus] = useState("inactive");
-  const [lastLocation, setLastLocation] = useState<{ latitude: number; longitude: number } | null>(null);
-
-  const locationUpdateListener = useRef<PluginListenerHandle | null>(null);
-  const gpsStatusChangeListener = useRef<PluginListenerHandle | null>(null);
-
-  useEffect(() => {
-    const initGps = async () => {
-      if (Capacitor.isNativePlatform()) {
-        try {
-          await GPS.startLocationUpdates();
-
-          const status = await GPS.getGpsStatus();
-          setGpsStatus(status.status);
-
-          locationUpdateListener.current = await GPS.addListener("locationUpdate", (location) => {
-            setLastLocation(location);
-          });
-
-          gpsStatusChangeListener.current = await GPS.addListener("gpsStatusChange", (result) => {
-            setGpsStatus(result.status);
-          });
-
-        } catch (error) {
-          console.error("Error initializing GPS", error);
-          toast({
-            variant: "destructive",
-            title: "Erro de GPS",
-            description: "Não foi possível iniciar o rastreamento GPS."
-          });
-        }
-      }
-    };
-
-    initGps();
-
-    return () => {
-      const cleanup = async () => {
-        if (locationUpdateListener.current) {
-          await locationUpdateListener.current.remove();
-          locationUpdateListener.current = null;
-        }
-        if (gpsStatusChangeListener.current) {
-          await gpsStatusChangeListener.current.remove();
-          gpsStatusChangeListener.current = null;
-        }
-        if (Capacitor.isNativePlatform()) {
-          await GPS.stopLocationUpdates();
-        }
-      };
-      cleanup();
-    };
-  }, []);
-
-
   /**
    * FINISH SESSION FORM
    */
@@ -141,13 +81,16 @@ export default function ShiftPage() {
    * SHIFT TIMER
    */
   useEffect(() => {
+
     let interval: any;
 
     if (
       currentShift.isActive &&
       currentShift.startTime
     ) {
+
       interval = setInterval(() => {
+
         const start = new Date(
           currentShift.startTime!
         ).getTime();
@@ -157,18 +100,24 @@ export default function ShiftPage() {
             (Date.now() - start) / 1000
           )
         );
+
       }, 1000);
+
     } else {
+
       setElapsed(0);
+
     }
 
     return () => clearInterval(interval);
+
   }, [currentShift]);
 
   /**
    * SESSION TIMER
    */
   useEffect(() => {
+
     let interval: any;
 
     if (
@@ -176,7 +125,9 @@ export default function ShiftPage() {
       currentSession.startTime &&
       !currentSession.isPaused
     ) {
+
       interval = setInterval(() => {
+
         const start = new Date(
           currentSession.startTime!
         ).getTime();
@@ -186,13 +137,17 @@ export default function ShiftPage() {
             (Date.now() - start) / 1000
           )
         );
+
       }, 1000);
+
     }
 
     return () => clearInterval(interval);
+
   }, [currentSession]);
 
   function formatTime(seconds: number) {
+
     const h = Math.floor(
       seconds / 3600
     );
@@ -216,9 +171,11 @@ export default function ShiftPage() {
    * START SHIFT
    */
   async function startShift() {
+
     setLoading(true);
 
     try {
+
       const response =
         await api.post("/shifts/start");
 
@@ -236,7 +193,9 @@ export default function ShiftPage() {
       toast({
         title: "Turno iniciado"
       });
+
     } catch (error: any) {
+
       console.error(error);
 
       toast({
@@ -246,8 +205,11 @@ export default function ShiftPage() {
           error.response?.data?.message ||
           "Não foi possível iniciar o turno."
       });
+
     } finally {
+
       setLoading(false);
+
     }
   }
 
@@ -255,7 +217,9 @@ export default function ShiftPage() {
    * FINISH SHIFT
    */
   async function finishShift() {
+
     if (!currentShift.id) {
+
       toast({
         variant: "destructive",
         title: "Erro",
@@ -269,9 +233,10 @@ export default function ShiftPage() {
     setLoading(true);
 
     try {
+
       await api.patch(
         `/shifts/${currentShift.id}/finish`,
-        { totalKm: 0 }
+        { totalKm: 60 }
       );
 
       setCurrentShift({
@@ -290,17 +255,23 @@ export default function ShiftPage() {
       toast({
         title: "Turno finalizado"
       });
+
     } catch (error: any) {
+
       console.error(error);
 
       toast({
         variant: "destructive",
         title: "Erro",
         description:
-          error.response?.data?.message || "Não foi possível finalizar o turno."
+          error.response?.data?.message ||
+          "Não foi possível finalizar o turno."
       });
+
     } finally {
+
       setLoading(false);
+
     }
   }
 
@@ -308,9 +279,11 @@ export default function ShiftPage() {
    * START SESSION
    */
   async function startWorkSession() {
+
     setLoading(true);
 
     try {
+
       const response =
         await api.post(
           "/work-sessions/start"
@@ -334,7 +307,9 @@ export default function ShiftPage() {
         description:
           "Modo produtivo ativo."
       });
+
     } catch (error) {
+
       console.error(error);
 
       toast({
@@ -343,8 +318,11 @@ export default function ShiftPage() {
         description:
           "Não foi possível iniciar sessão."
       });
+
     } finally {
+
       setLoading(false);
+
     }
   }
 
@@ -352,11 +330,13 @@ export default function ShiftPage() {
    * PAUSE SESSION
    */
   async function pauseWorkSession() {
+
     if (!currentSession.id) return;
 
     setLoading(true);
 
     try {
+
       await api.patch(
         `/work-sessions/${currentSession.id}/pause`
       );
@@ -370,7 +350,9 @@ export default function ShiftPage() {
         title:
           "Sessão pausada"
       });
+
     } catch (error) {
+
       console.error(error);
 
       toast({
@@ -379,8 +361,11 @@ export default function ShiftPage() {
         description:
           "Não foi possível pausar."
       });
+
     } finally {
+
       setLoading(false);
+
     }
   }
 
@@ -388,11 +373,13 @@ export default function ShiftPage() {
    * RESUME SESSION
    */
   async function resumeWorkSession() {
+
     if (!currentSession.id) return;
 
     setLoading(true);
 
     try {
+
       await api.patch(
         `/work-sessions/${currentSession.id}/resume`
       );
@@ -406,7 +393,9 @@ export default function ShiftPage() {
         title:
           "Sessão retomada"
       });
+
     } catch (error) {
+
       console.error(error);
 
       toast({
@@ -415,8 +404,11 @@ export default function ShiftPage() {
         description:
           "Não foi possível retomar."
       });
+
     } finally {
+
       setLoading(false);
+
     }
   }
 
@@ -426,6 +418,7 @@ export default function ShiftPage() {
   async function handleFinishSessionSubmit(
     e?: React.FormEvent
   ) {
+
     if (e) e.preventDefault();
 
     if (!currentSession.id) {
@@ -435,6 +428,7 @@ export default function ShiftPage() {
     setLoading(true);
 
     try {
+
       await api.patch(
         `/work-sessions/${currentSession.id}/finish`,
         {
@@ -451,7 +445,9 @@ export default function ShiftPage() {
           otherExpense:
             Number(
               formData.otherExpense
-            )
+            ),
+
+          productiveKm: 50
         }
       );
 
@@ -474,7 +470,9 @@ export default function ShiftPage() {
         title:
           "Sessão finalizada"
       });
+
     } catch (error) {
+
       console.error(error);
 
       toast({
@@ -483,14 +481,19 @@ export default function ShiftPage() {
         description:
           "Não foi possível finalizar sessão."
       });
+
     } finally {
+
       setLoading(false);
+
     }
   }
 
   return (
     <div className="p-6 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+
       <div className="text-center space-y-2 mb-8">
+
         <div className="inline-flex p-3 rounded-full bg-primary/10 mb-2">
           <Car className="w-8 h-8 text-primary" />
         </div>
@@ -502,14 +505,17 @@ export default function ShiftPage() {
         <p className="text-sm text-muted-foreground">
           Controle do seu turno de trabalho.
         </p>
+
       </div>
 
       {!currentShift.isActive ? (
+
         <Button
           onClick={startShift}
           disabled={loading}
           className="w-full h-16 text-lg font-headline font-bold gap-3 rounded-2xl"
         >
+
           {loading ? (
             <Loader2 className="animate-spin" />
           ) : (
@@ -517,12 +523,18 @@ export default function ShiftPage() {
           )}
 
           COMEÇAR TURNO
+
         </Button>
+
       ) : (
+
         <div className="space-y-6">
+
           <div className="grid grid-cols-2 gap-4">
+
             <Card className="border-primary/30 bg-primary/5">
               <CardContent className="p-4">
+
                 <p className="text-[10px] uppercase text-muted-foreground">
                   Tempo de Turno
                 </p>
@@ -530,11 +542,13 @@ export default function ShiftPage() {
                 <p className="text-xl font-bold text-primary">
                   {formatTime(elapsed)}
                 </p>
+
               </CardContent>
             </Card>
 
             <Card className="border-accent/30 bg-accent/5">
               <CardContent className="p-4">
+
                 <p className="text-[10px] uppercase text-muted-foreground">
                   Tempo Produtivo
                 </p>
@@ -544,12 +558,16 @@ export default function ShiftPage() {
                     sessionElapsed
                   )}
                 </p>
+
               </CardContent>
             </Card>
+
           </div>
 
           <div className="grid grid-cols-1 gap-4">
+
             {!currentSession.isActive ? (
+
               <Button
                 onClick={
                   startWorkSession
@@ -557,12 +575,17 @@ export default function ShiftPage() {
                 disabled={loading}
                 className="h-16 rounded-2xl font-bold"
               >
+
                 <Timer className="w-5 h-5 mr-2" />
 
                 INICIAR TRABALHO
+
               </Button>
+
             ) : (
+
               <div className="grid grid-cols-2 gap-3">
+
                 <Button
                   onClick={
                     currentSession.isPaused
@@ -572,6 +595,7 @@ export default function ShiftPage() {
                   variant="outline"
                   className="h-16 rounded-2xl font-bold"
                 >
+
                   {currentSession.isPaused ? (
                     <Play className="w-5 h-5 mr-2" />
                   ) : (
@@ -581,6 +605,7 @@ export default function ShiftPage() {
                   {currentSession.isPaused
                     ? "RETOMAR"
                     : "PAUSAR"}
+
                 </Button>
 
                 <Button
@@ -592,11 +617,15 @@ export default function ShiftPage() {
                   variant="secondary"
                   className="h-16 rounded-2xl font-bold"
                 >
+
                   <StopCircle className="w-5 h-5 mr-2" />
 
                   FINALIZAR
+
                 </Button>
+
               </div>
+
             )}
 
             <Button
@@ -607,29 +636,17 @@ export default function ShiftPage() {
               variant="destructive"
               className="h-14 rounded-2xl font-bold"
             >
+
               <StopCircle className="w-5 h-5 mr-2" />
 
               FINALIZAR TURNO
+
             </Button>
+
           </div>
 
-          {Capacitor.isNativePlatform() && (
-            <Card>
-              <CardContent className="p-4">
-                <p className="text-sm font-bold">
-                  GPS: {gpsStatus === "active" ? "Ativo" : "Inativo"}
-                </p>
-                {lastLocation && (
-                  <div>
-                    <p className="text-sm">Última posição:</p>
-                    <p className="text-sm">Lat: {lastLocation.latitude}</p>
-                    <p className="text-sm">Lng: {lastLocation.longitude}</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
         </div>
+
       )}
 
       <Dialog
@@ -638,8 +655,11 @@ export default function ShiftPage() {
           setShowFinishDialog
         }
       >
+
         <DialogContent className="rounded-2xl">
+
           <DialogHeader>
+
             <DialogTitle>
               Finalizar Sessão
             </DialogTitle>
@@ -648,6 +668,7 @@ export default function ShiftPage() {
               Informe os ganhos e
               despesas da sessão.
             </DialogDescription>
+
           </DialogHeader>
 
           <form
@@ -656,7 +677,9 @@ export default function ShiftPage() {
             }
             className="space-y-4"
           >
+
             <div className="space-y-2">
+
               <Label>
                 Faturamento Bruto
               </Label>
@@ -672,9 +695,11 @@ export default function ShiftPage() {
                   })
                 }
               />
+
             </div>
 
             <div className="space-y-2">
+
               <Label>
                 Alimentação
               </Label>
@@ -690,9 +715,11 @@ export default function ShiftPage() {
                   })
                 }
               />
+
             </div>
 
             <div className="space-y-2">
+
               <Label>
                 Outros Custos
               </Label>
@@ -708,24 +735,33 @@ export default function ShiftPage() {
                   })
                 }
               />
+
             </div>
 
             <DialogFooter>
+
               <Button
                 type="submit"
                 disabled={loading}
                 className="w-full h-12 font-bold rounded-xl"
               >
+
                 {loading ? (
                   <Loader2 className="animate-spin mr-2 w-4 h-4" />
                 ) : null}
 
                 FINALIZAR SESSÃO
+
               </Button>
+
             </DialogFooter>
+
           </form>
+
         </DialogContent>
+
       </Dialog>
+
     </div>
   );
 }
