@@ -85,7 +85,7 @@ export function GpsProvider({
         permission
       );
 
-      if (permission.state !== 'granted') {
+      if (permission.location !== 'granted') {
         throw new Error("A permissão de localização é necessária para iniciar o turno. Por favor, ative nas configurações do seu dispositivo.");
       }
 
