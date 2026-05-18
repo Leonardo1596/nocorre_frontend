@@ -61,6 +61,8 @@ export default function ShiftPage() {
     sessionElapsed,
     setSessionElapsed
   ] = useState(0);
+  
+  const [kmAtSessionStart, setKmAtSessionStart] = useState(0);
 
   const [loading, setLoading] =
     useState(false);
@@ -309,6 +311,8 @@ export default function ShiftPage() {
         isActive: true,
         isPaused: false
       });
+      
+      setKmAtSessionStart(totalKm);
 
       toast({
         title:
@@ -437,6 +441,8 @@ export default function ShiftPage() {
     setLoading(true);
 
     try {
+        
+      const productiveKm = totalKm - kmAtSessionStart;
 
       await api.patch(
         `/work-sessions/${currentSession.id}/finish`,
@@ -456,7 +462,7 @@ export default function ShiftPage() {
               formData.otherExpense
             ),
 
-          productiveKm: 50
+          productiveKm
         }
       );
 
@@ -474,6 +480,8 @@ export default function ShiftPage() {
         foodExpense: 0,
         otherExpense: 0
       });
+      
+      setKmAtSessionStart(0);
 
       toast({
         title:
