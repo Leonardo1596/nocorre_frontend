@@ -33,7 +33,7 @@ public class MyForegroundService extends Service {
                     .setContentTitle("App em execução")
                     .setContentText("O app está ativo em segundo plano.")
                     .setSmallIcon(R.mipmap.ic_launcher) // Ensure this icon exists
-                    .setPriority(NotificationCompat.PRIORITY_LOW)
+                    .setPriority(NotificationCompat.PRIORITY_DEFAULT) // Changed to DEFAULT
                     .build();
 
             // This is the critical call, now correctly placed.
@@ -56,7 +56,7 @@ public class MyForegroundService extends Service {
             NotificationChannel channel = new NotificationChannel(
                     CHANNEL_ID,
                     "Foreground Service Channel",
-                    NotificationManager.IMPORTANCE_LOW
+                    NotificationManager.IMPORTANCE_DEFAULT // Changed to DEFAULT
             );
             NotificationManager manager = getSystemService(NotificationManager.class);
             if (manager != null) {
