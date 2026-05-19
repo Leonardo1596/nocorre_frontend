@@ -3,10 +3,13 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 import { AuthProvider } from "@/contexts/AuthContext";
+import { AppProvider } from "@/contexts/AppContext";
 
 import { Toaster } from "@/components/ui/toaster";
 
 import { ThemeProvider } from "@/components/theme-provider";
+
+import { GpsProvider } from "@/modules/gps/context/GpsContext";
 
 export const metadata: Metadata = {
   title: "NoCorre - Inteligência para Motoristas",
@@ -51,9 +54,13 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider>
-              {children}
+            <AppProvider>
+              <GpsProvider>
+                {children}
 
-              <Toaster />
+                <Toaster />
+              </GpsProvider>
+            </AppProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>
