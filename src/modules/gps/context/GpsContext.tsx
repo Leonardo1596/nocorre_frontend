@@ -118,7 +118,7 @@ export function GpsProvider({
              */
             if (
               accuracy &&
-              accuracy > 50
+              accuracy > 20
             ) {
               console.log(
                 "GPS ignorado por baixa precisão:",

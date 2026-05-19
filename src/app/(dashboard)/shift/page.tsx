@@ -63,6 +63,8 @@ export default function ShiftPage() {
   ] = useState(0);
   
   const [kmAtSessionStart, setKmAtSessionStart] = useState(0);
+  const [kmAtPauseStart, setKmAtPauseStart] = useState(0);
+  const [totalPausedKm, setTotalPausedKm] = useState(0);
 
   const [loading, setLoading] =
     useState(false);
@@ -136,11 +138,13 @@ export default function ShiftPage() {
         const start = new Date(
           currentSession.startTime!
         ).getTime();
+        
+        const pausedDuration = currentSession.totalPauseDuration || 0;
 
         setSessionElapsed(
           Math.floor(
             (Date.now() - start) / 1000
-          )
+          ) - pausedDuration
         );
 
       }, 1000);
@@ -260,7 +264,9 @@ export default function ShiftPage() {
         id: null,
         startTime: null,
         isActive: false,
-        isPaused: false
+        isPaused: false,
+        pauseStartTime: null,
+        totalPauseDuration: 0
       });
 
       toast({
@@ -309,10 +315,13 @@ export default function ShiftPage() {
         startTime:
           new Date().toISOString(),
         isActive: true,
-        isPaused: false
+        isPaused: false,
+        pauseStartTime: null,
+        totalPauseDuration: 0
       });
       
       setKmAtSessionStart(totalKm);
+      setTotalPausedKm(0);
 
       toast({
         title:
@@ -356,8 +365,11 @@ export default function ShiftPage() {
 
       setCurrentSession({
         ...currentSession,
-        isPaused: true
+        isPaused: true,
+        pauseStartTime: Date.now()
       });
+      
+      setKmAtPauseStart(totalKm);
 
       toast({
         title:
@@ -387,7 +399,7 @@ export default function ShiftPage() {
    */
   async function resumeWorkSession() {
 
-    if (!currentSession.id) return;
+    if (!currentSession.id || !currentSession.pauseStartTime) return;
 
     setLoading(true);
 
@@ -397,9 +409,17 @@ export default function ShiftPage() {
         `/work-sessions/${currentSession.id}/resume`
       );
 
+      const pauseDuration = Math.floor((Date.now() - currentSession.pauseStartTime) / 1000);
+      const newTotalPauseDuration = (currentSession.totalPauseDuration || 0) + pauseDuration;
+      
+      const distanceDuringPause = totalKm - kmAtPauseStart;
+      setTotalPausedKm(prev => prev + distanceDuringPause);
+
       setCurrentSession({
         ...currentSession,
-        isPaused: false
+        isPaused: false,
+        pauseStartTime: null,
+        totalPauseDuration: newTotalPauseDuration
       });
 
       toast({
@@ -442,7 +462,16 @@ export default function ShiftPage() {
 
     try {
         
-      const productiveKm = totalKm - kmAtSessionStart;
+      let finalTotalPausedKm = totalPausedKm;
+
+      // If finishing while paused, calculate the distance from the last pause start
+      if (currentSession.isPaused) {
+        const lastPauseDistance = totalKm - kmAtPauseStart;
+        finalTotalPausedKm += lastPauseDistance;
+      }
+      
+      const totalSessionDistance = totalKm - kmAtSessionStart;
+      const productiveKm = totalSessionDistance - finalTotalPausedKm;
 
       await api.patch(
         `/work-sessions/${currentSession.id}/finish`,
@@ -470,7 +499,9 @@ export default function ShiftPage() {
         id: null,
         startTime: null,
         isActive: false,
-        isPaused: false
+        isPaused: false,
+        pauseStartTime: null,
+        totalPauseDuration: 0
       });
 
       setShowFinishDialog(false);
@@ -482,6 +513,8 @@ export default function ShiftPage() {
       });
       
       setKmAtSessionStart(0);
+      setTotalPausedKm(0);
+      setKmAtPauseStart(0);
 
       toast({
         title:
