@@ -8,6 +8,7 @@
 
     <!-- FOREGROUND SERVICE -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
 
     <!-- GEOLOCATION -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
@@ -53,7 +54,8 @@
         <service
             android:name=".MyForegroundService"
             android:enabled="true"
-            android:exported="false" />
+            android:exported="false" 
+            android:foregroundServiceType="location" />
 
     </application>
 
