@@ -27,7 +27,7 @@ export async function startGpsTracking(
       {
         enableHighAccuracy: true,
         timeout: 30000,
-        maximumAge: 0
+        maximumAge: 5000
       },
       (position, err) => {
         if (err) {

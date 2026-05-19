@@ -1,11 +1,49 @@
-import { Capacitor } from "@capacitor/core";
+import { registerPlugin } from "@capacitor/core";
 
-export async function startForegroundService() { if (Capacitor.getPlatform() !== "android") { return; }
+interface ForegroundServicePlugin {
+  start(): Promise<void>;
+  stop(): Promise<void>;
+}
 
-const { Plugins } = Capacitor as any;
+const ForegroundService =
+  registerPlugin<ForegroundServicePlugin>(
+    "ForegroundService"
+  );
 
-const intent = (window as any).Capacitor?.Plugins;
+export async function startForegroundService() {
 
-console.log( "Foreground service iniciado" ); }
+  try {
 
-export async function stopForegroundService() { console.log( "Foreground service parado" ); }
+    await ForegroundService.start();
+
+    console.log(
+      "Foreground service iniciado"
+    );
+
+  } catch (error) {
+
+    console.error(
+      "Erro ao iniciar foreground service:",
+      error
+    );
+  }
+}
+
+export async function stopForegroundService() {
+
+  try {
+
+    await ForegroundService.stop();
+
+    console.log(
+      "Foreground service parado"
+    );
+
+  } catch (error) {
+
+    console.error(
+      "Erro ao parar foreground service:",
+      error
+    );
+  }
+}

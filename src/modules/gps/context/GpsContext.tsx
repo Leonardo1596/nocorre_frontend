@@ -53,8 +53,11 @@ interface Props {
 export function GpsProvider({
   children
 }: Props) {
-  const [currentPosition, setCurrentPosition] =
-    useState<Coordinates | null>(null);
+
+  const [
+    currentPosition,
+    setCurrentPosition
+  ] = useState<Coordinates | null>(null);
 
   const [totalKm, setTotalKm] =
     useState(0);
@@ -72,7 +75,9 @@ export function GpsProvider({
    * START GPS TRACKING
    */
   async function startTracking() {
+
     try {
+
       console.log(
         "Solicitando permissão GPS..."
       );
@@ -85,14 +90,31 @@ export function GpsProvider({
         permission
       );
 
-      if (permission.location !== 'granted') {
-        throw new Error("A permissão de localização é necessária para iniciar o turno. Por favor, ative nas configurações do seu dispositivo.");
+      if (
+        permission.location !==
+        "granted"
+      ) {
+
+        throw new Error(
+          "A permissão de localização é necessária para iniciar o turno. Por favor, ative nas configurações do seu dispositivo."
+        );
       }
+
+      /**
+       * REQUEST NOTIFICATION PERMISSION
+       */
+      await requestNotificationPermission();
+
+      /**
+       * SMALL DELAY FOR SAMSUNG/ANDROID 14+
+       */
+      await new Promise(resolve =>
+        setTimeout(resolve, 300)
+      );
 
       /**
        * START FOREGROUND SERVICE
        */
-      await requestNotificationPermission();
       await startForegroundService();
 
       /**
@@ -101,6 +123,7 @@ export function GpsProvider({
       const watchId =
         await startGpsTracking(
           (position: Position) => {
+
             console.log(
               "Nova posição:",
               position
@@ -120,6 +143,7 @@ export function GpsProvider({
               accuracy &&
               accuracy > 20
             ) {
+
               console.log(
                 "GPS ignorado por baixa precisão:",
                 accuracy
@@ -137,12 +161,11 @@ export function GpsProvider({
             const timestamp =
               position.timestamp;
 
-            const newPosition: Coordinates =
-              {
-                lat,
-                lng,
-                timestamp
-              };
+            const newPosition: Coordinates = {
+              lat,
+              lng,
+              timestamp
+            };
 
             /**
              * UPDATE CURRENT POSITION
@@ -157,6 +180,7 @@ export function GpsProvider({
             if (
               !lastPositionRef.current
             ) {
+
               lastPositionRef.current =
                 newPosition;
 
@@ -175,10 +199,10 @@ export function GpsProvider({
               );
 
             /**
-             * IGNORE SMALL MOVEMENTS
-             * LESS THAN 1 METER
+             * IGNORE VERY SMALL MOVEMENTS
              */
             if (distance < 0.001) {
+
               lastPositionRef.current =
                 newPosition;
 
@@ -209,22 +233,24 @@ export function GpsProvider({
         watchId
       );
 
-      watchIdRef.current = watchId;
+      watchIdRef.current =
+        watchId;
 
       setIsTracking(true);
 
       console.log(
         "Tracking ATIVO"
       );
+
     } catch (error) {
+
       console.error(
         "ERRO GPS:",
         error
       );
 
       setIsTracking(false);
-      
-      // Re-throw the error to be caught by the calling function
+
       throw error;
     }
   }
@@ -233,16 +259,20 @@ export function GpsProvider({
    * STOP GPS TRACKING
    */
   async function stopTracking() {
+
     try {
+
       /**
        * STOP GPS WATCH
        */
       if (watchIdRef.current) {
+
         await stopGpsTracking(
           watchIdRef.current
         );
 
-        watchIdRef.current = null;
+        watchIdRef.current =
+          null;
       }
 
       /**
@@ -255,7 +285,9 @@ export function GpsProvider({
       console.log(
         "GPS tracking stopped"
       );
+
     } catch (error) {
+
       console.error(
         "Error stopping GPS:",
         error
@@ -267,24 +299,30 @@ export function GpsProvider({
    * RESET TRACKING DATA
    */
   function resetTracking() {
+
     setTotalKm(0);
 
     setCurrentPosition(null);
 
-    lastPositionRef.current = null;
+    lastPositionRef.current =
+      null;
   }
 
   /**
    * CLEANUP
    */
   useEffect(() => {
+
     return () => {
+
       if (watchIdRef.current) {
+
         stopGpsTracking(
           watchIdRef.current
         );
       }
     };
+
   }, []);
 
   return (
@@ -304,10 +342,12 @@ export function GpsProvider({
 }
 
 export function useGps() {
+
   const context =
     useContext(GpsContext);
 
   if (!context) {
+
     throw new Error(
       "useGps must be used inside GpsProvider"
     );
