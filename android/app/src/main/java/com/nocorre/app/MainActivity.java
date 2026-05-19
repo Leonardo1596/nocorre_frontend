@@ -11,13 +11,17 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        WebSettings webSettings =
-                getBridge().getWebView().getSettings();
+        // Register the custom ForegroundServicePlugin
+        registerPlugin(ForegroundServicePlugin.class);
 
-        webSettings.setTextZoom(100);
-
-        webSettings.setBuiltInZoomControls(false);
-        webSettings.setDisplayZoomControls(false);
-        webSettings.setSupportZoom(false);
+        // This ensures the WebView does not scale with the system's font size.
+        // It is the definitive fix for the UI scaling issue.
+        if (getBridge() != null && getBridge().getWebView() != null) {
+            WebSettings webSettings = getBridge().getWebView().getSettings();
+            webSettings.setTextZoom(100);
+            webSettings.setBuiltInZoomControls(false);
+            webSettings.setDisplayZoomControls(false);
+            webSettings.setSupportZoom(false);
+        }
     }
 }
