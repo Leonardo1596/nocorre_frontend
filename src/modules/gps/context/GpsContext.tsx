@@ -93,12 +93,6 @@ export function GpsProvider({
        * START FOREGROUND SERVICE
        */
       await requestNotificationPermission();
-      
-      console.log("Permission granted, delaying service start to prevent race condition...");
-      // Add a small delay to allow the OS to process the permission grant before starting the service.
-      await new Promise(resolve => setTimeout(resolve, 500)); 
-      
-      console.log("Attempting to start foreground service.");
       await startForegroundService();
 
       /**
