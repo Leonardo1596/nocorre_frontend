@@ -30,8 +30,8 @@ public class MyForegroundService extends Service {
         } else {
             // Otherwise, this is a start action. Create notification and start foreground.
             Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                    .setContentTitle("App ativo")
-                    .setContentText("Monitorando sua localização em segundo plano.")
+                    .setContentTitle("App em execução")
+                    .setContentText("O app está ativo em segundo plano.")
                     .setSmallIcon(R.mipmap.ic_launcher) // Ensure this icon exists
                     .setPriority(NotificationCompat.PRIORITY_LOW)
                     .build();
