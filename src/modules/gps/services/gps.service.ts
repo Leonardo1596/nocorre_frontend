@@ -26,8 +26,8 @@ export async function startGpsTracking(
     await Geolocation.watchPosition(
       {
         enableHighAccuracy: true,
-        timeout: 30000,
-        maximumAge: 5000
+        timeout: 10000,
+        maximumAge: 1000
       },
       (position, err) => {
         if (err) {

@@ -141,7 +141,7 @@ export function GpsProvider({
              */
             if (
               accuracy &&
-              accuracy > 20
+              accuracy > 50
             ) {
 
               console.log(
