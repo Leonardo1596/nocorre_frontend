@@ -59,6 +59,10 @@ export default function HistoryPage() {
         `/dashboard?start=${encodeURIComponent(startDateStr)}&end=${encodeURIComponent(endDateStr)}`
       );
 
+
+      console.log("RESPOSTA:", response.data);
+      console.log("DAYS:", response.data.days);
+
       setDashboard(response.data);
     } catch (error) {
       console.error("Error fetching history:", error);
@@ -112,9 +116,7 @@ export default function HistoryPage() {
         })
         : "Selecione o período";
 
-  const daysArray = dashboard?.days
-    ? Object.entries(dashboard.days)
-    : [];
+  const daysArray = dashboard?.days || [];
 
   return (
     <div className="p-6 space-y-6 max-w-md mx-auto pb-28">
@@ -252,18 +254,18 @@ export default function HistoryPage() {
           </h3>
 
           {daysArray.length > 0 ? (
-            daysArray.map(([date, data]: any) => {
+            daysArray.map((data: any) => {
 
               // CORREÇÃO DO TIMEZONE
               const parsedDate = parse(
-                date,
+                data.date,
                 "yyyy-MM-dd",
                 new Date()
               );
 
               return (
                 <Card
-                  key={date}
+                  key={data.date}
                   className="border-border/50 bg-card/20 hover:bg-card/40 transition-colors cursor-pointer"
                 >
                   <CardContent className="p-4 flex items-center justify-between">
