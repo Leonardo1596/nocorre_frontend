@@ -23,10 +23,10 @@ public class NativeGpsPlugin extends Plugin implements LocationListener {
 
     @Override
     public void load() {
-        // Initialize FusedLocationManager when the plugin is loaded.
-        // Pass the plugin instance as the context AND the listener.
-        fusedLocationManager = new FusedLocationManager(getContext(), this); // <-- CORRECTED LINE
-        Log.d(TAG, "Plugin loaded. FusedLocationManager initialized with listener.");
+        // Initialize FusedLocationManager with the plugin's context.
+        // The listener will be passed in the start() method.
+        fusedLocationManager = new FusedLocationManager(getContext()); // <-- CORRECTED LINE
+        Log.d(TAG, "Plugin loaded. FusedLocationManager initialized.");
     }
 
     @PluginMethod
@@ -34,7 +34,7 @@ public class NativeGpsPlugin extends Plugin implements LocationListener {
         Log.d(TAG, "Received startLocationUpdates call.");
         if (fusedLocationManager != null) {
             try {
-                // Pass 'this' (the plugin instance) as the listener
+                // Pass 'this' (the plugin instance) as the listener to the start method
                 fusedLocationManager.start(this);
                 Log.d(TAG, "Successfully requested location updates from FusedLocationManager.");
                 call.resolve(); // Resolve the JS call indicating success
@@ -108,9 +108,4 @@ public class NativeGpsPlugin extends Plugin implements LocationListener {
         notifyListeners("gpsUpdate", locationData);
         Log.d(TAG, "Emitted 'gpsUpdate' event with data.");
     }
-
-    // Ensure your MainActivity correctly starts the NativeGpsService IF it's needed.
-    // The plugin itself will manage FusedLocationManager.
-    // If NativeGpsService is still necessary for foreground notification, ensure it's started.
-    // However, the plugin methods should be sufficient to control FusedLocationManager.
 }

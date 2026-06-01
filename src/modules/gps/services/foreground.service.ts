@@ -1,49 +1,19 @@
 import { registerPlugin } from "@capacitor/core";
 
-interface ForegroundServicePlugin {
-  start(): Promise<void>;
-  stop(): Promise<void>;
+interface NativeGpsPlugin {
+  startForegroundService(): Promise<void>;
+  // ... other methods
 }
 
-const ForegroundService =
-  registerPlugin<ForegroundServicePlugin>(
-    "ForegroundService"
-  );
+// CORRECTLY REGISTERED PLUGIN NAME
+const NativeGps = registerPlugin<NativeGpsPlugin>("NativeGps");
 
 export async function startForegroundService() {
-
   try {
-
-    await ForegroundService.start();
-
-    console.log(
-      "Foreground service iniciado"
-    );
-
+    await NativeGps.startForegroundService(); // Calls YOUR native plugin
+    console.log("JS: Foreground service start command sent via NativeGps plugin.");
   } catch (error) {
-
-    console.error(
-      "Erro ao iniciar foreground service:",
-      error
-    );
-  }
-}
-
-export async function stopForegroundService() {
-
-  try {
-
-    await ForegroundService.stop();
-
-    console.log(
-      "Foreground service parado"
-    );
-
-  } catch (error) {
-
-    console.error(
-      "Erro ao parar foreground service:",
-      error
-    );
+    console.error("JS: Failed to send command to start foreground service via NativeGps plugin:", error);
+    throw error;
   }
 }

@@ -5,6 +5,10 @@ const config: CapacitorConfig = {
   appName: 'NoCorre',
   webDir: 'out',
   bundledWebRuntime: false,
+  plugins: {
+    // Your custom plugin
+    NativeGps: {}, // Ensure this line exists
+  },
 };
 
 export default config;

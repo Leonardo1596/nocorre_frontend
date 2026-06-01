@@ -42,6 +42,10 @@ import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 import { Capacitor } from '@capacitor/core'; // Import Capacitor
 
+// Import the updated foreground service functions
+import { startForegroundService } from "@/modules/gps/services/foreground.service"; // Adjust path if needed
+
+
 export default function ShiftPage() {
 
   const {
@@ -177,32 +181,6 @@ export default function ShiftPage() {
           .padStart(2, "0")}`;
   }
 
-  // Function to start the native foreground service
-  async function startNativeGpsService() {
-    try {
-      // Check if running on Android before invoking native functionality
-      if (Capacitor.getPlatform() === 'android') {
-        await Capacitor.nativeBridge.invoke({
-          pluginId: 'NativeGps', // This ID must match your native plugin's @CapacitorPlugin name
-          method: 'startForegroundService', // This method must exist in your NativeGpsPlugin.java
-        });
-        console.log("JS: Foreground service start command sent.");
-      } else {
-        console.log("JS: Not on Android platform, skipping foreground service start.");
-      }
-    } catch (error) {
-      console.error("JS: Failed to send command to start foreground service:", error);
-      // Optionally show a toast to the user
-      toast({
-        variant: "destructive",
-        title: "GPS Service Error",
-        description: "Could not start background GPS tracking. Please check permissions."
-      });
-      // Re-throw the error to be caught by the caller (startShift)
-      throw error;
-    }
-  }
-
   /**
    * START SHIFT
    */
@@ -211,10 +189,15 @@ export default function ShiftPage() {
 
     try {
       // 1. Start the native foreground service
-      await startNativeGpsService();
+      // Ensure this is only called on Android
+      if (Capacitor.getPlatform() === 'android') {
+        await startForegroundService(); // Uses the updated foreground.service.ts
+      } else {
+        console.log("JS: Not on Android platform, skipping foreground service start.");
+      }
 
       // 2. Initiate GPS tracking via the plugin (which uses FusedLocationManager)
-      await startTracking(); // This calls NativeGpsBridge.startLocationUpdates()
+      await startTracking(); // This calls NativeGpsPlugin.startLocationUpdates()
 
       // 3. Make the API call to start the shift on the backend
       const response = await api.post("/shifts/start");
@@ -273,6 +256,11 @@ export default function ShiftPage() {
     try {
 
       await stopTracking(); // Stops GPS updates via the plugin
+
+      // Stop the foreground service if it was started (optional, depends on your logic)
+      // if (Capacitor.getPlatform() === 'android') {
+      //   await stopForegroundService(); // Make sure you have this function exported and implemented
+      // }
 
       // Call the API to finish the shift
       await api.patch(
