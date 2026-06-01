@@ -1,20 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- NOTIFICATIONS -->
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-
     <!-- INTERNET -->
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- LOCALIZAÇÃO -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!-- BACKGROUND LOCATION (Android 10+) -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 
     <!-- FOREGROUND SERVICE -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
 
-    <!-- GEOLOCATION -->
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- NOTIFICAÇÕES (Android 13+) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- HARDWARE GPS -->
     <uses-feature android:name="android.hardware.location.gps" />
 
     <application
@@ -25,22 +29,22 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
+        <!-- MAIN ACTIVITY -->
         <activity
             android:name=".MainActivity"
-            android:label="@string/title_activity_main"
-            android:theme="@style/AppTheme.NoActionBarLaunch"
-            android:launchMode="singleTask"
             android:exported="true"
+            android:launchMode="singleTask"
+            android:theme="@style/AppTheme.NoActionBarLaunch"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
         </activity>
 
+        <!-- FILE PROVIDER -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -53,8 +57,9 @@
 
         </provider>
 
+        <!-- GPS FOREGROUND SERVICE -->
         <service
-            android:name=".MyForegroundService"
+            android:name=".gps.NativeGpsService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="location" />
