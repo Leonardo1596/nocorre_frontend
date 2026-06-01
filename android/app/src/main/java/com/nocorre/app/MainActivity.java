@@ -54,11 +54,11 @@ public class MainActivity extends BridgeActivity {
             return;
         }
 
-        startGpsService();
+        // REMOVED: startGpsService(); // <-- REMOVE THIS LINE
+        Log.d("GPS", "Permissions already granted. Service will be started manually.");
     }
 
     private void startGpsService() {
-
         Log.d("GPS", "START FOREGROUND SERVICE");
 
         Intent intent = new Intent(this, NativeGpsService.class);
@@ -90,7 +90,8 @@ public class MainActivity extends BridgeActivity {
             if (granted) {
 
                 Log.d("GPS", "PERMISSAO CONCEDIDA");
-                startGpsService();
+                // REMOVED: startGpsService(); // <-- REMOVE THIS LINE
+                Log.d("GPS", "Permissions granted. Service will be started manually.");
 
             } else {
 

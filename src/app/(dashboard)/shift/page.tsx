@@ -40,6 +40,7 @@ import { useGps } from "@/modules/gps/context/GpsContext";
 import { useToast } from "@/hooks/use-toast";
 
 import api from "@/lib/api";
+import { Capacitor } from '@capacitor/core'; // Import Capacitor
 
 export default function ShiftPage() {
 
@@ -176,28 +177,54 @@ export default function ShiftPage() {
           .padStart(2, "0")}`;
   }
 
+  // Function to start the native foreground service
+  async function startNativeGpsService() {
+    try {
+      // Check if running on Android before invoking native functionality
+      if (Capacitor.getPlatform() === 'android') {
+        await Capacitor.nativeBridge.invoke({
+          pluginId: 'NativeGps', // This ID must match your native plugin's @CapacitorPlugin name
+          method: 'startForegroundService', // This method must exist in your NativeGpsPlugin.java
+        });
+        console.log("JS: Foreground service start command sent.");
+      } else {
+        console.log("JS: Not on Android platform, skipping foreground service start.");
+      }
+    } catch (error) {
+      console.error("JS: Failed to send command to start foreground service:", error);
+      // Optionally show a toast to the user
+      toast({
+        variant: "destructive",
+        title: "GPS Service Error",
+        description: "Could not start background GPS tracking. Please check permissions."
+      });
+      // Re-throw the error to be caught by the caller (startShift)
+      throw error;
+    }
+  }
+
   /**
    * START SHIFT
    */
   async function startShift() {
-
     setLoading(true);
 
     try {
-      
-      await startTracking();
+      // 1. Start the native foreground service
+      await startNativeGpsService();
 
-      const response =
-        await api.post("/shifts/start");
+      // 2. Initiate GPS tracking via the plugin (which uses FusedLocationManager)
+      await startTracking(); // This calls NativeGpsBridge.startLocationUpdates()
 
-      const id =
-        response.data._id ||
-        response.data.id;
+      // 3. Make the API call to start the shift on the backend
+      const response = await api.post("/shifts/start");
+      const id = response.data._id || response.data.id;
+
+      console.log("Turno iniciado:", response.data);
 
       setCurrentShift({
         id,
-        startTime:
-          new Date().toISOString(),
+        startTime: new Date().toISOString(),
         isActive: true
       });
 
@@ -206,9 +233,11 @@ export default function ShiftPage() {
       });
 
     } catch (error: any) {
+      console.error("Error during startShift:", error);
+      // Log the detailed error response if available
+      console.log("API response error:", error.response);
 
-      console.error(error);
-
+      // Determine the error message to display
       const message = error.message || error.response?.data?.message || "Não foi possível iniciar o turno.";
 
       toast({
@@ -218,9 +247,7 @@ export default function ShiftPage() {
       });
 
     } finally {
-
       setLoading(false);
-
     }
   }
 
@@ -245,15 +272,18 @@ export default function ShiftPage() {
 
     try {
 
-      await stopTracking();
+      await stopTracking(); // Stops GPS updates via the plugin
 
+      // Call the API to finish the shift
       await api.patch(
         `/shifts/${currentShift.id}/finish`,
         { totalKm }
       );
       
+      // Reset GPS state (totalKm, position, etc.)
       resetTracking();
 
+      // Reset shift and session states
       setCurrentShift({
         id: null,
         startTime: null,
@@ -275,7 +305,7 @@ export default function ShiftPage() {
 
     } catch (error: any) {
 
-      console.error(error);
+      console.error("Error during finishShift:", error);
 
       toast({
         variant: "destructive",
@@ -624,11 +654,12 @@ export default function ShiftPage() {
               </p>
               {currentPosition && (
                 <>
+                  {/* Note: currentPosition.lat/lng might need adjustment based on the actual data structure */}
                   <p className="text-xs text-muted-foreground mt-2">
-                    Latitude: {currentPosition.lat}
+                    Latitude: {currentPosition.latitude} 
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Longitude: {currentPosition.lng}
+                    Longitude: {currentPosition.longitude}
                   </p>
                 </>
               )}
@@ -641,7 +672,7 @@ export default function ShiftPage() {
                 Distância Percorrida
               </p>
               <p className="text-xl font-bold">
-                {totalKm.toFixed(2)} km
+                {(totalKm || 0).toFixed(2)} km
               </p>
             </CardContent>
           </Card>
