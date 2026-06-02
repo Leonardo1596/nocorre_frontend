@@ -3,12 +3,11 @@
 import React, {
   useState,
   useEffect,
+  useRef,
 } from "react";
 
-import {
-  Plugins,
-  PluginListenerHandle
-} from '@capacitor/core';
+import { Capacitor } from '@capacitor/core';
+import { NativeGps } from "../../../lib/gps"; // Adjust path as needed
 
 import haversine from 'haversine-distance';
 
@@ -47,19 +46,6 @@ import { useToast } from "@/hooks/use-toast";
 
 import api from "@/lib/api";
 
-// Define the interface for our custom plugin
-interface NativeGpsPlugin {
-  startGps(): Promise<void>;
-  stopGps(): Promise<void>;
-  addListener(
-    eventName: 'locationUpdate',
-    listenerFunc: (location: { latitude: number; longitude: number }) => void
-  ): Promise<PluginListenerHandle>;
-  removeListeners(eventName: 'locationUpdate'): Promise<void>;
-}
-
-const NativeGps = Plugins.NativeGps as NativeGpsPlugin;
-
 export default function ShiftPage() {
 
   const {
@@ -92,6 +78,8 @@ export default function ShiftPage() {
   const [coords, setCoords] = useState<{ lat: number | null, lng: number | null }>({ lat: null, lng: null });
   const [accumulatedKm, setAccumulatedKm] = useState<number>(0);
   const [lastPosition, setLastPosition] = useState<any>(null);
+  const locationListenerRef = useRef<any>(null);
+
 
   /**
    * FINISH SESSION FORM
@@ -181,11 +169,9 @@ export default function ShiftPage() {
   useEffect(() => {
     // Cleanup listener on component unmount
     return () => {
-      if (currentShift.isActive) {
-        stopGpsTracking();
-      }
+      stopGpsTracking();
     };
-  }, [currentShift.isActive]);
+  }, []);
 
   function formatTime(seconds: number) {
 
@@ -209,15 +195,9 @@ export default function ShiftPage() {
   }
 
   const startGpsTracking = async () => {
-    if (!NativeGps) {
-      console.error("NativeGps plugin not available");
-      toast({
-        variant: "destructive",
-        title: "Erro de GPS",
-        description: "O plugin de GPS não está funcionando.",
-      });
-      setGpsStatus('error');
-      return;
+    if (Capacitor.getPlatform() === 'web') {
+        console.log("GPS tracking not available on web.");
+        return;
     }
 
     try {
@@ -227,7 +207,7 @@ export default function ShiftPage() {
       setAccumulatedKm(0);
       setCoords({ lat: null, lng: null });
 
-      NativeGps.addListener('locationUpdate', (location) => {
+      locationListenerRef.current = await NativeGps.addListener('locationUpdate', (location) => {
         if (location && location.latitude && location.longitude) {
           const newPosition = { lat: location.latitude, lng: location.longitude };
           setCoords(newPosition);
@@ -252,12 +232,14 @@ export default function ShiftPage() {
   };
 
   const stopGpsTracking = async () => {
-    if (!NativeGps) {
-      console.error("NativeGps plugin not available");
-      return;
+    if (Capacitor.getPlatform() === 'web') return;
+
+    if (locationListenerRef.current) {
+        await locationListenerRef.current.remove();
+        locationListenerRef.current = null;
     }
+    
     try {
-      await NativeGps.removeListeners('locationUpdate');
       await NativeGps.stopGps();
       setGpsStatus('off');
     } catch (error: any) {

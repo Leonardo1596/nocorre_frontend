@@ -1,6 +1,10 @@
 package com.nocorre.app.gps;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import androidx.core.content.ContextCompat;
@@ -25,11 +29,16 @@ import com.getcapacitor.annotation.Permission;
 )
 public class NativeGpsPlugin extends Plugin {
 
-    public static Plugin plugin;
+    private LocationReceiver locationReceiver;
 
     @Override
     public void load() {
-        plugin = this;
+        super.load();
+        locationReceiver = new LocationReceiver();
+        LocalBroadcastManager.getInstance(getContext()).registerReceiver(
+            locationReceiver,
+            new IntentFilter(NativeGpsService.ACTION_LOCATION_BROADCAST)
+        );
     }
 
     @PluginMethod
@@ -51,13 +60,27 @@ public class NativeGpsPlugin extends Plugin {
         getContext().stopService(serviceIntent);
         call.resolve();
     }
+    
+    @Override
+    protected void handleOnDestroy() {
+        super.handleOnDestroy();
+        if (locationReceiver != null) {
+            LocalBroadcastManager.getInstance(getContext()).unregisterReceiver(locationReceiver);
+        }
+    }
 
-    public static void onLocationUpdate(double latitude, double longitude) {
-        if (plugin != null) {
-            JSObject ret = new JSObject();
-            ret.put("latitude", latitude);
-            ret.put("longitude", longitude);
-            plugin.notifyListeners("locationUpdate", ret, true);
+    private class LocationReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent != null && NativeGpsService.ACTION_LOCATION_BROADCAST.equals(intent.getAction())) {
+                double latitude = intent.getDoubleExtra(NativeGpsService.EXTRA_LATITUDE, 0);
+                double longitude = intent.getDoubleExtra(NativeGpsService.EXTRA_LONGITUDE, 0);
+
+                JSObject ret = new JSObject();
+                ret.put("latitude", latitude);
+                ret.put("longitude", longitude);
+                notifyListeners("locationUpdate", ret, true);
+            }
         }
     }
 }
