@@ -22,11 +22,4 @@ include ':app'
 include ':capacitor-cordova-android-plugins'
 project(':capacitor-cordova-android-plugins').projectDir = new File('./capacitor-cordova-android-plugins/')
 
-// --- ADD THIS SECTION FOR YOUR CUSTOM PLUGIN ---
-// Replace ':native-gps' with your plugin's folder name (e.g., ':my-custom-gps-plugin')
-include ':native-gps' 
-// Adjust the path to match your plugin folder's location relative to 'android/' directory
-project(':native-gps').projectDir = new File(settingsDir, '../native-gps') 
-// --- END ADDED SECTION ---
-
 apply from: 'capacitor.settings.gradle'
