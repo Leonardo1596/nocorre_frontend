@@ -36,11 +36,6 @@ public class NativeGpsPlugin extends Plugin {
     public void load() {
         super.load();
 
-        android.util.Log.d(
-            "NOCORRE_TEST",
-            "PLUGIN CARREGADO"
-        );
-
         locationRepository = LocationRepository.getInstance();
 
         locationObserver = location -> {
@@ -48,21 +43,12 @@ public class NativeGpsPlugin extends Plugin {
 
                 JSObject ret = new JSObject();
 
-                ret.put(
-                    "latitude",
-                    location.getLatitude()
-                );
+                ret.put("latitude", location.getLatitude());
+                ret.put("longitude", location.getLongitude());
+                ret.put("speed", location.getSpeed()); // Speed in meters/second
+                ret.put("accuracy", location.getAccuracy()); // Horizontal accuracy in meters
 
-                ret.put(
-                    "longitude",
-                    location.getLongitude()
-                );
-
-                notifyListeners(
-                    "locationUpdate",
-                    ret,
-                    true
-                );
+                notifyListeners("locationUpdate", ret, true);
             }
         };
 
@@ -76,27 +62,8 @@ public class NativeGpsPlugin extends Plugin {
     @PluginMethod
     public void startGps(PluginCall call) {
 
-        android.util.Log.d(
-            "NOCORRE_TEST",
-            "START GPS CHAMADO"
-        );
-
-        if (
-            getPermissionState("location")
-                != PermissionState.GRANTED
-        ) {
-
-            android.util.Log.d(
-                "NOCORRE_TEST",
-                "PEDINDO PERMISSAO"
-            );
-
-            requestPermissionForAlias(
-                "location",
-                call,
-                "locationPermissionCallback"
-            );
-
+        if (getPermissionState("location") != PermissionState.GRANTED) {
+            requestPermissionForAlias("location", call, "locationPermissionCallback");
             return;
         }
 
@@ -104,88 +71,31 @@ public class NativeGpsPlugin extends Plugin {
     }
 
     @PermissionCallback
-    private void locationPermissionCallback(
-        PluginCall call
-    ) {
-
-        android.util.Log.d(
-            "NOCORRE_TEST",
-            "CALLBACK PERMISSAO"
-        );
-
-        if (
-            getPermissionState("location")
-                == PermissionState.GRANTED
-        ) {
-
-            android.util.Log.d(
-                "NOCORRE_TEST",
-                "PERMISSAO CONCEDIDA"
-            );
-
+    private void locationPermissionCallback(PluginCall call) {
+        if (getPermissionState("location") == PermissionState.GRANTED) {
             startGpsService(call);
-
         } else {
-
-            android.util.Log.d(
-                "NOCORRE_TEST",
-                "PERMISSAO NEGADA"
-            );
-
-            call.reject(
-                "Location permission denied."
-            );
+            call.reject("Location permission was denied.");
         }
     }
 
-    private void startGpsService(
-        PluginCall call
-    ) {
-
-        android.util.Log.d(
-            "NOCORRE_TEST",
-            "INICIANDO SERVICE"
-        );
-
-        Intent serviceIntent =
-            new Intent(
-                getContext(),
-                NativeGpsService.class
-            );
-
-        getContext().startService(
-            serviceIntent
-        );
-
+    private void startGpsService(PluginCall call) {
+        Intent serviceIntent = new Intent(getContext(), NativeGpsService.class);
+        getContext().startService(serviceIntent);
         call.resolve();
     }
 
     @PluginMethod
     public void stopGps(PluginCall call) {
-
-        Intent serviceIntent =
-            new Intent(
-                getContext(),
-                NativeGpsService.class
-            );
-
-        getContext().stopService(
-            serviceIntent
-        );
-
+        Intent serviceIntent = new Intent(getContext(), NativeGpsService.class);
+        getContext().stopService(serviceIntent);
         call.resolve();
     }
 
     @Override
     protected void handleOnDestroy() {
-
         super.handleOnDestroy();
-
-        if (
-            locationRepository != null &&
-            locationObserver != null
-        ) {
-
+        if (locationRepository != null && locationObserver != null) {
             getActivity().runOnUiThread(() ->
                 locationRepository
                     .getLocationData()
