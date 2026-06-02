@@ -65,6 +65,7 @@ public class NativeGpsService extends Service {
                 for (android.location.Location location : locationResult.getLocations()) {
                     if (location != null) {
                         Log.d(TAG, "New Location: " + location.getLatitude() + ", " + location.getLongitude());
+                        NativeGpsPlugin.onLocationUpdate(location.getLatitude(), location.getLongitude());
                     }
                 }
             }

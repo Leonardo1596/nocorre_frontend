@@ -5,6 +5,13 @@ import React, {
   useEffect,
 } from "react";
 
+import {
+  Plugins,
+  PluginListenerHandle
+} from '@capacitor/core';
+
+import haversine from 'haversine-distance';
+
 import { Button } from "@/components/ui/button";
 
 import {
@@ -31,13 +38,27 @@ import {
   StopCircle,
   Car,
   Timer,
-  Loader2
+  Loader2,
+  MapPin
 } from "lucide-react";
 
 import { useApp } from "@/contexts/AppContext";
 import { useToast } from "@/hooks/use-toast";
 
 import api from "@/lib/api";
+
+// Define the interface for our custom plugin
+interface NativeGpsPlugin {
+  startGps(): Promise<void>;
+  stopGps(): Promise<void>;
+  addListener(
+    eventName: 'locationUpdate',
+    listenerFunc: (location: { latitude: number; longitude: number }) => void
+  ): Promise<PluginListenerHandle>;
+  removeListeners(eventName: 'locationUpdate'): Promise<void>;
+}
+
+const NativeGps = Plugins.NativeGps as NativeGpsPlugin;
 
 export default function ShiftPage() {
 
@@ -65,6 +86,12 @@ export default function ShiftPage() {
     showFinishDialog,
     setShowFinishDialog
   ] = useState(false);
+
+  // GPS State
+  const [gpsStatus, setGpsStatus] = useState<'off' | 'on' | 'error'>('off');
+  const [coords, setCoords] = useState<{ lat: number | null, lng: number | null }>({ lat: null, lng: null });
+  const [accumulatedKm, setAccumulatedKm] = useState<number>(0);
+  const [lastPosition, setLastPosition] = useState<any>(null);
 
   /**
    * FINISH SESSION FORM
@@ -147,6 +174,19 @@ export default function ShiftPage() {
 
   }, [currentSession]);
 
+
+  /**
+   * GPS LIFECYCLE
+   */
+  useEffect(() => {
+    // Cleanup listener on component unmount
+    return () => {
+      if (currentShift.isActive) {
+        stopGpsTracking();
+      }
+    };
+  }, [currentShift.isActive]);
+
   function formatTime(seconds: number) {
 
     const h = Math.floor(
@@ -168,6 +208,68 @@ export default function ShiftPage() {
           .padStart(2, "0")}`;
   }
 
+  const startGpsTracking = async () => {
+    if (!NativeGps) {
+      console.error("NativeGps plugin not available");
+      toast({
+        variant: "destructive",
+        title: "Erro de GPS",
+        description: "O plugin de GPS não está funcionando.",
+      });
+      setGpsStatus('error');
+      return;
+    }
+
+    try {
+      await NativeGps.startGps();
+      setGpsStatus('on');
+      setLastPosition(null);
+      setAccumulatedKm(0);
+      setCoords({ lat: null, lng: null });
+
+      NativeGps.addListener('locationUpdate', (location) => {
+        if (location && location.latitude && location.longitude) {
+          const newPosition = { lat: location.latitude, lng: location.longitude };
+          setCoords(newPosition);
+
+          if (lastPosition) {
+            const distanceMeters = haversine(lastPosition, newPosition);
+            setAccumulatedKm(prevKm => prevKm + (distanceMeters / 1000));
+          }
+          setLastPosition(newPosition);
+        }
+      });
+
+    } catch (error: any) {
+      console.error("Failed to start GPS", error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao iniciar GPS",
+        description: error.message || "Não foi possível ligar o GPS.",
+      });
+      setGpsStatus('error');
+    }
+  };
+
+  const stopGpsTracking = async () => {
+    if (!NativeGps) {
+      console.error("NativeGps plugin not available");
+      return;
+    }
+    try {
+      await NativeGps.removeListeners('locationUpdate');
+      await NativeGps.stopGps();
+      setGpsStatus('off');
+    } catch (error: any) {
+      console.error("Failed to stop GPS", error);
+       toast({
+        variant: "destructive",
+        title: "Erro ao parar GPS",
+        description: error.message || "Não foi possível desligar o GPS.",
+      });
+    }
+  };
+
   /**
    * START SHIFT
    */
@@ -185,6 +287,8 @@ export default function ShiftPage() {
         startTime: new Date().toISOString(),
         isActive: true
       });
+      
+      await startGpsTracking();
 
       toast({
         title: "Turno iniciado"
@@ -225,6 +329,8 @@ export default function ShiftPage() {
     setLoading(true);
 
     try {
+      
+      await stopGpsTracking();
 
       await api.patch(
         `/shifts/${currentShift.id}/finish`
@@ -540,7 +646,7 @@ export default function ShiftPage() {
                   Tempo de Turno
                 </p>
 
-                <p className="text-xl font-bold text-primary">
+                <p className="text-xl font.bold text-primary">
                   {formatTime(elapsed)}
                 </p>
 
@@ -564,6 +670,33 @@ export default function ShiftPage() {
             </Card>
 
           </div>
+          
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center mb-2">
+                 <MapPin className="w-4 h-4 mr-2 text-muted-foreground" />
+                <p className="text-sm uppercase text-muted-foreground font-bold">
+                  GPS
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm flex justify-between">
+                  <span>Status:</span>
+                  <span className={`font-bold ${gpsStatus === 'on' ? 'text-green-500' : 'text-red-500'}`}>
+                    {gpsStatus.toUpperCase()}
+                  </span>
+                </p>
+                <p className="text-sm flex justify-between">
+                  <span>Distância:</span>
+                  <span className="font-bold">{accumulatedKm.toFixed(2)} km</span>
+                </p>
+                 <p className="text-xs text-muted-foreground pt-2">
+                  Lat: {coords.lat ? coords.lat.toFixed(5) : 'N/A'}, Lng: {coords.lng ? coords.lng.toFixed(5) : 'N/A'}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
 
           <div className="grid grid-cols-1 gap-4">
 
