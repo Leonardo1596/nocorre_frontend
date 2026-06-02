@@ -5,6 +5,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
+import android.location.Location;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.Looper;
@@ -12,7 +13,6 @@ import android.util.Log;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
@@ -28,17 +28,16 @@ public class NativeGpsService extends Service {
     private FusedLocationProviderClient fusedLocationClient;
     private LocationCallback locationCallback;
 
-    public static final String ACTION_LOCATION_BROADCAST = "com.nocorre.app.gps.ACTION_LOCATION_BROADCAST";
-    public static final String EXTRA_LATITUDE = "com.nocorre.app.gps.EXTRA_LATITUDE";
-    public static final String EXTRA_LONGITUDE = "com.nocorre.app.gps.EXTRA_LONGITUDE";
-
     private static final String CHANNEL_ID = "GpsServiceChannel";
+
+    private LocationRepository locationRepository;
 
     @Override
     public void onCreate() {
         super.onCreate();
         Log.d(TAG, "onCreate");
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+        locationRepository = LocationRepository.getInstance();
         createNotificationChannel();
         createLocationCallback();
     }
@@ -54,7 +53,6 @@ public class NativeGpsService extends Service {
                 .build();
 
         startForeground(1, notification);
-
         startLocationUpdates();
 
         return START_STICKY;
@@ -67,21 +65,14 @@ public class NativeGpsService extends Service {
                 if (locationResult == null) {
                     return;
                 }
-                for (android.location.Location location : locationResult.getLocations()) {
+                for (Location location : locationResult.getLocations()) {
                     if (location != null) {
                         Log.d(TAG, "New Location: " + location.getLatitude() + ", " + location.getLongitude());
-                        sendLocationBroadcast(location);
+                        locationRepository.setLocationData(location);
                     }
                 }
             }
         };
-    }
-
-    private void sendLocationBroadcast(android.location.Location location) {
-        Intent intent = new Intent(ACTION_LOCATION_BROADCAST);
-        intent.putExtra(EXTRA_LATITUDE, location.getLatitude());
-        intent.putExtra(EXTRA_LONGITUDE, location.getLongitude());
-        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 
     private void startLocationUpdates() {

@@ -1,14 +1,13 @@
 package com.nocorre.app.gps;
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
-import androidx.core.content.ContextCompat;
+import android.location.Location;
+
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import androidx.lifecycle.Observer;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -16,7 +15,6 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
-
 
 @CapacitorPlugin(
     name = "NativeGps",
@@ -29,15 +27,25 @@ import com.getcapacitor.annotation.Permission;
 )
 public class NativeGpsPlugin extends Plugin {
 
-    private LocationReceiver locationReceiver;
+    private LocationRepository locationRepository;
+    private Observer<Location> locationObserver;
 
     @Override
     public void load() {
         super.load();
-        locationReceiver = new LocationReceiver();
-        LocalBroadcastManager.getInstance(getContext()).registerReceiver(
-            locationReceiver,
-            new IntentFilter(NativeGpsService.ACTION_LOCATION_BROADCAST)
+        locationRepository = LocationRepository.getInstance();
+        locationObserver = location -> {
+            if (location != null) {
+                JSObject ret = new JSObject();
+                ret.put("latitude", location.getLatitude());
+                ret.put("longitude", location.getLongitude());
+                notifyListeners("locationUpdate", ret, true);
+            }
+        };
+        
+        // Observe LiveData on the main thread
+        getActivity().runOnUiThread(() -> 
+            locationRepository.getLocationData().observeForever(locationObserver)
         );
     }
 
@@ -60,27 +68,15 @@ public class NativeGpsPlugin extends Plugin {
         getContext().stopService(serviceIntent);
         call.resolve();
     }
-    
+
     @Override
     protected void handleOnDestroy() {
         super.handleOnDestroy();
-        if (locationReceiver != null) {
-            LocalBroadcastManager.getInstance(getContext()).unregisterReceiver(locationReceiver);
-        }
-    }
-
-    private class LocationReceiver extends BroadcastReceiver {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if (intent != null && NativeGpsService.ACTION_LOCATION_BROADCAST.equals(intent.getAction())) {
-                double latitude = intent.getDoubleExtra(NativeGpsService.EXTRA_LATITUDE, 0);
-                double longitude = intent.getDoubleExtra(NativeGpsService.EXTRA_LONGITUDE, 0);
-
-                JSObject ret = new JSObject();
-                ret.put("latitude", latitude);
-                ret.put("longitude", longitude);
-                notifyListeners("locationUpdate", ret, true);
-            }
+        if (locationRepository != null && locationObserver != null) {
+            // Stop observing on the main thread
+            getActivity().runOnUiThread(() -> 
+                locationRepository.getLocationData().removeObserver(locationObserver)
+            );
         }
     }
 }
