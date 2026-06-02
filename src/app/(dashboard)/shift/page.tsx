@@ -64,7 +64,7 @@ export default function ShiftPage() {
     sessionElapsed,
     setSessionElapsed
   ] = useState(0);
-  
+
   const [loading, setLoading] =
     useState(false);
 
@@ -77,7 +77,7 @@ export default function ShiftPage() {
   const [gpsStatus, setGpsStatus] = useState<'off' | 'on' | 'error'>('off');
   const [coords, setCoords] = useState<{ lat: number | null, lng: number | null }>({ lat: null, lng: null });
   const [accumulatedKm, setAccumulatedKm] = useState<number>(0);
-  const [lastPosition, setLastPosition] = useState<any>(null);
+  const lastPositionRef = useRef<any>(null);
   const locationListenerRef = useRef<any>(null);
 
 
@@ -145,7 +145,7 @@ export default function ShiftPage() {
         const start = new Date(
           currentSession.startTime!
         ).getTime();
-        
+
         const pausedDuration = currentSession.totalPauseDuration || 0;
 
         setSessionElapsed(
@@ -196,29 +196,76 @@ export default function ShiftPage() {
 
   const startGpsTracking = async () => {
     if (Capacitor.getPlatform() === 'web') {
-        console.log("GPS tracking not available on web.");
-        return;
+      console.log("GPS tracking not available on web.");
+      return;
     }
 
     try {
+      console.log("ANTES START GPS");
+
       await NativeGps.startGps();
+
+      console.log("GPS INICIADO COM SUCESSO");
+
       setGpsStatus('on');
-      setLastPosition(null);
+      lastPositionRef.current = null;
       setAccumulatedKm(0);
-      setCoords({ lat: null, lng: null });
-
-      locationListenerRef.current = await NativeGps.addListener('locationUpdate', (location) => {
-        if (location && location.latitude && location.longitude) {
-          const newPosition = { lat: location.latitude, lng: location.longitude };
-          setCoords(newPosition);
-
-          if (lastPosition) {
-            const distanceMeters = haversine(lastPosition, newPosition);
-            setAccumulatedKm(prevKm => prevKm + (distanceMeters / 1000));
-          }
-          setLastPosition(newPosition);
-        }
+      setCoords({
+        lat: null,
+        lng: null
       });
+
+      locationListenerRef.current =
+        await NativeGps.addListener(
+          "locationUpdate",
+          (location) => {
+
+            console.log(
+              "LOCATION UPDATE",
+              location
+            );
+
+            if (
+              !location ||
+              !location.latitude ||
+              !location.longitude
+            ) {
+              return;
+            }
+
+            const newPosition = {
+              lat: location.latitude,
+              lng: location.longitude
+            };
+
+            setCoords(newPosition);
+
+            if (
+              lastPositionRef.current
+            ) {
+
+              const distanceMeters =
+                haversine(
+                  lastPositionRef.current,
+                  newPosition
+                );
+
+              console.log(
+                "DISTANCIA:",
+                distanceMeters
+              );
+
+              setAccumulatedKm(
+                prevKm =>
+                  prevKm +
+                  distanceMeters / 1000
+              );
+            }
+
+            lastPositionRef.current =
+              newPosition;
+          }
+        );
 
     } catch (error: any) {
       console.error("Failed to start GPS", error);
@@ -235,16 +282,17 @@ export default function ShiftPage() {
     if (Capacitor.getPlatform() === 'web') return;
 
     if (locationListenerRef.current) {
-        await locationListenerRef.current.remove();
-        locationListenerRef.current = null;
+      await locationListenerRef.current.remove();
+      locationListenerRef.current = null;
     }
-    
+
     try {
       await NativeGps.stopGps();
+      lastPositionRef.current = null;
       setGpsStatus('off');
     } catch (error: any) {
       console.error("Failed to stop GPS", error);
-       toast({
+      toast({
         variant: "destructive",
         title: "Erro ao parar GPS",
         description: error.message || "Não foi possível desligar o GPS.",
@@ -269,7 +317,7 @@ export default function ShiftPage() {
         startTime: new Date().toISOString(),
         isActive: true
       });
-      
+
       await startGpsTracking();
 
       toast({
@@ -296,65 +344,77 @@ export default function ShiftPage() {
    */
   async function finishShift() {
 
-    if (!currentShift.id) {
+  if (!currentShift.id) {
 
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description:
-          "ID do turno não encontrado."
-      });
+    toast({
+      variant: "destructive",
+      title: "Erro",
+      description: "ID do turno não encontrado."
+    });
 
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      
-      await stopGpsTracking();
-
-      await api.patch(
-        `/shifts/${currentShift.id}/finish`
-      );
-      
-      setCurrentShift({
-        id: null,
-        startTime: null,
-        isActive: false
-      });
-
-      setCurrentSession({
-        id: null,
-        startTime: null,
-        isActive: false,
-        isPaused: false,
-        pauseStartTime: null,
-        totalPauseDuration: 0
-      });
-
-      toast({
-        title: "Turno finalizado"
-      });
-
-    } catch (error: any) {
-
-      console.error("Error during finishShift:", error);
-
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description:
-          error.response?.data?.message ||
-          "Não foi possível finalizar o turno."
-      });
-
-    } finally {
-
-      setLoading(false);
-
-    }
+    return;
   }
+
+  setLoading(true);
+
+  try {
+
+    const totalKm = Number(
+      accumulatedKm.toFixed(2)
+    );
+
+    await stopGpsTracking();
+
+    await api.patch(
+      `/shifts/${currentShift.id}/finish`,
+      {
+        totalKm
+      }
+    );
+
+    setCurrentShift({
+      id: null,
+      startTime: null,
+      isActive: false
+    });
+
+    setCurrentSession({
+      id: null,
+      startTime: null,
+      isActive: false,
+      isPaused: false,
+      pauseStartTime: null,
+      totalPauseDuration: 0
+    });
+
+    setAccumulatedKm(0);
+
+    toast({
+      title: "Turno finalizado",
+      description: `${totalKm} km registrados`
+    });
+
+  } catch (error: any) {
+
+    console.error(
+      "Error during finishShift:",
+      error
+    );
+
+    toast({
+      variant: "destructive",
+      title: "Erro",
+      description:
+        error.response?.data?.message ||
+        "Não foi possível finalizar o turno."
+    });
+
+  } finally {
+
+    setLoading(false);
+
+  }
+}
 
   /**
    * START SESSION
@@ -517,7 +577,7 @@ export default function ShiftPage() {
     setLoading(true);
 
     try {
-        
+
       await api.patch(
         `/work-sessions/${currentSession.id}/finish`,
         {
@@ -554,7 +614,7 @@ export default function ShiftPage() {
         foodExpense: 0,
         otherExpense: 0
       });
-      
+
       toast({
         title:
           "Sessão finalizada"
@@ -652,11 +712,11 @@ export default function ShiftPage() {
             </Card>
 
           </div>
-          
+
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center mb-2">
-                 <MapPin className="w-4 h-4 mr-2 text-muted-foreground" />
+                <MapPin className="w-4 h-4 mr-2 text-muted-foreground" />
                 <p className="text-sm uppercase text-muted-foreground font-bold">
                   GPS
                 </p>
@@ -672,7 +732,7 @@ export default function ShiftPage() {
                   <span>Distância:</span>
                   <span className="font-bold">{accumulatedKm.toFixed(2)} km</span>
                 </p>
-                 <p className="text-xs text-muted-foreground pt-2">
+                <p className="text-xs text-muted-foreground pt-2">
                   Lat: {coords.lat ? coords.lat.toFixed(5) : 'N/A'}, Lng: {coords.lng ? coords.lng.toFixed(5) : 'N/A'}
                 </p>
               </div>
