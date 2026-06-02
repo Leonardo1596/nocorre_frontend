@@ -16,18 +16,16 @@ import com.nocorre.app.gps.NativeGpsService;
 public class MainActivity extends BridgeActivity {
 
     private static final int REQ = 1001;
+    private static final String TAG = "MainActivity";
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        Log.d("GPS", "MAIN ACTIVITY ONCREATE");
-
+        Log.d(TAG, "onCreate");
         checkPermission();
     }
 
     private void checkPermission() {
-
         boolean fineGranted = ContextCompat.checkSelfPermission(
                 this,
                 Manifest.permission.ACCESS_FINE_LOCATION
@@ -39,9 +37,7 @@ public class MainActivity extends BridgeActivity {
         ) == PackageManager.PERMISSION_GRANTED;
 
         if (!fineGranted || !coarseGranted) {
-
-            Log.d("GPS", "SOLICITANDO PERMISSAO");
-
+            Log.d(TAG, "Requesting location permissions");
             ActivityCompat.requestPermissions(
                     this,
                     new String[]{
@@ -50,17 +46,14 @@ public class MainActivity extends BridgeActivity {
                     },
                     REQ
             );
-
-            return;
+        } else {
+            Log.d(TAG, "Permissions already granted. Starting GPS service.");
+            startGpsService();
         }
-
-        // REMOVED: startGpsService(); // <-- REMOVE THIS LINE
-        Log.d("GPS", "Permissions already granted. Service will be started manually.");
     }
 
     private void startGpsService() {
-        Log.d("GPS", "START FOREGROUND SERVICE");
-
+        Log.d(TAG, "Starting GPS service.");
         Intent intent = new Intent(this, NativeGpsService.class);
 
         try {
@@ -70,7 +63,7 @@ public class MainActivity extends BridgeActivity {
                 startService(intent);
             }
         } catch (Exception e) {
-            Log.e("GPS", "Erro ao iniciar service", e);
+            Log.e(TAG, "Error starting GPS service", e);
         }
     }
 
@@ -83,19 +76,14 @@ public class MainActivity extends BridgeActivity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
         if (requestCode == REQ) {
-
             boolean granted = grantResults.length > 0
                     && grantResults[0] == PackageManager.PERMISSION_GRANTED;
 
             if (granted) {
-
-                Log.d("GPS", "PERMISSAO CONCEDIDA");
-                // REMOVED: startGpsService(); // <-- REMOVE THIS LINE
-                Log.d("GPS", "Permissions granted. Service will be started manually.");
-
+                Log.d(TAG, "Permissions granted. Starting GPS service.");
+                startGpsService();
             } else {
-
-                Log.d("GPS", "PERMISSAO NEGADA");
+                Log.d(TAG, "Permissions denied.");
             }
         }
     }
