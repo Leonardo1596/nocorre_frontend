@@ -121,6 +121,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
   const [showFuelModal, setShowFuelModal] = useState(false);
+  const [showExpenseDetails, setShowExpenseDetails] = useState(false);
   const [fuelPrice, setFuelPrice] = useState<number>(0);
   const [updatingFuel, setUpdatingFuel] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
@@ -213,6 +214,11 @@ export default function Dashboard() {
   const totalKm = Number(summary.totalKm || 0);
   const productiveHours = Number(summary.productiveHours || 0);
   const totalHours = Number(summary.totalHours || 0);
+
+  const fuelExpenses = Number(summary.fuelExpense || 0);
+  const maintenanceExpenses = Number(summary.maintenanceExpense || 0);
+  const foodExpenses = Number(summary.foodExpense || 0);
+  const otherExpenses = Number(summary.otherExpense || 0);
 
   const netPerHour = productiveHours > 0 ? netProfit / productiveHours : 0;
   const totalKmSafe = totalKm > 0 ? totalKm : 1; 
@@ -365,13 +371,15 @@ export default function Dashboard() {
             icon={DollarSign} 
             colorClass="text-primary"
           />
-          <OperationCard 
-            title="Despesas Totais" 
-            value={formatBRL(totalExpenses)} 
-            subtext="Custos operacionais" 
-            icon={Fuel} 
-            colorClass="text-orange-400"
-          />
+          <div className="cursor-pointer" onClick={() => setShowExpenseDetails(!showExpenseDetails)}>
+            <OperationCard 
+              title="Despesas Totais" 
+              value={formatBRL(totalExpenses)} 
+              subtext={showExpenseDetails ? "Toque para ocultar" : "Toque para ver detalhes"} 
+              icon={Fuel} 
+              colorClass="text-orange-400"
+            />
+          </div>
           <OperationCard 
             title="Horas Trabalhadas" 
             value={formatHours(productiveHours)} 
@@ -387,6 +395,16 @@ export default function Dashboard() {
             colorClass="text-accent"
           />
         </div>
+        {showExpenseDetails && (
+          <Card className="border-border/50 bg-card/40 animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <CardContent className="p-4 divide-y divide-white/5">
+              <AnalyticsRow label="Combustível" value={formatBRL(fuelExpenses)} />
+              <AnalyticsRow label="Manutenção" value={formatBRL(maintenanceExpenses)} />
+              <AnalyticsRow label="Alimentação" value={formatBRL(foodExpenses)} />
+              <AnalyticsRow label="Outros" value={formatBRL(otherExpenses)} />
+            </CardContent>
+          </Card>
+        )}
       </section>
 
       {/* 3. ANALYTICS */}
