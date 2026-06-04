@@ -108,7 +108,7 @@ const AnalyticsRow = ({ label, value, sublabel }: any) => (
   <div className="flex justify-between items-center py-3 border-b border-white/5 last:border-0">
     <div className="space-y-0.5">
       <p className="text-xs font-medium text-foreground">{label}</p>
-      <p className="text-[10px] text-muted-foreground uppercase">{sublabel}</p>
+      {sublabel && <p className="text-[10px] text-muted-foreground uppercase">{sublabel}</p>}
     </div>
     <span className="text-sm font-bold font-headline">{value}</span>
   </div>
@@ -215,10 +215,10 @@ export default function Dashboard() {
   const productiveHours = Number(summary.productiveHours || 0);
   const totalHours = Number(summary.totalHours || 0);
 
-  const fuelExpenses = Number(summary.fuelExpense || 0);
-  const maintenanceExpenses = Number(summary.maintenanceExpense || 0);
-  const foodExpenses = Number(summary.foodExpense || 0);
-  const otherExpenses = Number(summary.otherExpense || 0);
+  const fuelExpenses = Number(summary.fuel || 0);
+  const maintenanceExpenses = Number(summary.maintenance || 0);
+  const foodExpenses = Number(summary.food || 0);
+  const otherExpenses = Number(summary.other || 0);
 
   const netPerHour = productiveHours > 0 ? netProfit / productiveHours : 0;
   const totalKmSafe = totalKm > 0 ? totalKm : 1; 
@@ -425,6 +425,7 @@ export default function Dashboard() {
                   contentStyle={{ backgroundColor: '#0D1011', border: '1px solid #1E293B', borderRadius: '12px' }}
                   cursor={{fill: 'rgba(16, 185, 129, 0.05)'}}
                   formatter={(value: any) => [formatBRL(value), 'Faturamento']}
+                  itemStyle={{ color: '#E2E8F0' }}
                 />
                 <Bar dataKey="earnings" radius={[4, 4, 0, 0]}>
                   {chartData.map((entry, index) => (
