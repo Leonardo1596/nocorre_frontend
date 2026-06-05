@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Capacitor } from '@capacitor/core';
 
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import { Play, Pause, StopCircle, Car, Timer, Loader2, MapPin } from "lucide-rea
 
 import { useApp } from "@/contexts/AppContext";
 import { useGps } from "@/contexts/GpsContext";
-import { useShift } from "@/contexts/ShiftContext"; // Import useShift
+import { useShift } from "@/contexts/ShiftContext";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 
@@ -21,14 +21,13 @@ export default function ShiftPage() {
   const { currentShift, setCurrentShift, currentSession, setCurrentSession } = useApp();
   const { toast } = useToast();
   const { location, isGpsActive } = useGps();
-  const { accumulatedDistance, startShift: startShiftContext, stopShift: stopShiftContext } = useShift(); // Use ShiftContext
+  const { accumulatedDistance, startShift: startShiftContext, stopShift: stopShiftContext } = useShift();
 
   const [elapsed, setElapsed] = useState(0);
   const [sessionElapsed, setSessionElapsed] = useState(0);
   const [loading, setLoading] = useState(false);
   const [showFinishDialog, setShowFinishDialog] = useState(false);
 
-  // Productive KM State
   const [productiveKm, setProductiveKm] = useState<number>(0);
   const [sessionStartKm, setSessionStartKm] = useState<number>(0);
   const [kmAtPauseStart, setKmAtPauseStart] = useState<number>(0);
@@ -36,19 +35,25 @@ export default function ShiftPage() {
 
   const [formData, setFormData] = useState({ grossAmount: 0, foodExpense: 0, otherExpense: 0 });
   const [locationIndicator, setLocationIndicator] = useState(false);
+  const [locationUpdateInterval, setLocationUpdateInterval] = useState<number>(0);
+  const lastLocationTime = useRef<number | null>(null);
 
   useEffect(() => {
-    if (isGpsActive) {
+    if (isGpsActive && location) {
       setLocationIndicator(true);
-      const timer = setTimeout(() => setLocationIndicator(false), 500); // Indicator stays visible for 500ms
+      const timer = setTimeout(() => setLocationIndicator(false), 500);
+
+      const now = Date.now();
+      if (lastLocationTime.current) {
+        const interval = (now - lastLocationTime.current) / 1000;
+        setLocationUpdateInterval(interval);
+      }
+      lastLocationTime.current = now;
+
       return () => clearTimeout(timer);
     }
   }, [location, isGpsActive]);
 
-
-  /**
-   * Productive KM Calculation
-   */
   useEffect(() => {
     if (currentSession.isActive && !currentSession.isPaused) {
       const newProductiveKm = accumulatedDistance - sessionStartKm - totalPausedKm;
@@ -56,9 +61,6 @@ export default function ShiftPage() {
     }
   }, [accumulatedDistance, currentSession.isActive, currentSession.isPaused, sessionStartKm, totalPausedKm]);
 
-  /**
-   * SHIFT TIMER
-   */
   useEffect(() => {
     let interval: any;
     if (currentShift.isActive && currentShift.startTime) {
@@ -72,9 +74,6 @@ export default function ShiftPage() {
     return () => clearInterval(interval);
   }, [currentShift]);
 
-  /**
-   * SESSION TIMER
-   */
   useEffect(() => {
     let interval: any;
     if (currentSession.isActive && currentSession.startTime && !currentSession.isPaused) {
@@ -102,7 +101,7 @@ export default function ShiftPage() {
       setCurrentShift({ id, startTime: new Date().toISOString(), isActive: true });
       
       if (Capacitor.getPlatform() !== 'web') {
-        startShiftContext(); // Use context function to start GPS and tracking
+        startShiftContext();
       }
       
       toast({ title: "Turno iniciado" });
@@ -124,7 +123,7 @@ export default function ShiftPage() {
       const totalKm = Number(accumulatedDistance.toFixed(2));
       
       if (Capacitor.getPlatform() !== 'web') {
-        stopShiftContext(); // Use context function to stop GPS
+        stopShiftContext();
       }
       
       await api.patch(`/shifts/${currentShift.id}/finish`, { totalKm });
@@ -132,7 +131,6 @@ export default function ShiftPage() {
       setCurrentShift({ id: null, startTime: null, isActive: false });
       setCurrentSession({ id: null, startTime: null, isActive: false, isPaused: false, pauseStartTime: null, totalPauseDuration: 0 });
       
-      // Reset local productive KM states
       setProductiveKm(0);
       setSessionStartKm(0);
       setKmAtPauseStart(0);
@@ -303,6 +301,11 @@ export default function ShiftPage() {
               <p className="text-xs text-muted-foreground text-center mt-4">
                   Coords: {location?.latitude ? location.latitude.toFixed(4) : 'N/A'}, {location?.longitude ? location.longitude.toFixed(4) : 'N/A'}
               </p>
+              {isGpsActive && (
+                <p className="text-xs text-muted-foreground text-center mt-2">
+                  Atualização do GPS a cada {locationUpdateInterval.toFixed(1)} segundos
+                </p>
+              )}
             </CardContent>
           </Card>
 
