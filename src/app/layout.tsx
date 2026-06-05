@@ -5,6 +5,7 @@ import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AppProvider } from "@/contexts/AppContext";
 import { GpsProvider } from "@/contexts/GpsContext"; // Import GpsProvider
+import { ShiftProvider } from "@/contexts/ShiftContext"; // Import ShiftProvider
 
 import { Toaster } from "@/components/ui/toaster";
 
@@ -55,9 +56,11 @@ export default function RootLayout({
           <AuthProvider>
             <AppProvider>
               <GpsProvider> {/* Add GpsProvider */}
-                {children}
+                <ShiftProvider>
+                  {children}
 
-                <Toaster />
+                  <Toaster />
+                </ShiftProvider>
               </GpsProvider>
             </AppProvider>
           </AuthProvider>

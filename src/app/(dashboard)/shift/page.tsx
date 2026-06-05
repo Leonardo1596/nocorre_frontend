@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { Capacitor } from '@capacitor/core';
-import haversine from 'haversine-distance';
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,23 +12,21 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Play, Pause, StopCircle, Car, Timer, Loader2, MapPin } from "lucide-react";
 
 import { useApp } from "@/contexts/AppContext";
-import { useGps } from "@/contexts/GpsContext"; // Import the useGps hook
+import { useGps } from "@/contexts/GpsContext";
+import { useShift } from "@/contexts/ShiftContext"; // Import useShift
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 
 export default function ShiftPage() {
   const { currentShift, setCurrentShift, currentSession, setCurrentSession } = useApp();
   const { toast } = useToast();
-  const { location, startGps, stopGps, isGpsActive } = useGps(); // Use GpsContext
+  const { location, isGpsActive } = useGps();
+  const { accumulatedDistance, startShift: startShiftContext, stopShift: stopShiftContext } = useShift(); // Use ShiftContext
 
   const [elapsed, setElapsed] = useState(0);
   const [sessionElapsed, setSessionElapsed] = useState(0);
   const [loading, setLoading] = useState(false);
   const [showFinishDialog, setShowFinishDialog] = useState(false);
-
-  // GPS State - Simplified
-  const [accumulatedKm, setAccumulatedKm] = useState<number>(0);
-  const lastPositionRef = useRef<{ lat: number; lng: number } | null>(null);
 
   // Productive KM State
   const [productiveKm, setProductiveKm] = useState<number>(0);
@@ -39,34 +36,15 @@ export default function ShiftPage() {
 
   const [formData, setFormData] = useState({ grossAmount: 0, foodExpense: 0, otherExpense: 0 });
 
-  // Calculate distance from GPS context
-  useEffect(() => {
-    if (location && isGpsActive) {
-      const newPosition = { lat: location.latitude, lng: location.longitude };
-      if (lastPositionRef.current) {
-        const distanceMeters = haversine(lastPositionRef.current, newPosition);
-        setAccumulatedKm(prevKm => prevKm + (distanceMeters / 1000));
-      }
-      lastPositionRef.current = newPosition;
-    }
-  }, [location, isGpsActive]);
-
-  // Reset last position when GPS stops
-  useEffect(() => {
-    if (!isGpsActive) {
-      lastPositionRef.current = null;
-    }
-  }, [isGpsActive]);
-
   /**
    * Productive KM Calculation
    */
   useEffect(() => {
     if (currentSession.isActive && !currentSession.isPaused) {
-      const newProductiveKm = accumulatedKm - sessionStartKm - totalPausedKm;
+      const newProductiveKm = accumulatedDistance - sessionStartKm - totalPausedKm;
       setProductiveKm(Math.max(0, newProductiveKm));
     }
-  }, [accumulatedKm, currentSession.isActive, currentSession.isPaused, sessionStartKm, totalPausedKm]);
+  }, [accumulatedDistance, currentSession.isActive, currentSession.isPaused, sessionStartKm, totalPausedKm]);
 
   /**
    * SHIFT TIMER
@@ -114,7 +92,7 @@ export default function ShiftPage() {
       setCurrentShift({ id, startTime: new Date().toISOString(), isActive: true });
       
       if (Capacitor.getPlatform() !== 'web') {
-        await startGps(); // Use context function
+        startShiftContext(); // Use context function to start GPS and tracking
       }
       
       toast({ title: "Turno iniciado" });
@@ -133,10 +111,10 @@ export default function ShiftPage() {
     }
     setLoading(true);
     try {
-      const totalKm = Number(accumulatedKm.toFixed(2));
+      const totalKm = Number(accumulatedDistance.toFixed(2));
       
       if (Capacitor.getPlatform() !== 'web') {
-        await stopGps(); // Use context function
+        stopShiftContext(); // Use context function to stop GPS
       }
       
       await api.patch(`/shifts/${currentShift.id}/finish`, { totalKm });
@@ -144,7 +122,7 @@ export default function ShiftPage() {
       setCurrentShift({ id: null, startTime: null, isActive: false });
       setCurrentSession({ id: null, startTime: null, isActive: false, isPaused: false, pauseStartTime: null, totalPauseDuration: 0 });
       
-      setAccumulatedKm(0);
+      // Reset local productive KM states
       setProductiveKm(0);
       setSessionStartKm(0);
       setKmAtPauseStart(0);
@@ -167,7 +145,7 @@ export default function ShiftPage() {
 
       setProductiveKm(0);
       setTotalPausedKm(0);
-      setSessionStartKm(accumulatedKm);
+      setSessionStartKm(accumulatedDistance);
       setKmAtPauseStart(0);
 
       setCurrentSession({ id, startTime: new Date().toISOString(), isActive: true, isPaused: false, pauseStartTime: null, totalPauseDuration: 0 });
@@ -185,7 +163,7 @@ export default function ShiftPage() {
     setLoading(true);
     try {
       await api.patch(`/work-sessions/${currentSession.id}/pause`);
-      setKmAtPauseStart(accumulatedKm);
+      setKmAtPauseStart(accumulatedDistance);
       setCurrentSession({ ...currentSession, isPaused: true, pauseStartTime: Date.now() });
       toast({ title: "Sessão pausada" });
     } catch (error) {
@@ -204,7 +182,7 @@ export default function ShiftPage() {
 
       let pausedKm = 0;
       if (kmAtPauseStart > 0) {
-        pausedKm = accumulatedKm - kmAtPauseStart;
+        pausedKm = accumulatedDistance - kmAtPauseStart;
       }
       setTotalPausedKm(prev => prev + pausedKm);
       setKmAtPauseStart(0);
@@ -298,7 +276,7 @@ export default function ShiftPage() {
                 <div className="p-4 rounded-lg bg-muted/50">
                     <Car className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
                     <p className="text-xs text-muted-foreground">Distância do Turno</p>
-                    <p className="text-2xl font-bold">{accumulatedKm.toFixed(2)} <span className="text-base font-normal text-muted-foreground">km</span></p>
+                    <p className="text-2xl font-bold">{accumulatedDistance.toFixed(2)} <span className="text-base font-normal text-muted-foreground">km</span></p>
                 </div>
                 <div className={`p-4 rounded-lg ${currentSession.isActive ? (currentSession.isPaused ? 'bg-amber-500/10' : 'bg-green-500/10') : 'bg-muted/50'}`}>
                     <Timer className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
@@ -307,7 +285,7 @@ export default function ShiftPage() {
                 </div>
               </div>
               <p className="text-xs text-muted-foreground text-center mt-4">
-                  Coords: {location?.latitude ? location.latitude.toFixed(4) : 'N/A'}, {location?.longitude ? location.longitude.toFixed(4) : 'N/A'}
+                  Coords: {location?.coords?.latitude ? location.coords.latitude.toFixed(4) : 'N/A'}, {location?.coords?.longitude ? location.coords.longitude.toFixed(4) : 'N/A'}
               </p>
             </CardContent>
           </Card>
