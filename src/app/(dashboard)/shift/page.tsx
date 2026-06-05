@@ -35,6 +35,16 @@ export default function ShiftPage() {
   const [totalPausedKm, setTotalPausedKm] = useState<number>(0);
 
   const [formData, setFormData] = useState({ grossAmount: 0, foodExpense: 0, otherExpense: 0 });
+  const [locationIndicator, setLocationIndicator] = useState(false);
+
+  useEffect(() => {
+    if (isGpsActive) {
+      setLocationIndicator(true);
+      const timer = setTimeout(() => setLocationIndicator(false), 500); // Indicator stays visible for 500ms
+      return () => clearTimeout(timer);
+    }
+  }, [location, isGpsActive]);
+
 
   /**
    * Productive KM Calculation
@@ -267,7 +277,13 @@ export default function ShiftPage() {
                 <MapPin className="w-4 h-4 mr-2 text-muted-foreground" />
                 Painel de Distância
               </CardTitle>
-              <Badge variant={isGpsActive ? 'default' : 'outline'}>
+              <Badge variant={isGpsActive ? 'default' : 'outline'} className="flex items-center">
+                {isGpsActive && (
+                  <div className="relative flex items-center justify-center w-3 h-3 mr-2">
+                    <div className={`absolute w-full h-full rounded-full ${locationIndicator ? 'bg-green-500 animate-ping' : ''}`}></div>
+                    <div className={`w-2 h-2 rounded-full ${locationIndicator ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                  </div>
+                )}
                 {isGpsActive ? 'GPS Ativo' : 'GPS Inativo'}
               </Badge>
             </CardHeader>
