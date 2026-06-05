@@ -1,13 +1,7 @@
-"use client";
+'use client';
 
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
-  useEffect,
-} from "react";
-import { useGps } from "./GpsContext";
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { useGps } from './GpsContext';
 
 interface ShiftContextType {
   accumulatedDistance: number;
@@ -22,7 +16,7 @@ const ShiftContext = createContext<ShiftContextType | undefined>(undefined);
 export const useShift = () => {
   const context = useContext(ShiftContext);
   if (!context) {
-    throw new Error("useShift must be used within a ShiftProvider");
+    throw new Error('useShift must be used within a ShiftProvider');
   }
   return context;
 };
@@ -61,16 +55,16 @@ export const ShiftProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    if (isGpsActive && location && location.coords) {
-      if (lastLocation && lastLocation.coords) {
+    if (isGpsActive && location) {
+      if (lastLocation) {
         const distance = haversineDistance(
           {
-            latitude: lastLocation.coords.latitude,
-            longitude: lastLocation.coords.longitude,
+            latitude: lastLocation.latitude,
+            longitude: lastLocation.longitude,
           },
           {
-            latitude: location.coords.latitude,
-            longitude: location.coords.longitude,
+            latitude: location.latitude,
+            longitude: location.longitude,
           }
         );
         setAccumulatedDistance((prev) => prev + distance);
@@ -101,7 +95,5 @@ export const ShiftProvider = ({ children }: { children: React.ReactNode }) => {
     shiftHistory,
   };
 
-  return (
-    <ShiftContext.Provider value={value}>{children}</ShiftContext.Provider>
-  );
+  return <ShiftContext.Provider value={value}>{children}</ShiftContext.Provider>;
 };
