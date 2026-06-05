@@ -61,8 +61,8 @@ export const ShiftProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    if (isGpsActive && location) {
-      if (lastLocation) {
+    if (isGpsActive && location && location.coords) {
+      if (lastLocation && lastLocation.coords) {
         const distance = haversineDistance(
           {
             latitude: lastLocation.coords.latitude,

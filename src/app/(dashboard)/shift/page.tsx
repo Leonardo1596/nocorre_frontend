@@ -285,7 +285,7 @@ export default function ShiftPage() {
                 </div>
               </div>
               <p className="text-xs text-muted-foreground text-center mt-4">
-                  Coords: {location?.coords?.latitude ? location.coords.latitude.toFixed(4) : 'N/A'}, {location?.coords?.longitude ? location.coords.longitude.toFixed(4) : 'N/A'}
+                  Coords: {location?.latitude ? location.latitude.toFixed(4) : 'N/A'}, {location?.longitude ? location.longitude.toFixed(4) : 'N/A'}
               </p>
             </CardContent>
           </Card>
