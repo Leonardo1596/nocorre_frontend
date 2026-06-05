@@ -117,12 +117,10 @@ public class NativeGpsService extends Service {
 
         LocationRequest locationRequest =
             new LocationRequest.Builder(
-                Priority.PRIORITY_HIGH_ACCURACY,
+                Priority.PRIORITY_BALANCED_POWER_ACCURACY,
                 1000
             )
                 .setMinUpdateIntervalMillis(1000)
-                .setWaitForAccurateLocation(true)
-                .setMaxUpdateDelayMillis(10000)
                 .build();
 
         try {
