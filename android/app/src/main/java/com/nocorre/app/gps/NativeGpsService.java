@@ -1,3 +1,4 @@
+
 package com.nocorre.app.gps;
 
 import android.app.Notification;
@@ -63,8 +64,8 @@ public class NativeGpsService extends Service {
                 this,
                 CHANNEL_ID
             )
-                .setContentTitle("GPS Service")
-                .setContentText("Tracking your location.")
+                .setContentTitle("NoCorre em execução")
+                .setContentText("Monitorando sua localização para calcular seus ganhos.")
                 .setSmallIcon(
                     R.drawable.ic_launcher_background
                 )
@@ -117,7 +118,7 @@ public class NativeGpsService extends Service {
 
         LocationRequest locationRequest =
             new LocationRequest.Builder(
-                Priority.PRIORITY_BALANCED_POWER_ACCURACY,
+                Priority.PRIORITY_HIGH_ACCURACY,
                 1000
             )
                 .setMinUpdateIntervalMillis(1000)
@@ -185,7 +186,7 @@ public class NativeGpsService extends Service {
                 new NotificationChannel(
                     CHANNEL_ID,
                     "GPS Service Channel",
-                    NotificationManager.IMPORTANCE_DEFAULT
+                    NotificationManager.IMPORTANCE_HIGH
                 );
 
             NotificationManager manager =
