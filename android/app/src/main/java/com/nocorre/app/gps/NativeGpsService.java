@@ -1,4 +1,3 @@
-
 package com.nocorre.app.gps;
 
 import android.app.Notification;
@@ -26,6 +25,7 @@ import com.nocorre.app.R;
 public class NativeGpsService extends Service {
 
     private static final String TAG = "NativeGpsService";
+    private static final float MAX_ACCURACY = 25.0f; // Maximum accuracy in meters
 
     private FusedLocationProviderClient fusedLocationClient;
     private LocationCallback locationCallback;
@@ -95,6 +95,15 @@ public class NativeGpsService extends Service {
                         locationResult.getLocations()) {
 
                     if (location != null) {
+
+                        // Filter out inaccurate locations
+                        if (location.getAccuracy() > MAX_ACCURACY) {
+                            Log.d(
+                                TAG,
+                                "GPS UPDATE DISCARDED | Accuracy: " + location.getAccuracy() + "m"
+                            );
+                            continue; // Skip this location update
+                        }
 
                         Log.d(
                             TAG,
