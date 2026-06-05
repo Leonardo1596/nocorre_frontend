@@ -301,11 +301,6 @@ export default function ShiftPage() {
               <p className="text-xs text-muted-foreground text-center mt-4">
                   Coords: {location?.latitude ? location.latitude.toFixed(4) : 'N/A'}, {location?.longitude ? location.longitude.toFixed(4) : 'N/A'}
               </p>
-              {isGpsActive && (
-                <p className="text-xs text-muted-foreground text-center mt-2">
-                  Atualização do GPS a cada {locationUpdateInterval.toFixed(1)} segundos
-                </p>
-              )}
             </CardContent>
           </Card>
 
