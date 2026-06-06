@@ -215,10 +215,10 @@ export default function Dashboard() {
   const productiveHours = Number(summary.productiveHours || 0);
   const totalHours = Number(summary.totalHours || 0);
 
-  const fuelExpenses = Number(summary.fuel || 0);
-  const maintenanceExpenses = Number(summary.maintenance || 0);
-  const foodExpenses = Number(summary.food || 0);
-  const otherExpenses = Number(summary.other || 0);
+  const fuelExpenses = Number(summary.fuelExpense || 0);
+  const maintenanceExpenses = Number(summary.maintenanceExpense || 0);
+  const foodExpenses = Number(summary.foodExpense || 0);
+  const otherExpenses = Number(summary.otherExpense || 0);
 
   const netPerHour = productiveHours > 0 ? netProfit / productiveHours : 0;
   const totalKmSafe = totalKm > 0 ? totalKm : 1; 
