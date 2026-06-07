@@ -1,4 +1,4 @@
-'''"use client";
+"use client";
 
 import React, {
   createContext,
@@ -155,4 +155,3 @@ export const ShiftProvider = ({ children }: { children: React.ReactNode }) => {
 
   return <ShiftContext.Provider value={value}>{children}</ShiftContext.Provider>;
 };
-''
