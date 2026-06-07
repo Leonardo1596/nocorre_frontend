@@ -75,7 +75,7 @@ public class GpsPlugin extends Plugin {
         call.resolve();
     }
 
-    @PluginMethod(returnType = PluginMethod.Callback)
+    @PluginMethod
     public void watchPosition(final PluginCall call) {
         call.setKeepAlive(true);
 
