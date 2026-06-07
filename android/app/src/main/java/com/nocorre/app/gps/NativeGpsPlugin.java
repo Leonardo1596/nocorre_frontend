@@ -3,6 +3,7 @@ package com.nocorre.app.gps;
 import android.Manifest;
 import android.content.Intent;
 import android.location.Location;
+import android.os.Build;
 
 import androidx.lifecycle.Observer;
 
@@ -24,6 +25,10 @@ import com.getcapacitor.annotation.PermissionCallback;
                 Manifest.permission.ACCESS_COARSE_LOCATION,
                 Manifest.permission.ACCESS_FINE_LOCATION
             }
+        ),
+        @Permission(
+            alias = "notifications",
+            strings = { Manifest.permission.POST_NOTIFICATIONS }
         )
     }
 )
@@ -67,6 +72,11 @@ public class NativeGpsPlugin extends Plugin {
             return;
         }
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && getPermissionState("notifications") != PermissionState.GRANTED) {
+            requestPermissionForAlias("notifications", call, "locationPermissionCallback");
+            return;
+        }
+
         startGpsService(call);
     }
 
@@ -81,7 +91,11 @@ public class NativeGpsPlugin extends Plugin {
 
     private void startGpsService(PluginCall call) {
         Intent serviceIntent = new Intent(getContext(), NativeGpsService.class);
-        getContext().startService(serviceIntent);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            getContext().startForegroundService(serviceIntent);
+        } else {
+            getContext().startService(serviceIntent);
+        }
         call.resolve();
     }
 
