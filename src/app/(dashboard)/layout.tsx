@@ -6,6 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { LayoutDashboard, Timer, History, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { App } from '@capacitor/app';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
@@ -17,6 +18,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       router.push('/login');
     }
   }, [isAuthenticated, loading, router]);
+
+  useEffect(() => {
+    const listener = App.addListener('backButton', () => {
+      if (pathname !== '/') {
+        router.back();
+      } else {
+        App.exitApp();
+      }
+    });
+
+    return () => {
+      listener.remove();
+    };
+  }, [pathname, router]);
 
   if (loading || !isAuthenticated) {
     return (
