@@ -7,7 +7,7 @@ import React, {
   useState,
   useCallback,
 } from "react";
-import { NativeGps } from "@/lib/gps"; // Assumindo que seu wrapper está aqui
+import { NativeGps } from "@/lib/gps";
 
 interface GpsContextType {
   location: any;
@@ -30,6 +30,19 @@ export const GpsProvider = ({ children }: { children: React.ReactNode }) => {
   const [location, setLocation] = useState(null);
   const [isGpsActive, setIsGpsActive] = useState(false);
 
+  useEffect(() => {
+    const checkGpsStatus = async () => {
+      try {
+        const { isRunning } = await NativeGps.isGpsRunning();
+        setIsGpsActive(isRunning);
+      } catch (e) {
+        console.error("Error checking GPS status", e);
+      }
+    };
+
+    checkGpsStatus();
+  }, []);
+
   const handleLocationUpdate = useCallback((locationData: any) => {
     setLocation(locationData);
   }, []);
@@ -37,7 +50,7 @@ export const GpsProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const listener = NativeGps.addListener("locationUpdate", handleLocationUpdate);
     return () => {
-      listener.remove();
+      listener.then(l => l.remove());
     };
   }, [handleLocationUpdate]);
 
@@ -48,6 +61,9 @@ export const GpsProvider = ({ children }: { children: React.ReactNode }) => {
       console.log("GPS service started via context");
     } catch (e) {
       console.error("Error starting GPS service via context", e);
+      // If permission is denied, the native side will reject.
+      // We should reflect that in the UI.
+      setIsGpsActive(false);
     }
   };
 

@@ -26,6 +26,7 @@ public class NativeGpsService extends Service {
 
     private static final String TAG = "NativeGpsService";
     private static final float MAX_ACCURACY = 25.0f; // Maximum accuracy in meters
+    public static boolean isRunning = false;
 
     private FusedLocationProviderClient fusedLocationClient;
     private LocationCallback locationCallback;
@@ -37,86 +38,54 @@ public class NativeGpsService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-
         Log.d(TAG, "onCreate");
 
-        fusedLocationClient =
-            LocationServices.getFusedLocationProviderClient(this);
-
-        locationRepository =
-            LocationRepository.getInstance();
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+        locationRepository = LocationRepository.getInstance();
 
         createNotificationChannel();
         createLocationCallback();
     }
 
     @Override
-    public int onStartCommand(
-        Intent intent,
-        int flags,
-        int startId
-    ) {
-
+    public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d(TAG, "onStartCommand");
+        isRunning = true;
 
         Notification notification =
-            new NotificationCompat.Builder(
-                this,
-                CHANNEL_ID
-            )
+            new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("NoCorre em execução")
                 .setContentText("Monitorando sua localização para calcular seus ganhos.")
-                .setSmallIcon(
-                    R.drawable.ic_launcher_background
-                )
+                .setSmallIcon(R.drawable.ic_launcher_background)
                 .build();
 
         startForeground(1, notification);
-
         startLocationUpdates();
 
         return START_STICKY;
     }
 
     private void createLocationCallback() {
-
         locationCallback = new LocationCallback() {
-
             @Override
-            public void onLocationResult(
-                LocationResult locationResult
-            ) {
+            public void onLocationResult(LocationResult locationResult) {
+                if (locationResult == null) return;
 
-                if (locationResult == null) {
-                    return;
-                }
-
-                for (Location location :
-                        locationResult.getLocations()) {
-
+                for (Location location : locationResult.getLocations()) {
                     if (location != null) {
-
-                        // Filter out inaccurate locations
                         if (location.getAccuracy() > MAX_ACCURACY) {
-                            Log.d(
-                                TAG,
-                                "GPS UPDATE DISCARDED | Accuracy: " + location.getAccuracy() + "m"
-                            );
-                            continue; // Skip this location update
+                            Log.d(TAG, "GPS UPDATE DISCARDED | Accuracy: " + location.getAccuracy() + "m");
+                            continue;
                         }
 
-                        Log.d(
-                            TAG,
-                            "GPS UPDATE | " +
+                        Log.d(TAG, "GPS UPDATE | " +
                             "Lat=" + location.getLatitude() +
                             " | Lng=" + location.getLongitude() +
                             " | Acc=" + location.getAccuracy() + "m" +
                             " | Speed=" + location.getSpeed() + "m/s" +
-                            " | Time=" + System.currentTimeMillis()
-                        );
+                            " | Time=" + System.currentTimeMillis());
 
-                        locationRepository
-                            .setLocationData(location);
+                        locationRepository.setLocationData(location);
                     }
                 }
             }
@@ -124,89 +93,51 @@ public class NativeGpsService extends Service {
     }
 
     private void startLocationUpdates() {
-
-        LocationRequest locationRequest =
-            new LocationRequest.Builder(
+        LocationRequest locationRequest = new LocationRequest.Builder(
                 Priority.PRIORITY_HIGH_ACCURACY,
                 1000
             )
-                .setMinUpdateIntervalMillis(1000)
-                .build();
+            .setMinUpdateIntervalMillis(1000)
+            .build();
 
         try {
-
-            fusedLocationClient
-                .requestLocationUpdates(
-                    locationRequest,
-                    locationCallback,
-                    Looper.getMainLooper()
-                );
-
-            Log.d(
-                TAG,
-                "Location updates started."
+            fusedLocationClient.requestLocationUpdates(
+                locationRequest,
+                locationCallback,
+                Looper.getMainLooper()
             );
-
+            Log.d(TAG, "Location updates started.");
         } catch (SecurityException e) {
-
-            Log.e(
-                TAG,
-                "Lost location permission. Could not request updates.",
-                e
-            );
+            Log.e(TAG, "Lost location permission. Could not request updates.", e);
         }
     }
 
     @Override
     public void onDestroy() {
-
         super.onDestroy();
-
         Log.d(TAG, "onDestroy");
-
-        if (
-            fusedLocationClient != null &&
-            locationCallback != null
-        ) {
-
-            fusedLocationClient
-                .removeLocationUpdates(
-                    locationCallback
-                );
+        isRunning = false;
+        if (fusedLocationClient != null && locationCallback != null) {
+            fusedLocationClient.removeLocationUpdates(locationCallback);
         }
     }
 
     @Nullable
     @Override
-    public IBinder onBind(
-        Intent intent
-    ) {
+    public IBinder onBind(Intent intent) {
         return null;
     }
 
     private void createNotificationChannel() {
-
-        if (
-            Build.VERSION.SDK_INT >=
-            Build.VERSION_CODES.O
-        ) {
-
-            NotificationChannel serviceChannel =
-                new NotificationChannel(
-                    CHANNEL_ID,
-                    "GPS Service Channel",
-                    NotificationManager.IMPORTANCE_HIGH
-                );
-
-            NotificationManager manager =
-                getSystemService(
-                    NotificationManager.class
-                );
-
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel serviceChannel = new NotificationChannel(
+                CHANNEL_ID,
+                "GPS Service Channel",
+                NotificationManager.IMPORTANCE_HIGH
+            );
+            NotificationManager manager = getSystemService(NotificationManager.class);
             if (manager != null) {
-                manager.createNotificationChannel(
-                    serviceChannel
-                );
+                manager.createNotificationChannel(serviceChannel);
             }
         }
     }

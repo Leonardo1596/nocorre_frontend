@@ -45,14 +45,11 @@ public class NativeGpsPlugin extends Plugin {
 
         locationObserver = location -> {
             if (location != null) {
-
                 JSObject ret = new JSObject();
-
                 ret.put("latitude", location.getLatitude());
                 ret.put("longitude", location.getLongitude());
-                ret.put("speed", location.getSpeed()); // Speed in meters/second
-                ret.put("accuracy", location.getAccuracy()); // Horizontal accuracy in meters
-
+                ret.put("speed", location.getSpeed());
+                ret.put("accuracy", location.getAccuracy());
                 notifyListeners("locationUpdate", ret, true);
             }
         };
@@ -66,14 +63,13 @@ public class NativeGpsPlugin extends Plugin {
 
     @PluginMethod
     public void startGps(PluginCall call) {
-
         if (getPermissionState("location") != PermissionState.GRANTED) {
-            requestPermissionForAlias("location", call, "locationPermissionCallback");
+            requestPermissionForAlias("location", call, "permissionCallback");
             return;
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && getPermissionState("notifications") != PermissionState.GRANTED) {
-            requestPermissionForAlias("notifications", call, "locationPermissionCallback");
+            requestPermissionForAlias("notifications", call, "permissionCallback");
             return;
         }
 
@@ -81,12 +77,16 @@ public class NativeGpsPlugin extends Plugin {
     }
 
     @PermissionCallback
-    private void locationPermissionCallback(PluginCall call) {
-        if (getPermissionState("location") == PermissionState.GRANTED) {
-            startGpsService(call);
-        } else {
+    private void permissionCallback(PluginCall call) {
+        if (getPermissionState("location") != PermissionState.GRANTED) {
             call.reject("Location permission was denied.");
+            return;
         }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && getPermissionState("notifications") != PermissionState.GRANTED) {
+            call.reject("Notification permission is required for background GPS.");
+            return;
+        }
+        startGpsService(call);
     }
 
     private void startGpsService(PluginCall call) {
@@ -104,6 +104,13 @@ public class NativeGpsPlugin extends Plugin {
         Intent serviceIntent = new Intent(getContext(), NativeGpsService.class);
         getContext().stopService(serviceIntent);
         call.resolve();
+    }
+
+    @PluginMethod
+    public void isGpsRunning(PluginCall call) {
+        JSObject ret = new JSObject();
+        ret.put("isRunning", NativeGpsService.isRunning);
+        call.resolve(ret);
     }
 
     @Override
