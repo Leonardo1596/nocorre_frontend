@@ -84,6 +84,8 @@ export default function HistoryPage() {
       const startDateStr = startDate.toISOString();
       const endDateStr = endDate.toISOString();
 
+      console.log(startDateStr, endDateStr);
+
       const response = await api.get(
         `/dashboard?start=${encodeURIComponent(
           startDateStr

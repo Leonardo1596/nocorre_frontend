@@ -138,13 +138,13 @@ export default function Dashboard() {
   const fetchData = useCallback(async (start: Date, end: Date) => {
     try {
       setLoading(true);
-      const startDateStr = format(start, 'yyyy-MM-dd');
-      const endDateStr = format(end, 'yyyy-MM-dd');
+      const startDateStr = start.toISOString();
+      const endDateStr = end.toISOString();
 
       const prevWeekStart = subDays(start, 7);
       const prevWeekEnd = subDays(end, 7);
-      const prevStartDateStr = format(prevWeekStart, 'yyyy-MM-dd');
-      const prevEndDateStr = format(prevWeekEnd, 'yyyy-MM-dd');
+      const prevStartDateStr = prevWeekStart.toISOString();
+      const prevEndDateStr = prevWeekEnd.toISOString();
 
       const [dashRes, prevWeekRes, settingsRes] = await Promise.all([
         api.get(`/dashboard?start=${startDateStr}&end=${endDateStr}`),
@@ -152,7 +152,7 @@ export default function Dashboard() {
         api.get('/maintenance-settings')
       ]);
 
-      console.log(startDateStr, endDateStr);
+      console.log(prevStartDateStr, prevEndDateStr);
       setData(dashRes.data);
       setPreviousWeekData(prevWeekRes.data);
 
@@ -370,7 +370,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 gap-4">
           <HeroCard 
             title="Lucro Líquido" 
-            value={formatBRL(netProfit)} 
+            value={formatBRL(netProfit)}
             icon={TrendingUp}
             subtext={profitComparison 
               ? `${profitComparison.percentage}% a ${profitComparison.isIncrease ? 'mais' : 'menos'} que na semana anterior`
