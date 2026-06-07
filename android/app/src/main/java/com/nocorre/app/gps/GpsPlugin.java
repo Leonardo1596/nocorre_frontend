@@ -3,7 +3,6 @@ package com.nocorre.app.gps;
 import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.os.Build;
 import android.util.Log;
 import androidx.core.content.ContextCompat;
@@ -52,19 +51,18 @@ public class GpsPlugin extends Plugin {
 
     @PluginMethod
     public void start(PluginCall call) {
-        if (!hasRequiredPermissions("location")) {
-            call.reject("Location permission is required.");
-            return;
-        }
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (!hasRequiredPermissions("notifications")) {
+            if (!hasRequiredPermissions()) {
                 requestPermissionForAlias("notifications", call, "onNotificationPermissionResult");
             } else {
                 startService(call);
             }
         } else {
-            startService(call);
+            if (!hasRequiredPermissions()) {
+                 requestPermissionForAlias("location", call, "onNotificationPermissionResult");
+            } else {
+                startService(call);
+            }
         }
     }
 
