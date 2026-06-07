@@ -152,6 +152,7 @@ export default function Dashboard() {
         api.get('/maintenance-settings')
       ]);
 
+      console.log(startDateStr, endDateStr);
       setData(dashRes.data);
       setPreviousWeekData(prevWeekRes.data);
 
