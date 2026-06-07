@@ -83,7 +83,7 @@ public class NativeGpsService extends Service {
                         locationRepository.setLocationData(location);
                         
                         // Only persist for offline processing if the app is NOT in the foreground
-                        if (!locationRepository.hasListeners()) {
+                        if (!GpsPlugin.isAppInForeground) {
                             Log.d(TAG, "GPS UPDATE (OFFLINE) | " +
                                 "Lat=" + location.getLatitude() +
                                 " | Lng=" + location.getLongitude());
