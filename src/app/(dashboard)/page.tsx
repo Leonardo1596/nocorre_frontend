@@ -191,6 +191,7 @@ export default function Dashboard() {
     }
   }, [data, previousWeekData]);
 
+
   const handleFuelUpdate = async () => {
     setUpdatingFuel(true);
     try {
@@ -238,11 +239,24 @@ export default function Dashboard() {
   const summary = data?.summary || {};
   const days = data?.days || {};
 
+  const grossAmount = Number(summary.grossAmount || 0);
   const netProfit = Number(summary.netProfit || 0);
+  const totalExpenses = Number(summary.totalExpenses || 0);
   const totalKm = Number(summary.totalKm || 0);
   const productiveHours = Number(summary.productiveHours || 0);
+  const totalHours = Number(summary.totalHours || 0);
+
+  const fuelExpenses = Number(summary.fuelExpense || 0);
+  const maintenanceExpenses = Number(summary.maintenanceExpense || 0);
+  const foodExpenses = Number(summary.foodExpense || 0);
+  const otherExpenses = Number(summary.otherExpense || 0);
 
   const netPerHour = productiveHours > 0 ? netProfit / productiveHours : 0;
+  const totalKmSafe = totalKm > 0 ? totalKm : 1; 
+  const netPerKm = netProfit / totalKmSafe;
+  const grossPerKm = grossAmount / totalKmSafe;
+  const grossPerHour = productiveHours > 0 ? grossAmount / productiveHours : 0;
+  const costPerKm = totalExpenses / totalKmSafe;
 
   const chartData = Object.entries(days).map(([date, dayData]: [string, any]) => ({
     day: dayData.dayName ? dayData.dayName.substring(0, 3) : date.substring(8, 10),
@@ -353,16 +367,16 @@ export default function Dashboard() {
       <section className="space-y-4">
         <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] px-1">Indicadores de Sucesso</h3>
         <div className="grid grid-cols-1 gap-4">
-        <HeroCard 
-          title="Lucro Líquido" 
-          value={formatBRL(netProfit)} 
-          icon={TrendingUp}
-          subtext={profitComparison 
-            ? `${profitComparison.percentage}% a ${profitComparison.isIncrease ? 'mais' : 'menos'} que na semana anterior`
-            : "Dinheiro real no seu bolso"}
-          trendIcon={profitComparison ? (profitComparison.isIncrease ? ArrowUpRight : ArrowDownRight) : null}
-          trendColor={profitComparison ? (profitComparison.isIncrease ? 'text-primary' : 'text-destructive') : 'text-muted-foreground'}
-        />
+          <HeroCard 
+            title="Lucro Líquido" 
+            value={formatBRL(netProfit)} 
+            icon={TrendingUp}
+            subtext={profitComparison 
+              ? `${profitComparison.percentage}% a ${profitComparison.isIncrease ? 'mais' : 'menos'} que na semana anterior`
+              : "Dinheiro real no seu bolso"}
+            trendIcon={profitComparison ? (profitComparison.isIncrease ? ArrowUpRight : ArrowDownRight) : null}
+            trendColor={profitComparison ? (profitComparison.isIncrease ? 'text-primary' : 'text-destructive') : 'text-muted-foreground'}
+          />
           <div className="grid grid-cols-2 gap-4">
             <Card className="border-border/50 bg-card/40">
               <CardContent className="p-4 space-y-2 text-center">
@@ -380,6 +394,102 @@ export default function Dashboard() {
         </div>
       </section>
 
+      {/* 2. OPERAÇÃO */}
+      <section className="space-y-4">
+        <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] px-1">Gestão da Operação</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <OperationCard 
+            title="Faturamento Bruto" 
+            value={formatBRL(grossAmount)} 
+            subtext="Total recebido" 
+            icon={DollarSign} 
+            colorClass="text-primary"
+          />
+          <div className="cursor-pointer" onClick={() => setShowExpenseDetails(!showExpenseDetails)}>
+            <OperationCard 
+              title="Despesas Totais" 
+              value={formatBRL(totalExpenses)} 
+              subtext={showExpenseDetails ? "Toque para ocultar" : "Toque para ver detalhes"} 
+              icon={Fuel} 
+              colorClass="text-orange-400"
+            />
+          </div>
+          <OperationCard 
+            title="Horas Trabalhadas" 
+            value={formatHours(productiveHours)} 
+            subtext="Tempo produtivo" 
+            icon={Clock} 
+            colorClass="text-blue-400"
+          />
+          <OperationCard 
+            title="Horas Ativas" 
+            value={formatHours(totalHours)} 
+            subtext="Tempo total em turno" 
+            icon={Clock} 
+            colorClass="text-accent"
+          />
+        </div>
+        {showExpenseDetails && (
+          <Card className="border-border/50 bg-card/40 animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <CardContent className="p-4 divide-y divide-white/5">
+              <AnalyticsRow label="Combustível" value={formatBRL(fuelExpenses)} />
+              <AnalyticsRow label="Manutenção" value={formatBRL(maintenanceExpenses)} />
+              <AnalyticsRow label="Alimentação" value={formatBRL(foodExpenses)} />
+              <AnalyticsRow label="Outros" value={formatBRL(otherExpenses)} />
+            </CardContent>
+          </Card>
+        )}
+      </section>
+
+      {/* 3. ANALYTICS */}
+      <section className="space-y-4">
+        <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] px-1">Análise de Performance</h3>
+        
+        <Card className="border-border/50 bg-card/40 overflow-hidden">
+          <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Faturamento Semanal</CardTitle>
+            <BarChart3 className="w-4 h-4 text-primary" />
+          </CardHeader>
+          <CardContent className="p-4 pt-0 h-[180px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1E293B" />
+                <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fill: '#64748B', fontSize: 10}} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#0D1011', border: '1px solid #1E293B', borderRadius: '12px' }}
+                  cursor={{fill: 'rgba(16, 185, 129, 0.05)'}}
+                  formatter={(value: any) => [formatBRL(value), 'Faturamento']}
+                  itemStyle={{ color: '#E2E8F0' }}
+                />
+                <Bar dataKey="earnings" radius={[4, 4, 0, 0]}>
+                  {chartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.earnings > 0 ? '#10B981' : '#1E293B'} fillOpacity={0.8} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/50 bg-card/40">
+          <CardContent className="p-4 divide-y divide-white/5">
+            <AnalyticsRow label="Lucro por KM" value={formatBRL(netPerKm)} sublabel="Saldo líquido" />
+            <AnalyticsRow label="Faturamento por KM" value={formatBRL(grossPerKm)} sublabel="Saldo bruto" />
+            <AnalyticsRow label="Lucro por Hora" value={formatBRL(netPerHour)} sublabel="Saldo líquido" />
+            <AnalyticsRow label="Faturamento por Hora" value={formatBRL(grossPerHour)} sublabel="Saldo bruto" />
+            <AnalyticsRow label="Custo por KM" value={formatBRL(costPerKm)} sublabel="Eficiência de custo" />
+          </CardContent>
+        </Card>
+      </section>
+
+      <div className="flex justify-center pb-8 pt-4">
+        <Button variant="link" className="text-primary text-xs font-bold uppercase tracking-widest gap-2" asChild>
+          <Link href="/history">
+            Acessar Histórico Completo
+            <ChevronRight className="w-3 h-3" />
+          </Link>
+        </Button>
+      </div>
     </div>
   );
 }
