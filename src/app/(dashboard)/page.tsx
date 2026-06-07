@@ -454,17 +454,21 @@ export default function Dashboard() {
           <CardContent className="p-4 pt-0 h-[180px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1E293B" />
-                <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fill: '#64748B', fontSize: 10}} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fill: 'hsl(var(--muted-foreground))', fontSize: 10}} />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#0D1011', border: '1px solid #1E293B', borderRadius: '12px' }}
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--popover))', 
+                    border: '1px solid hsl(var(--border))', 
+                    borderRadius: '12px' 
+                  }}
                   cursor={{fill: 'rgba(16, 185, 129, 0.05)'}}
                   formatter={(value: any) => [formatBRL(value), 'Faturamento']}
-                  itemStyle={{ color: '#E2E8F0' }}
+                  itemStyle={{ color: 'hsl(var(--popover-foreground))' }}
                 />
                 <Bar dataKey="earnings" radius={[4, 4, 0, 0]}>
                   {chartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.earnings > 0 ? '#10B981' : '#1E293B'} fillOpacity={0.8} />
+                    <Cell key={`cell-${index}`} fill={entry.earnings > 0 ? '#10B981' : 'hsl(var(--muted))'} fillOpacity={0.8} />
                   ))}
                 </Bar>
               </BarChart>

@@ -42,6 +42,7 @@ export const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputPro
           {...props}
           ref={ref}
           type="text"
+          inputMode="numeric"
           value={displayValue}
           onChange={handleChange}
           className={cn("font-mono", className)}
