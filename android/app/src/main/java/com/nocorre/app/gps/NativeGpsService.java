@@ -79,17 +79,20 @@ public class NativeGpsService extends Service {
                             continue;
                         }
 
-                        Log.d(TAG, "GPS UPDATE | " +
-                            "Lat=" + location.getLatitude() +
-                            " | Lng=" + location.getLongitude() +
-                            " | Acc=" + location.getAccuracy() + "m" +
-                            " | Speed=" + location.getSpeed() + "m/s" +
-                            " | Time=" + System.currentTimeMillis());
-
-                        // Notify live listeners (the app, if open)
+                        // Always notify live listeners (the app, if open)
                         locationRepository.setLocationData(location);
-                        // Persist for offline processing
-                        saveLocationToFile(location);
+                        
+                        // Only persist for offline processing if the app is NOT in the foreground
+                        if (!locationRepository.hasListeners()) {
+                            Log.d(TAG, "GPS UPDATE (OFFLINE) | " +
+                                "Lat=" + location.getLatitude() +
+                                " | Lng=" + location.getLongitude());
+                            saveLocationToFile(location);
+                        } else {
+                            Log.d(TAG, "GPS UPDATE (ONLINE) | " +
+                                "Lat=" + location.getLatitude() +
+                                " | Lng=" + location.getLongitude());
+                        }
                     }
                 }
             }
