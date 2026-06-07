@@ -23,8 +23,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const listener = App.addListener('backButton', () => {
       if (pathname !== '/') {
         router.back();
-      } else {
-        App.exitApp();
       }
     });
 
