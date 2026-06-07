@@ -244,7 +244,7 @@ export default function HistoryPage() {
               <Card className="border-border/50 bg-card/40">
                 <CardContent className="p-3">
                   <p className="text-[9px] uppercase font-bold text-muted-foreground">
-                    Km total
+                    Distância percorrida
                   </p>
                   <p className="text-lg font-bold">
                     {dashboard.summary.totalKm.toFixed(1)} km

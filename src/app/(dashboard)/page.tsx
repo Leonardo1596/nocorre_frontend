@@ -366,7 +366,7 @@ export default function Dashboard() {
 
       {/* 1. HERO METRICS */}
       <section className="space-y-4">
-        <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] px-1">Indicadores de Sucesso</h3>
+        <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] px-1">Resumo da Semana</h3>
         <div className="grid grid-cols-1 gap-4">
           <HeroCard 
             title="Lucro Líquido" 
@@ -387,7 +387,7 @@ export default function Dashboard() {
             </Card>
             <Card className="border-border/50 bg-card/40">
               <CardContent className="p-4 space-y-2 text-center">
-                <p className="text-[10px] font-bold text-muted-foreground uppercase">KM Rodados</p>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase">Distância percorrida</p>
                 <p className="text-lg font-headline font-bold text-blue-400">{totalKm.toFixed(2)} km</p>
               </CardContent>
             </Card>
