@@ -10,10 +10,8 @@ import android.os.Build;
 import android.os.IBinder;
 import android.os.Looper;
 import android.util.Log;
-
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
-
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
@@ -21,11 +19,14 @@ import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.Priority;
 import com.nocorre.app.R;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
 public class NativeGpsService extends Service {
 
     private static final String TAG = "NativeGpsService";
     private static final float MAX_ACCURACY = 25.0f; // Maximum accuracy in meters
+    private static final String PENDING_LOCATIONS_FILE = "gps_pending_locations.log";
     public static boolean isRunning = false;
 
     private FusedLocationProviderClient fusedLocationClient;
@@ -85,11 +86,29 @@ public class NativeGpsService extends Service {
                             " | Speed=" + location.getSpeed() + "m/s" +
                             " | Time=" + System.currentTimeMillis());
 
+                        // Notify live listeners (the app, if open)
                         locationRepository.setLocationData(location);
+                        // Persist for offline processing
+                        saveLocationToFile(location);
                     }
                 }
             }
         };
+    }
+
+    private void saveLocationToFile(Location location) {
+        String locationString = System.currentTimeMillis() + "," +
+                                location.getLatitude() + "," +
+                                location.getLongitude() + "," +
+                                location.getSpeed() + "," +
+                                location.getAccuracy() + "\n";
+        try {
+            FileOutputStream fos = openFileOutput(PENDING_LOCATIONS_FILE, MODE_APPEND);
+            fos.write(locationString.getBytes());
+            fos.close();
+        } catch (IOException e) {
+            Log.e(TAG, "Error saving location to file", e);
+        }
     }
 
     private void startLocationUpdates() {
