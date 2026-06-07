@@ -3,13 +3,16 @@ package com.nocorre.app.gps;
 import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
+import android.location.Location;
 import android.os.Build;
 import android.util.Log;
+import androidx.activity.result.ActivityResult;
 import androidx.core.content.ContextCompat;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.ActivityCallback;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import java.io.BufferedReader;
@@ -17,10 +20,6 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.List;
-import org.json.JSONArray;
-import org.json.JSONException;
 
 @CapacitorPlugin(
     name = "NativeGps",
@@ -40,6 +39,8 @@ public class GpsPlugin extends Plugin {
         super.handleOnResume();
         isAppInForeground = true;
         Log.d(TAG, "handleOnResume: App is in foreground");
+        // Process pending locations when the app resumes
+        processPendingLocations();
     }
 
     @Override
@@ -59,10 +60,34 @@ public class GpsPlugin extends Plugin {
             }
         } else {
             if (!hasRequiredPermissions()) {
-                 requestPermissionForAlias("location", call, "onNotificationPermissionResult");
+                requestPermissionForAlias("location", call, "onLocationPermissionResult");
             } else {
                 startService(call);
             }
+        }
+    }
+
+    @ActivityCallback
+    private void onLocationPermissionResult(PluginCall call, ActivityResult result) {
+        if (call == null) {
+            return;
+        }
+        if (hasRequiredPermissions()) {
+            startService(call);
+        } else {
+            call.reject("Location permission was not granted.");
+        }
+    }
+
+    @ActivityCallback
+    private void onNotificationPermissionResult(PluginCall call, ActivityResult result) {
+        if (call == null) {
+            return;
+        }
+        if (hasRequiredPermissions()) {
+            startService(call);
+        } else {
+            call.reject("Notification permission was not granted.");
         }
     }
 
@@ -94,50 +119,41 @@ public class GpsPlugin extends Plugin {
             );
     }
 
-    @PluginMethod
-    public void getPendingLocations(PluginCall call) {
+    private void processPendingLocations() {
         Context context = getContext();
-        List<String> lines = new ArrayList<>();
         try {
             FileInputStream fis = context.openFileInput(PENDING_LOCATIONS_FILE);
             InputStreamReader inputStreamReader = new InputStreamReader(fis);
             BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
             String line;
             while ((line = bufferedReader.readLine()) != null) {
-                lines.add(line);
+                String[] parts = line.split(",");
+                if (parts.length == 5) {
+                    try {
+                        Location location = new Location("fused");
+                        location.setTime(Long.parseLong(parts[0]));
+                        location.setLatitude(Double.parseDouble(parts[1]));
+                        location.setLongitude(Double.parseDouble(parts[2]));
+                        location.setSpeed(Float.parseFloat(parts[3]));
+                        location.setAccuracy(Float.parseFloat(parts[4]));
+
+                        LocationRepository.getInstance().setLocationData(location);
+                    } catch (NumberFormatException e) {
+                        Log.e(TAG, "Error parsing location line: " + line, e);
+                    }
+                }
             }
             fis.close();
+
+            // Clear the file after processing
+            try (FileOutputStream fos = context.openFileOutput(PENDING_LOCATIONS_FILE, Context.MODE_PRIVATE)) {
+                // Overwrite with an empty string to clear
+            } catch (IOException e) {
+                Log.e(TAG, "Error clearing pending locations file", e);
+            }
         } catch (IOException e) {
             Log.d(TAG, "No pending locations to read or error reading file.");
         }
-
-        JSONArray jsonArray = new JSONArray();
-        for (String line : lines) {
-            String[] parts = line.split(",");
-            if (parts.length == 5) {
-                try {
-                    JSObject loc = new JSObject();
-                    loc.put("timestamp", Long.parseLong(parts[0]));
-                    loc.put("latitude", Double.parseDouble(parts[1]));
-                    loc.put("longitude", Double.parseDouble(parts[2]));
-                    loc.put("speed", Float.parseFloat(parts[3]));
-                    loc.put("accuracy", Float.parseFloat(parts[4]));
-                    jsonArray.put(loc);
-                } catch (NumberFormatException e) {
-                    Log.e(TAG, "Error parsing location line: " + line, e);
-                }
-            }
-        }
-
-        try (FileOutputStream fos = context.openFileOutput(PENDING_LOCATIONS_FILE, Context.MODE_PRIVATE)) {
-            // Overwrite with an empty string to clear
-        } catch (IOException e) {
-            Log.e(TAG, "Error clearing pending locations file", e);
-        }
-
-        JSObject ret = new JSObject();
-        ret.put("locations", jsonArray);
-        call.resolve(ret);
     }
 
     @PluginMethod
