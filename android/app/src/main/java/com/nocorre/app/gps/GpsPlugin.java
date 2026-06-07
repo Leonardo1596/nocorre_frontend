@@ -123,7 +123,7 @@ public class GpsPlugin extends Plugin {
                     loc.put("speed", Float.parseFloat(parts[3]));
                     loc.put("accuracy", Float.parseFloat(parts[4]));
                     jsonArray.put(loc);
-                } catch (NumberFormatException | JSONException e) {
+                } catch (NumberFormatException e) {
                     Log.e(TAG, "Error parsing location line: " + line, e);
                 }
             }
