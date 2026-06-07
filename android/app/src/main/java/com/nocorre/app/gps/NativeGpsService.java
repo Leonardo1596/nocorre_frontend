@@ -79,19 +79,18 @@ public class NativeGpsService extends Service {
                             continue;
                         }
 
-                        // Always notify live listeners (the app, if open)
-                        locationRepository.setLocationData(location);
-                        
-                        // Only persist for offline processing if the app is NOT in the foreground
-                        if (!GpsPlugin.isAppInForeground) {
+                        // If the app is in the foreground and has active listeners, send data directly.
+                        if (locationRepository.hasListeners()) {
+                            Log.d(TAG, "GPS UPDATE (ONLINE) | " +
+                                "Lat=" + location.getLatitude() +
+                                " | Lng=" + location.getLongitude());
+                            locationRepository.setLocationData(location);
+                        } else {
+                            // Otherwise, the app is in the background, so we save the location to a file for later processing.
                             Log.d(TAG, "GPS UPDATE (OFFLINE) | " +
                                 "Lat=" + location.getLatitude() +
                                 " | Lng=" + location.getLongitude());
                             saveLocationToFile(location);
-                        } else {
-                            Log.d(TAG, "GPS UPDATE (ONLINE) | " +
-                                "Lat=" + location.getLatitude() +
-                                " | Lng=" + location.getLongitude());
                         }
                     }
                 }
