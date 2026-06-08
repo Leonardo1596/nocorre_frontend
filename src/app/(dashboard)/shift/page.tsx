@@ -185,7 +185,9 @@ export default function ShiftPage() {
   async function startWorkSession() {
     setLoading(true);
     try {
-      const response = await api.post("/work-sessions/start");
+      const startedAt = new Date().toISOString();
+      const timezoneOffset = new Date().getTimezoneOffset();
+      const response = await api.post("/work-sessions/start", { startedAt, timezoneOffset });
       const id = response.data._id || response.data.id;
       
       // Clear any previous state and set new starting point

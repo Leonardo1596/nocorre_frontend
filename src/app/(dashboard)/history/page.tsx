@@ -119,11 +119,14 @@ export default function HistoryPage() {
     try {
       setLoading(true);
       const date = dayToDelete.date;
-      console.log(`Requesting to delete data for date: ${date}`);
+      const timezoneOffset = new Date().getTimezoneOffset();
+
+      console.log(`Requesting to delete data for date: ${date} with offset: ${timezoneOffset}`);
       await Promise.all([
-        api.delete(`/shifts/delete-by-date/${date}`),
-        api.delete(`/work-sessions/delete-by-date/${date}`),
+        api.delete(`/shifts/delete-by-date/${date}?timezoneOffset=${timezoneOffset}`),
+        api.delete(`/work-sessions/delete-by-date/${date}?timezoneOffset=${timezoneOffset}`),
       ]);
+
       console.log(`Successfully deleted data for date: ${date}`);
       toast({
         title: 'Registro excluído',
