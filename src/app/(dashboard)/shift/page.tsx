@@ -134,9 +134,10 @@ export default function ShiftPage() {
   async function startShift() {
     setLoading(true);
     try {
-      const response = await api.post("/shifts/start");
+      const startedAt = new Date().toISOString();
+      const response = await api.post("/shifts/start", { startedAt });
       const id = response.data._id || response.data.id;
-      setCurrentShift({ id, startTime: new Date().toISOString(), isActive: true });
+      setCurrentShift({ id, startTime: startedAt, isActive: true });
       
       if (Capacitor.getPlatform() !== 'web') {
         startShiftContext();
