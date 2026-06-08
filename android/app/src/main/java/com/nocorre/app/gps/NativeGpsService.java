@@ -25,16 +25,17 @@ import java.io.IOException;
 public class NativeGpsService extends Service {
 
     private static final String TAG = "NativeGpsService";
-    private static final float MAX_ACCURACY = 25.0f; // Maximum accuracy in meters
+    private static final float MAX_ACCURACY = 15.0f; // Maximum accuracy in meters (tightened from 25.0f)
+    private static final float MAX_SPEED_KPH = 150.0f; // Maximum plausible speed in km/h
     private static final String PENDING_LOCATIONS_FILE = "gps_pending_locations.log";
     public static boolean isRunning = false;
 
     private FusedLocationProviderClient fusedLocationClient;
     private LocationCallback locationCallback;
+    private LocationRepository locationRepository;
+    private Location lastLocation;
 
     private static final String CHANNEL_ID = "GpsServiceChannel";
-
-    private LocationRepository locationRepository;
 
     @Override
     public void onCreate() {
@@ -74,9 +75,23 @@ public class NativeGpsService extends Service {
 
                 for (Location location : locationResult.getLocations()) {
                     if (location != null) {
+                        // Filter 1: Accuracy check
                         if (location.getAccuracy() > MAX_ACCURACY) {
-                            Log.d(TAG, "GPS UPDATE DISCARDED | Accuracy: " + location.getAccuracy() + "m");
+                            Log.d(TAG, "GPS UPDATE DISCARDED (Inaccurate) | Accuracy: " + location.getAccuracy() + "m");
                             continue;
+                        }
+
+                        // Filter 2: Speed jump check
+                        if (lastLocation != null) {
+                            long timeDelta = location.getTime() - lastLocation.getTime(); // milliseconds
+                            if (timeDelta > 500) { // Only check if time has passed
+                                float distance = location.distanceTo(lastLocation); // meters
+                                float speedKph = (distance / (timeDelta / 1000.0f)) * 3.6f; // km/h
+                                if (speedKph > MAX_SPEED_KPH) {
+                                    Log.d(TAG, "GPS UPDATE DISCARDED (Speed Jump) | Implied Speed: " + speedKph + " km/h");
+                                    continue; // Skip this point, but don't update lastLocation yet
+                                }
+                            }
                         }
 
                         // If the app is in the foreground and has active listeners, send data directly.
@@ -92,6 +107,9 @@ public class NativeGpsService extends Service {
                                 " | Lng=" + location.getLongitude());
                             saveLocationToFile(location);
                         }
+                        
+                        // Update the last known location
+                        lastLocation = location;
                     }
                 }
             }
