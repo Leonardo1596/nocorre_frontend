@@ -196,9 +196,9 @@ export default function ShiftPage() {
 
       setCurrentSession({ id, startTime: new Date().toISOString(), isActive: true, isPaused: false, pauseStartTime: null, totalPauseDuration: 0 });
       toast({ title: "Sessão iniciada", description: "Modo produtivo ativo." });
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      toast({ variant: "destructive", title: "Erro", description: "Não foi possível iniciar sessão." });
+      toast({ variant: "destructive", title: "Erro", description: error.response?.data?.message || "Não foi possível iniciar sessão." });
     } finally {
       setLoading(false);
     }
@@ -301,7 +301,7 @@ export default function ShiftPage() {
                 <p className="text-[10px] uppercase text-muted-foreground">Tempo Produtivo</p>
                 <p className="text-xl font-bold text-accent">{formatTime(sessionElapsed)}</p>
               </CardContent>
-            </Card>
+            </card>
           </div>
 
           <Card>
