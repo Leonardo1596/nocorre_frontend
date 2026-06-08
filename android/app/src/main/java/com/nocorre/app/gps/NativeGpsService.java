@@ -28,6 +28,7 @@ public class NativeGpsService extends Service {
     private static final float MAX_ACCURACY = 15.0f; // Maximum accuracy in meters
     private static final float MAX_SPEED_KPH = 150.0f; // Maximum plausible speed in km/h
     private static final float MIN_MOVEMENT_SPEED_KPH = 6.0f; // Minimum speed to be considered moving (in km/h)
+    private static final long MIN_TIME_DELTA_MS = 500; // Minimum time between points to calculate speed
     private static final String PENDING_LOCATIONS_FILE = "gps_pending_locations.log";
     public static boolean isRunning = false;
 
@@ -77,16 +78,15 @@ public class NativeGpsService extends Service {
                 for (Location location : locationResult.getLocations()) {
                     if (location == null) continue;
 
-                    // Filter 1: Accuracy Check. Discard any weak signals.
+                    // Filter 1: Accuracy Check.
                     if (location.getAccuracy() > MAX_ACCURACY) {
-                        Log.d(TAG, "GPS UPDATE DISCARDED (Inaccurate) | Accuracy: " + location.getAccuracy() + "m");
+                        Log.d(TAG, "[DISCARD] Reason: Inaccurate. Accuracy: " + location.getAccuracy() + "m (Max: " + MAX_ACCURACY + "m)");
                         continue;
                     }
 
-                    // If this is the very first valid location, send it to the UI immediately
-                    // and set it as the reference point for future calculations.
+                    // First valid location.
                     if (lastLocation == null) {
-                        Log.d(TAG, "GPS FIRST FIX | Lat=" + location.getLatitude() + " | Lng=" + location.getLongitude());
+                        Log.i(TAG, "[PROCESS] Reason: First valid GPS fix. Lat=" + location.getLatitude() + ", Lng=" + location.getLongitude());
                         if (locationRepository.hasListeners()) {
                             locationRepository.setLocationData(location);
                         } else {
@@ -96,31 +96,41 @@ public class NativeGpsService extends Service {
                         continue;
                     }
 
-                    // --- Unified Speed Calculation ---
-                    long timeDelta = location.getTime() - lastLocation.getTime();
-                    if (timeDelta < 500) { // Avoid rapid-fire calculations
+                    // --- Start Calculations ---
+                    long timeDelta = location.getTime() - lastLocation.getTime(); // milliseconds
+                    float distance = location.distanceTo(lastLocation); // meters
+
+                    // Filter 2: Time Delta. Avoid processing points that are too close in time.
+                    if (timeDelta < MIN_TIME_DELTA_MS) {
+                        Log.d(TAG, "[DISCARD] Reason: Too frequent. Time since last point: " + timeDelta + "ms (Min: " + MIN_TIME_DELTA_MS + "ms)");
                         continue;
                     }
-                    float distance = location.distanceTo(lastLocation); // meters
-                    float calculatedSpeedKph = (distance / (timeDelta / 1000.0f)) * 3.6f; // km/h
 
+                    float calculatedSpeedKph = (distance / (timeDelta / 1000.0f)) * 3.6f;
 
-                    // Filter 2 & 3: Standstill and Speed Jump Check
-                    if (calculatedSpeedKph < MIN_MOVEMENT_SPEED_KPH || calculatedSpeedKph > MAX_SPEED_KPH) {
-                        Log.d(TAG, "GPS UPDATE DISCARDED (No Movement or Speed Jump) | Calc Speed: " + calculatedSpeedKph + " km/h");
-                        // Do NOT update lastLocation. We are waiting for a point that represents actual movement.
+                    // Filter 3: Standstill. Discard if movement is negligible.
+                    if (calculatedSpeedKph < MIN_MOVEMENT_SPEED_KPH) {
+                        Log.d(TAG, "[DISCARD] Reason: Standstill. Calculated speed: " + String.format("%.2f", calculatedSpeedKph) + " km/h (Min: " + MIN_MOVEMENT_SPEED_KPH + " km/h)");
+                        // IMPORTANT: We do NOT update lastLocation here. We are waiting for a point that represents actual movement.
+                        // If we updated it, the next point would have a very small distance and also be discarded.
+                        continue;
+                    }
+
+                    // Filter 4: Speed Jump / Teleportation. Discard if movement is impossibly fast.
+                    if (calculatedSpeedKph > MAX_SPEED_KPH) {
+                        Log.w(TAG, "[DISCARD] Reason: Speed Jump (Teleportation). Calculated speed: " + String.format("%.2f", calculatedSpeedKph) + " km/h (Max: " + MAX_SPEED_KPH + " km/h)");
+                        // We also don't update lastLocation here, as this point is considered a glitch.
                         continue;
                     }
                     
-                    // --- PROCESSING (VALID MOVEMENT) --- 
-                    Log.d(TAG, "GPS UPDATE (MOVING) | Lat=" + location.getLatitude() + " | Lng=" + location.getLongitude() + " | Speed: "+ calculatedSpeedKph + " km/h");
+                    // --- If all filters pass, process the point ---
+                    Log.i(TAG, "[PROCESS] Reason: Valid movement. Speed: " + String.format("%.2f", calculatedSpeedKph) + " km/h | Accuracy: " + location.getAccuracy() + "m");
                     if (locationRepository.hasListeners()) {
                         locationRepository.setLocationData(location);
                     } else {
                         saveLocationToFile(location);
                     }
                     
-                    // --- STATE UPDATE ---
                     // Update the last location to the current valid *moving* point.
                     lastLocation = location;
                 }
