@@ -301,7 +301,7 @@ export default function ShiftPage() {
                 <p className="text-[10px] uppercase text-muted-foreground">Tempo Produtivo</p>
                 <p className="text-xl font-bold text-accent">{formatTime(sessionElapsed)}</p>
               </CardContent>
-            </card>
+            </Card>
           </div>
 
           <Card>
