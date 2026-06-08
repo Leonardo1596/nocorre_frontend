@@ -25,8 +25,9 @@ import java.io.IOException;
 public class NativeGpsService extends Service {
 
     private static final String TAG = "NativeGpsService";
-    private static final float MAX_ACCURACY = 15.0f; // Maximum accuracy in meters (tightened from 25.0f)
+    private static final float MAX_ACCURACY = 15.0f; // Maximum accuracy in meters
     private static final float MAX_SPEED_KPH = 150.0f; // Maximum plausible speed in km/h
+    private static final float MIN_MOVEMENT_SPEED_KPH = 6.0f; // Minimum speed to be considered moving (in km/h)
     private static final String PENDING_LOCATIONS_FILE = "gps_pending_locations.log";
     public static boolean isRunning = false;
 
@@ -75,40 +76,51 @@ public class NativeGpsService extends Service {
 
                 for (Location location : locationResult.getLocations()) {
                     if (location != null) {
+                        // --- VALIDATION FILTERS ---
                         // Filter 1: Accuracy check
                         if (location.getAccuracy() > MAX_ACCURACY) {
                             Log.d(TAG, "GPS UPDATE DISCARDED (Inaccurate) | Accuracy: " + location.getAccuracy() + "m");
-                            continue;
+                            continue; // Completely ignore this point
                         }
 
                         // Filter 2: Speed jump check
                         if (lastLocation != null) {
                             long timeDelta = location.getTime() - lastLocation.getTime(); // milliseconds
-                            if (timeDelta > 500) { // Only check if time has passed
+                            if (timeDelta > 500) { // Only check if significant time has passed
                                 float distance = location.distanceTo(lastLocation); // meters
                                 float speedKph = (distance / (timeDelta / 1000.0f)) * 3.6f; // km/h
                                 if (speedKph > MAX_SPEED_KPH) {
                                     Log.d(TAG, "GPS UPDATE DISCARDED (Speed Jump) | Implied Speed: " + speedKph + " km/h");
-                                    continue; // Skip this point, but don't update lastLocation yet
+                                    continue; // Ignore this impossibly fast point
                                 }
                             }
                         }
 
-                        // If the app is in the foreground and has active listeners, send data directly.
-                        if (locationRepository.hasListeners()) {
-                            Log.d(TAG, "GPS UPDATE (ONLINE) | " +
-                                "Lat=" + location.getLatitude() +
-                                " | Lng=" + location.getLongitude());
-                            locationRepository.setLocationData(location);
+                        // --- PROCESSING FILTERS ---
+                        // Filter 3: Standstill check (using a safe threshold based on real-world testing)
+                        float currentSpeedKph = location.getSpeed() * 3.6f;
+                        if (currentSpeedKph < MIN_MOVEMENT_SPEED_KPH) {
+                            Log.d(TAG, "GPS UPDATE SKIPPED (Standstill) | Speed: " + currentSpeedKph + " km/h");
+                            // Don't process for distance, but DO update lastLocation
                         } else {
-                            // Otherwise, the app is in the background, so we save the location to a file for later processing.
-                            Log.d(TAG, "GPS UPDATE (OFFLINE) | " +
-                                "Lat=" + location.getLatitude() +
-                                " | Lng=" + location.getLongitude());
-                            saveLocationToFile(location);
+                            // If moving, process for distance calculation
+                            if (locationRepository.hasListeners()) {
+                                Log.d(TAG, "GPS UPDATE (ONLINE) | " +
+                                    "Lat=" + location.getLatitude() +
+                                    " | Lng=" + location.getLongitude());
+                                locationRepository.setLocationData(location);
+                            } else {
+                                // Otherwise, the app is in the background, so we save the location to a file for later processing.
+                                Log.d(TAG, "GPS UPDATE (OFFLINE) | " +
+                                    "Lat=" + location.getLatitude() +
+                                    " | Lng=" + location.getLongitude());
+                                saveLocationToFile(location);
+                            }
                         }
                         
-                        // Update the last known location
+                        // --- STATE UPDATE ---
+                        // Always update the last location with the latest valid point.
+                        // This is crucial for the next Speed Jump check to have a correct reference.
                         lastLocation = location;
                     }
                 }
