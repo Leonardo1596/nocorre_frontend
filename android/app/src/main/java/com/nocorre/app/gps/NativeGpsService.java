@@ -75,54 +75,60 @@ public class NativeGpsService extends Service {
                 if (locationResult == null) return;
 
                 for (Location location : locationResult.getLocations()) {
-                    if (location != null) {
-                        // --- VALIDATION FILTERS ---
-                        // Filter 1: Accuracy check
-                        if (location.getAccuracy() > MAX_ACCURACY) {
-                            Log.d(TAG, "GPS UPDATE DISCARDED (Inaccurate) | Accuracy: " + location.getAccuracy() + "m");
-                            continue; // Completely ignore this point
-                        }
+                    if (location == null) continue;
 
-                        // Filter 2: Speed jump check
-                        if (lastLocation != null) {
-                            long timeDelta = location.getTime() - lastLocation.getTime(); // milliseconds
-                            if (timeDelta > 500) { // Only check if significant time has passed
-                                float distance = location.distanceTo(lastLocation); // meters
-                                float speedKph = (distance / (timeDelta / 1000.0f)) * 3.6f; // km/h
-                                if (speedKph > MAX_SPEED_KPH) {
-                                    Log.d(TAG, "GPS UPDATE DISCARDED (Speed Jump) | Implied Speed: " + speedKph + " km/h");
-                                    continue; // Ignore this impossibly fast point
-                                }
-                            }
-                        }
-
-                        // --- PROCESSING FILTERS ---
-                        // Filter 3: Standstill check (using a safe threshold based on real-world testing)
-                        float currentSpeedKph = location.getSpeed() * 3.6f;
-                        if (currentSpeedKph < MIN_MOVEMENT_SPEED_KPH) {
-                            Log.d(TAG, "GPS UPDATE SKIPPED (Standstill) | Speed: " + currentSpeedKph + " km/h");
-                            // Don't process for distance, but DO update lastLocation
-                        } else {
-                            // If moving, process for distance calculation
-                            if (locationRepository.hasListeners()) {
-                                Log.d(TAG, "GPS UPDATE (ONLINE) | " +
-                                    "Lat=" + location.getLatitude() +
-                                    " | Lng=" + location.getLongitude());
-                                locationRepository.setLocationData(location);
-                            } else {
-                                // Otherwise, the app is in the background, so we save the location to a file for later processing.
-                                Log.d(TAG, "GPS UPDATE (OFFLINE) | " +
-                                    "Lat=" + location.getLatitude() +
-                                    " | Lng=" + location.getLongitude());
-                                saveLocationToFile(location);
-                            }
-                        }
-                        
-                        // --- STATE UPDATE ---
-                        // Always update the last location with the latest valid point.
-                        // This is crucial for the next Speed Jump check to have a correct reference.
-                        lastLocation = location;
+                    // Filter 1: Accuracy Check. Discard any weak signals.
+                    if (location.getAccuracy() > MAX_ACCURACY) {
+                        Log.d(TAG, "GPS UPDATE DISCARDED (Inaccurate) | Accuracy: " + location.getAccuracy() + "m");
+                        continue;
                     }
+
+                    // If this is the first valid location, we have nothing to compare it to.
+                    // Store it as the reference point and wait for the next one.
+                    if (lastLocation == null) {
+                        lastLocation = location;
+                        continue;
+                    }
+
+                    // --- Unified Speed Calculation ---
+                    // Calculate speed based on distance and time, not the unreliable location.getSpeed().
+                    long timeDelta = location.getTime() - lastLocation.getTime();
+                    if (timeDelta < 500) { // Avoid rapid-fire calculations
+                        continue;
+                    }
+                    float distance = location.distanceTo(lastLocation); // meters
+                    float calculatedSpeedKph = (distance / (timeDelta / 1000.0f)) * 3.6f; // km/h
+
+
+                    // Filter 2 & 3: Standstill and Speed Jump Check (All-or-Nothing)
+                    if (calculatedSpeedKph < MIN_MOVEMENT_SPEED_KPH) {
+                        Log.d(TAG, "GPS UPDATE DISCARDED (Standstill) | Calculated Speed: " + calculatedSpeedKph + " km/h");
+                        // Do NOT update lastLocation. Keep the last *moving* point as reference.
+                        continue;
+                    } 
+                    if (calculatedSpeedKph > MAX_SPEED_KPH) {
+                        Log.d(TAG, "GPS UPDATE DISCARDED (Speed Jump) | Calculated Speed: " + calculatedSpeedKph + " km/h");
+                        // Do NOT update lastLocation. A speed jump is likely a GPS error.
+                        continue;
+                    }
+                    
+                    // --- PROCESSING --- 
+                    // If we reach here, the point is valid and represents real movement.
+                    if (locationRepository.hasListeners()) {
+                        Log.d(TAG, "GPS UPDATE (ONLINE) | " +
+                            "Lat=" + location.getLatitude() +
+                            " | Lng=" + location.getLongitude());
+                        locationRepository.setLocationData(location);
+                    } else {
+                        Log.d(TAG, "GPS UPDATE (OFFLINE) | " +
+                            "Lat=" + location.getLatitude() +
+                            " | Lng=" + location.getLongitude());
+                        saveLocationToFile(location);
+                    }
+                    
+                    // --- STATE UPDATE ---
+                    // NOW, and only now, we update the last location to the current valid point.
+                    lastLocation = location;
                 }
             }
         };
