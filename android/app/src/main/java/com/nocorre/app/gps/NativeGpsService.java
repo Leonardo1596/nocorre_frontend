@@ -83,15 +83,20 @@ public class NativeGpsService extends Service {
                         continue;
                     }
 
-                    // If this is the first valid location, we have nothing to compare it to.
-                    // Store it as the reference point and wait for the next one.
+                    // If this is the very first valid location, send it to the UI immediately
+                    // and set it as the reference point for future calculations.
                     if (lastLocation == null) {
+                        Log.d(TAG, "GPS FIRST FIX | Lat=" + location.getLatitude() + " | Lng=" + location.getLongitude());
+                        if (locationRepository.hasListeners()) {
+                            locationRepository.setLocationData(location);
+                        } else {
+                            saveLocationToFile(location);
+                        }
                         lastLocation = location;
                         continue;
                     }
 
                     // --- Unified Speed Calculation ---
-                    // Calculate speed based on distance and time, not the unreliable location.getSpeed().
                     long timeDelta = location.getTime() - lastLocation.getTime();
                     if (timeDelta < 500) { // Avoid rapid-fire calculations
                         continue;
@@ -100,34 +105,23 @@ public class NativeGpsService extends Service {
                     float calculatedSpeedKph = (distance / (timeDelta / 1000.0f)) * 3.6f; // km/h
 
 
-                    // Filter 2 & 3: Standstill and Speed Jump Check (All-or-Nothing)
-                    if (calculatedSpeedKph < MIN_MOVEMENT_SPEED_KPH) {
-                        Log.d(TAG, "GPS UPDATE DISCARDED (Standstill) | Calculated Speed: " + calculatedSpeedKph + " km/h");
-                        // Do NOT update lastLocation. Keep the last *moving* point as reference.
-                        continue;
-                    } 
-                    if (calculatedSpeedKph > MAX_SPEED_KPH) {
-                        Log.d(TAG, "GPS UPDATE DISCARDED (Speed Jump) | Calculated Speed: " + calculatedSpeedKph + " km/h");
-                        // Do NOT update lastLocation. A speed jump is likely a GPS error.
+                    // Filter 2 & 3: Standstill and Speed Jump Check
+                    if (calculatedSpeedKph < MIN_MOVEMENT_SPEED_KPH || calculatedSpeedKph > MAX_SPEED_KPH) {
+                        Log.d(TAG, "GPS UPDATE DISCARDED (No Movement or Speed Jump) | Calc Speed: " + calculatedSpeedKph + " km/h");
+                        // Do NOT update lastLocation. We are waiting for a point that represents actual movement.
                         continue;
                     }
                     
-                    // --- PROCESSING --- 
-                    // If we reach here, the point is valid and represents real movement.
+                    // --- PROCESSING (VALID MOVEMENT) --- 
+                    Log.d(TAG, "GPS UPDATE (MOVING) | Lat=" + location.getLatitude() + " | Lng=" + location.getLongitude() + " | Speed: "+ calculatedSpeedKph + " km/h");
                     if (locationRepository.hasListeners()) {
-                        Log.d(TAG, "GPS UPDATE (ONLINE) | " +
-                            "Lat=" + location.getLatitude() +
-                            " | Lng=" + location.getLongitude());
                         locationRepository.setLocationData(location);
                     } else {
-                        Log.d(TAG, "GPS UPDATE (OFFLINE) | " +
-                            "Lat=" + location.getLatitude() +
-                            " | Lng=" + location.getLongitude());
                         saveLocationToFile(location);
                     }
                     
                     // --- STATE UPDATE ---
-                    // NOW, and only now, we update the last location to the current valid point.
+                    // Update the last location to the current valid *moving* point.
                     lastLocation = location;
                 }
             }
