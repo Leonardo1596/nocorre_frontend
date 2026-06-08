@@ -135,7 +135,8 @@ export default function ShiftPage() {
     setLoading(true);
     try {
       const startedAt = new Date().toISOString();
-      const response = await api.post("/shifts/start", { startedAt });
+      const timezoneOffset = new Date().getTimezoneOffset();
+      const response = await api.post("/shifts/start", { startedAt, timezoneOffset });
       const id = response.data._id || response.data.id;
       setCurrentShift({ id, startTime: startedAt, isActive: true });
       

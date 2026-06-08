@@ -81,20 +81,13 @@ export default function HistoryPage() {
       setLoading(true);
       const startDate = startOfDay(start);
       const endDate = endOfDay(end);
-      console.log(new Date().toISOString())
-
-      // Get user's timezone (e.g., 'America/Sao_Paulo')
-      const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const timezoneOffset = new Date().getTimezoneOffset();
 
       const startDateStr = startDate.toISOString();
       const endDateStr = endDate.toISOString();
 
-      console.log(`Fetching from ${startDateStr} to ${endDateStr} for TZ: ${userTimezone}`);
-
       const response = await api.get(
-        `/dashboard?start=${encodeURIComponent(
-          startDateStr
-        )}&end=${encodeURIComponent(endDateStr)}&tz=${encodeURIComponent(userTimezone)}`
+        `/dashboard?start=${startDateStr}&end=${endDateStr}&timezoneOffset=${timezoneOffset}`
       );
 
       setDashboard(response.data);

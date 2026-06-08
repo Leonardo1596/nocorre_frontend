@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -138,6 +139,7 @@ export default function Dashboard() {
   const fetchData = useCallback(async (start: Date, end: Date) => {
     try {
       setLoading(true);
+      const timezoneOffset = new Date().getTimezoneOffset();
       const startDateStr = start.toISOString();
       const endDateStr = end.toISOString();
 
@@ -147,8 +149,8 @@ export default function Dashboard() {
       const prevEndDateStr = prevWeekEnd.toISOString();
 
       const [dashRes, prevWeekRes, settingsRes] = await Promise.all([
-        api.get(`/dashboard?start=${startDateStr}&end=${endDateStr}`),
-        api.get(`/dashboard?start=${prevStartDateStr}&end=${prevEndDateStr}`),
+        api.get(`/dashboard?start=${startDateStr}&end=${endDateStr}&timezoneOffset=${timezoneOffset}`),
+        api.get(`/dashboard?start=${prevStartDateStr}&end=${prevEndDateStr}&timezoneOffset=${timezoneOffset}`),
         api.get('/maintenance-settings')
       ]);
 
