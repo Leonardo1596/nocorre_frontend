@@ -27,7 +27,7 @@ public class NativeGpsService extends Service {
     private static final String TAG = "NativeGpsService";
     private static final float MAX_ACCURACY = 15.0f; // Maximum accuracy in meters
     private static final float MAX_SPEED_KPH = 150.0f; // Maximum plausible speed in km/h
-    private static final float MIN_MOVEMENT_SPEED_KPH = 3.0f; // Minimum speed to be considered moving (in km/h)
+    private static final float MIN_MOVEMENT_SPEED_KPH = 1.0f; // Minimum speed to be considered moving (in km/h)
     private static final long MIN_TIME_DELTA_MS = 500; // Minimum time between points to calculate speed
     private static final String PENDING_LOCATIONS_FILE = "gps_pending_locations.log";
     public static boolean isRunning = false;
@@ -143,7 +143,8 @@ public class NativeGpsService extends Service {
                                 location.getLatitude() + "," +
                                 location.getLongitude() + "," +
                                 location.getSpeed() + "," +
-                                location.getAccuracy() + "\n";
+                                location.getAccuracy() + "
+";
         try {
             FileOutputStream fos = openFileOutput(PENDING_LOCATIONS_FILE, MODE_APPEND);
             fos.write(locationString.getBytes());
