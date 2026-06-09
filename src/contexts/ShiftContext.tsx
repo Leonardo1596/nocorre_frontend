@@ -30,19 +30,27 @@ export const useShift = () => {
 export const ShiftProvider = ({ children }: { children: React.ReactNode }) => {
   const [isShiftActive, setIsShiftActive] = useState(false);
   const [shiftDistance, setShiftDistance] = useState(0);
-  const { startGps, stopGps, accumulatedDistance, isGpsActive } = useGps();
+  const {
+    startGps,
+    stopGps,
+    accumulatedDistance,
+    isGpsActive,
+    resetAccumulatedDistance,
+  } = useGps();
 
   useEffect(() => {
     setShiftDistance(accumulatedDistance);
   }, [accumulatedDistance]);
 
   const startShift = useCallback(() => {
+    resetAccumulatedDistance();
     startGps();
     setIsShiftActive(true);
-  }, [startGps]);
+  }, [startGps, resetAccumulatedDistance]);
 
   const stopShift = useCallback(async () => {
     stopGps();
+    resetAccumulatedDistance();
     setIsShiftActive(false);
     setShiftDistance(0);
     try {
@@ -50,7 +58,7 @@ export const ShiftProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (e) {
       console.error("Error clearing GPS log", e);
     }
-  }, [stopGps]);
+  }, [stopGps, resetAccumulatedDistance]);
 
   useEffect(() => {
     if (isGpsActive) {
