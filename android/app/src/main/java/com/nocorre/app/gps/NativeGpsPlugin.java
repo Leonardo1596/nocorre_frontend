@@ -1,6 +1,7 @@
 package com.nocorre.app.gps;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
 import android.location.Location;
 import android.os.Build;
@@ -22,7 +23,10 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
 
 @CapacitorPlugin(
     name = "NativeGps",
@@ -120,51 +124,53 @@ public class NativeGpsPlugin extends Plugin {
         call.resolve(ret);
     }
 
-     @PluginMethod
-    public void getPendingLocations(PluginCall call) {
-        try {
-            File file = new File(getContext().getFilesDir(), PENDING_LOCATIONS_FILE);
-            if (!file.exists()) {
-                call.resolve(new JSObject().put("locations", new JSArray()));
-                return;
-            }
-
-            FileInputStream fis = getContext().openFileInput(PENDING_LOCATIONS_FILE);
+    @PluginMethod
+    public void restoreState(PluginCall call) {
+        Context context = getContext();
+        List<Location> locations = new ArrayList<>();
+        try (
+            FileInputStream fis = context.openFileInput(PENDING_LOCATIONS_FILE);
             InputStreamReader inputStreamReader = new InputStreamReader(fis);
-            BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
-            JSArray locations = new JSArray();
+            BufferedReader bufferedReader = new BufferedReader(inputStreamReader)
+        ) {
             String line;
-
             while ((line = bufferedReader.readLine()) != null) {
-                try {
-                    String[] parts = line.split(",");
-                    if (parts.length == 5) {
-                        JSObject loc = new JSObject();
-                        loc.put("time", Long.parseLong(parts[0]));
-                        loc.put("latitude", Double.parseDouble(parts[1]));
-                        loc.put("longitude", Double.parseDouble(parts[2]));
-                        loc.put("speed", Float.parseFloat(parts[3]));
-                        loc.put("accuracy", Float.parseFloat(parts[4]));
-                        locations.put(loc);
+                String[] parts = line.split(",");
+                if (parts.length >= 5) { // Ensure at least 5 parts
+                    try {
+                        Location location = new Location("fused");
+                        location.setTime(Long.parseLong(parts[0]));
+                        location.setLatitude(Double.parseDouble(parts[1]));
+                        location.setLongitude(Double.parseDouble(parts[2]));
+                        location.setSpeed(Float.parseFloat(parts[3]));
+                        location.setAccuracy(Float.parseFloat(parts[4]));
+                        locations.add(location);
+                    } catch (NumberFormatException e) {
+                        Log.e(TAG, "Error parsing location line: " + line, e);
                     }
-                } catch (Exception e) {
-                    Log.w(TAG, "Could not parse a line from the locations file", e);
                 }
             }
-            bufferedReader.close();
-
-            // Clear the file after reading
-            FileOutputStream fos = getContext().openFileOutput(PENDING_LOCATIONS_FILE, 0); // 0 = MODE_PRIVATE (overwrite)
-            fos.close();
-
-            JSObject ret = new JSObject();
-            ret.put("locations", locations);
-            call.resolve(ret);
-
-        } catch (Exception e) {
-            call.reject("Could not read pending locations", e);
-            Log.e(TAG, "Could not read pending locations", e);
+        } catch (IOException e) {
+            Log.d(TAG, "No pending locations to read or error reading file.", e);
         }
+
+        float totalDistance = 0;
+        if (locations.size() > 1) {
+            for (int i = 0; i < locations.size() - 1; i++) {
+                totalDistance += locations.get(i).distanceTo(locations.get(i + 1));
+            }
+        }
+
+        // Clear the file after processing
+        try (FileOutputStream fos = context.openFileOutput(PENDING_LOCATIONS_FILE, Context.MODE_PRIVATE)) {
+            // Overwriting with an empty string clears the file.
+        } catch (IOException e) {
+            Log.e(TAG, "Error clearing pending locations file", e);
+        }
+        
+        JSObject ret = new JSObject();
+        ret.put("accumulatedDistance", totalDistance / 1000.0); // Convert meters to kilometers
+        call.resolve(ret);
     }
 
 

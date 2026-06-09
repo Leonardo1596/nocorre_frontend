@@ -109,7 +109,7 @@ export const GpsProvider = ({ children }: { children: React.ReactNode }) => {
 
   const startGps = async () => {
     try {
-      await NativeGps.start();
+      await NativeGps.startGps();
       setIsGpsActive(true);
       console.log("GPS service started via context");
     } catch (e) {
@@ -120,7 +120,7 @@ export const GpsProvider = ({ children }: { children: React.ReactNode }) => {
 
   const stopGps = async () => {
     try {
-      await NativeGps.stop();
+      await NativeGps.stopGps();
       setIsGpsActive(false);
       console.log("GPS service stopped via context");
     } catch (e) {
