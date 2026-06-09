@@ -19,6 +19,8 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
 
+import org.json.JSONException;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -47,6 +49,7 @@ import java.util.List;
 public class NativeGpsPlugin extends Plugin {
 
     private static final String PENDING_LOCATIONS_FILE = "gps_pending_locations.log";
+    private static final String SHIFT_STATE_FILE = "shift_state.json";
     private static final String TAG = "NativeGpsPlugin";
 
     private LocationRepository locationRepository;
@@ -176,6 +179,48 @@ public class NativeGpsPlugin extends Plugin {
         }
         
         call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void getShiftState(PluginCall call) {
+        Context context = getContext();
+        try (FileInputStream fis = context.openFileInput(SHIFT_STATE_FILE); InputStreamReader inputStreamReader = new InputStreamReader(fis); BufferedReader bufferedReader = new BufferedReader(inputStreamReader)) {
+            StringBuilder stringBuilder = new StringBuilder();
+            String line;
+            while ((line = bufferedReader.readLine()) != null) {
+                stringBuilder.append(line);
+            }
+            JSObject json = new JSObject(stringBuilder.toString());
+            call.resolve(json);
+        } catch (IOException | JSONException e) {
+            call.resolve(null);
+        }
+    }
+
+    @PluginMethod
+    public void setShiftState(PluginCall call) {
+        Context context = getContext();
+        try (FileOutputStream fos = context.openFileOutput(SHIFT_STATE_FILE, Context.MODE_PRIVATE)) {
+            fos.write(call.getData().toString().getBytes());
+            call.resolve();
+        } catch (IOException e) {
+            call.reject("Error saving shift state", e);
+        }
+    }
+
+    @PluginMethod
+    public void clearShiftState(PluginCall call) {
+        Context context = getContext();
+        File file = new File(context.getFilesDir(), SHIFT_STATE_FILE);
+        if (file.exists()) {
+            if (file.delete()) {
+                call.resolve();
+            } else {
+                call.reject("Error deleting shift state file");
+            }
+        } else {
+            call.resolve();
+        }
     }
 
     @PluginMethod
