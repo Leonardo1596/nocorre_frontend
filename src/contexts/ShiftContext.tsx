@@ -101,7 +101,13 @@ export const ShiftProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [shiftDistance, totalPausedKm, isPaused]);
 
-  const startShift = useCallback(() => {
+  const startShift = useCallback(async () => {
+    try {
+      await NativeGps.clearGpsLog();
+      await NativeGps.clearShiftState();
+    } catch (e) {
+      console.error("Error clearing GPS log", e);
+    }
     resetAccumulatedDistance();
     startGps();
     setIsShiftActive(true);

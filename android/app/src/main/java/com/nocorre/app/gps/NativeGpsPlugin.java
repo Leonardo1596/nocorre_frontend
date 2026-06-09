@@ -211,29 +211,31 @@ public class NativeGpsPlugin extends Plugin {
     @PluginMethod
     public void clearShiftState(PluginCall call) {
         Context context = getContext();
-        File file = new File(context.getFilesDir(), SHIFT_STATE_FILE);
-        if (file.exists()) {
-            if (file.delete()) {
+        if (context.deleteFile(SHIFT_STATE_FILE)) {
+            call.resolve();
+        } else {
+            File file = new File(context.getFilesDir(), SHIFT_STATE_FILE);
+            if (!file.exists()) {
                 call.resolve();
             } else {
                 call.reject("Error deleting shift state file");
             }
-        } else {
-            call.resolve();
         }
     }
 
     @PluginMethod
     public void clearGpsLog(PluginCall call) {
         Context context = getContext();
-        try (FileOutputStream fos = context.openFileOutput(PENDING_LOCATIONS_FILE, Context.MODE_PRIVATE)) {
-            // Overwriting with an empty string clears the file.
-        } catch (IOException e) {
-            Log.e(TAG, "Error clearing pending locations file", e);
-            call.reject("Error clearing GPS log", e);
-            return;
+        if (context.deleteFile(PENDING_LOCATIONS_FILE)) {
+            call.resolve();
+        } else {
+            File file = new File(context.getFilesDir(), PENDING_LOCATIONS_FILE);
+            if (!file.exists()) {
+                call.resolve();
+            } else {
+                call.reject("Error clearing GPS log");
+            }
         }
-        call.resolve();
     }
 
 
