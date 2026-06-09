@@ -3,12 +3,8 @@
 import React, {
   createContext,
   useContext,
-  useEffect,
-  useState
 } from "react";
 import { useGps } from "./GpsContext";
-import { LocationPoint } from "@/lib/gps";
-
 
 interface ShiftContextType {
   isShiftActive: boolean;
@@ -28,34 +24,34 @@ export const useShift = () => {
 };
 
 export const ShiftProvider = ({ children }: { children: React.ReactNode }) => {
-  // A lógica de localização e distância é gerenciada pelo GpsContext.
+  // All location and distance logic is now handled by GpsContext.
   const {
     isGpsActive,
     startGps,
     stopGps,
     accumulatedDistance,
+    resetAccumulatedDistance,
   } = useGps();
 
-  // O estado do turno (ativo/inativo) é um reflexo do estado do GPS.
+  // isShiftActive is now just a reflection of isGpsActive.
   const isShiftActive = isGpsActive;
 
   const startShift = () => {
-    // Apenas inicia o GPS. Não reseta mais a distância aqui.
+    // Reset the distance in the GPS context before starting a new shift.
+    resetAccumulatedDistance();
     startGps();
   };
 
   const stopShift = () => {
     stopGps();
-    // A distância é preservada no GpsContext até que um novo turno comece
-    // (ou seja, quando o app for reiniciado e o GPS for reativado).
+    // The distance is preserved in GpsContext until a new shift starts.
   };
 
   const value = {
     isShiftActive,
     startShift,
     stopShift,
-    // Garante que a distância seja sempre um número para evitar erros na interface.
-    accumulatedDistance: accumulatedDistance || 0,
+    accumulatedDistance, // Directly from GpsContext
   };
 
   return <ShiftContext.Provider value={value}>{children}</ShiftContext.Provider>;
