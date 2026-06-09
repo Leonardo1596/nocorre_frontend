@@ -143,8 +143,7 @@ public class NativeGpsService extends Service {
                                 location.getLatitude() + "," +
                                 location.getLongitude() + "," +
                                 location.getSpeed() + "," +
-                                location.getAccuracy() + "
-";
+                                location.getAccuracy() + "\n";
         try {
             FileOutputStream fos = openFileOutput(PENDING_LOCATIONS_FILE, MODE_APPEND);
             fos.write(locationString.getBytes());
