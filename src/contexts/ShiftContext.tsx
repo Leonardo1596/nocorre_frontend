@@ -1,30 +1,21 @@
-"use client";
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { useGps } from "./GpsContext"; // Assuming GpsContext is in the same directory
 
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useState
-} from "react";
-import { useGps } from "./GpsContext";
-import { LocationPoint } from "@/lib/gps";
-
-
+// Define the shape of the context data
 interface ShiftContextType {
   isShiftActive: boolean;
   startShift: () => void;
   stopShift: () => void;
-  // shiftHistory is now managed by GpsContext if needed, 
-  // or could be built by consuming location updates.
-  // For now, we get the core data from GpsContext.
   accumulatedDistance: number;
 }
 
+// Create the context with a default value
 const ShiftContext = createContext<ShiftContextType | undefined>(undefined);
 
+// Custom hook to use the shift context
 export const useShift = () => {
   const context = useContext(ShiftContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error("useShift must be used within a ShiftProvider");
   }
   return context;
@@ -51,14 +42,15 @@ export const ShiftProvider = ({ children }: { children: React.ReactNode }) => {
 
   const stopShift = () => {
     stopGps();
-    // The distance is preserved in GpsContext until a new shift starts.
+    // No need to reset distance here, it can be done before the next shift starts.
   };
 
+  // The value provided by the context
   const value = {
     isShiftActive,
     startShift,
     stopShift,
-    accumulatedDistance, // Directly from GpsContext
+    accumulatedDistance,
   };
 
   return <ShiftContext.Provider value={value}>{children}</ShiftContext.Provider>;

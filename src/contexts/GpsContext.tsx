@@ -6,14 +6,39 @@ import React, {
   useEffect,
   useState,
   useCallback,
+  useRef,
 } from "react";
 import { NativeGps } from "@/lib/gps";
+
+// Helper function to calculate distance between two lat/lon points
+const haversineDistance = (
+  coords1: { latitude: number; longitude: number },
+  coords2: { latitude: number; longitude: number }
+) => {
+  const toRad = (x: number) => (x * Math.PI) / 180;
+
+  const R = 6371; // Earth's radius in kilometers
+  const dLat = toRad(coords2.latitude - coords1.latitude);
+  const dLon = toRad(coords2.longitude - coords1.longitude);
+  const lat1 = toRad(coords1.latitude);
+  const lat2 = toRad(coords2.latitude);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const d = R * c;
+
+  return d;
+};
 
 interface GpsContextType {
   location: any;
   startGps: () => void;
   stopGps: () => void;
   isGpsActive: boolean;
+  accumulatedDistance: number;
+  resetAccumulatedDistance: () => void;
 }
 
 const GpsContext = createContext<GpsContextType | undefined>(undefined);
@@ -29,6 +54,8 @@ export const useGps = () => {
 export const GpsProvider = ({ children }: { children: React.ReactNode }) => {
   const [location, setLocation] = useState(null);
   const [isGpsActive, setIsGpsActive] = useState(false);
+  const [accumulatedDistance, setAccumulatedDistance] = useState(0);
+  const lastLocationRef = useRef<any>(null);
 
   useEffect(() => {
     const checkGpsStatus = async () => {
@@ -45,7 +72,26 @@ export const GpsProvider = ({ children }: { children: React.ReactNode }) => {
 
   const handleLocationUpdate = useCallback((locationData: any) => {
     setLocation(locationData);
+    if (lastLocationRef.current) {
+      const distance = haversineDistance(
+        {
+          latitude: lastLocationRef.current.latitude,
+          longitude: lastLocationRef.current.longitude,
+        },
+        {
+          latitude: locationData.latitude,
+          longitude: locationData.longitude,
+        }
+      );
+      setAccumulatedDistance((prev) => prev + distance);
+    }
+    lastLocationRef.current = locationData;
   }, []);
+
+  const resetAccumulatedDistance = () => {
+    setAccumulatedDistance(0);
+    lastLocationRef.current = null;
+  };
 
   useEffect(() => {
     const listener = NativeGps.addListener("locationUpdate", handleLocationUpdate);
@@ -61,8 +107,6 @@ export const GpsProvider = ({ children }: { children: React.ReactNode }) => {
       console.log("GPS service started via context");
     } catch (e) {
       console.error("Error starting GPS service via context", e);
-      // If permission is denied, the native side will reject.
-      // We should reflect that in the UI.
       setIsGpsActive(false);
     }
   };
@@ -82,6 +126,8 @@ export const GpsProvider = ({ children }: { children: React.ReactNode }) => {
     startGps,
     stopGps,
     isGpsActive,
+    accumulatedDistance,
+    resetAccumulatedDistance,
   };
 
   return <GpsContext.Provider value={value}>{children}</GpsContext.Provider>;
