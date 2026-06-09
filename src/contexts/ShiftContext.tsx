@@ -135,17 +135,15 @@ export const ShiftProvider = ({ children }: { children: React.ReactNode }) => {
   }, [stopGps, resetAccumulatedDistance]);
 
   const pauseShift = useCallback(() => {
-    stopGps();
     setIsPaused(true);
     setKmAtPauseStart(shiftDistance);
-  }, [stopGps, shiftDistance]);
+  }, [shiftDistance]);
 
   const resumeShift = useCallback(() => {
     const pausedKm = shiftDistance - kmAtPauseStart;
     setTotalPausedKm((prev) => prev + pausedKm);
-    startGps();
     setIsPaused(false);
-  }, [startGps, shiftDistance, kmAtPauseStart]);
+  }, [shiftDistance, kmAtPauseStart]);
 
   useEffect(() => {
     if (isGpsActive) {
