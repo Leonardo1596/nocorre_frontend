@@ -30,6 +30,7 @@ public class NativeGpsService extends Service {
 
     private static final String TAG = "NativeGpsService";
     private static final String PENDING_LOCATIONS_FILE = "gps_pending_locations.log";
+    public static boolean isRunning = false;
 
     private FusedLocationProviderClient fusedLocationClient;
     private LocationCallback locationCallback;
@@ -62,6 +63,7 @@ public class NativeGpsService extends Service {
     ) {
 
         Log.d(TAG, "onStartCommand");
+        isRunning = true;
 
         Notification notification =
             new NotificationCompat.Builder(
@@ -172,6 +174,7 @@ public class NativeGpsService extends Service {
         super.onDestroy();
 
         Log.d(TAG, "onDestroy");
+        isRunning = false;
 
         if (
             fusedLocationClient != null &&
