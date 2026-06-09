@@ -25,8 +25,8 @@ const TOTAL_PAUSED_KM_KEY = "total_paused_km";
 export default function ShiftPage() {
   const { currentShift, setCurrentShift, currentSession, setCurrentSession } = useApp();
   const { toast } = useToast();
-  const { location, isGpsActive } = useGps();
-  const { accumulatedDistance, startShift: startShiftContext, stopShift: stopShiftContext } = useShift();
+  const { location, isGpsActive, accumulatedDistance } = useGps();
+  const { shiftDistance, startShift: startShiftContext, stopShift: stopShiftContext } = useShift();
 
   const [elapsed, setElapsed] = useState(0);
   const [sessionElapsed, setSessionElapsed] = useState(0);
@@ -74,10 +74,10 @@ export default function ShiftPage() {
   // --- Productive KM Calculation ---
   useEffect(() => {
     if (currentSession.isActive && !currentSession.isPaused) {
-      const newProductiveKm = accumulatedDistance - sessionStartKm - totalPausedKm;
+      const newProductiveKm = shiftDistance - sessionStartKm - totalPausedKm;
       setProductiveKm(Math.max(0, newProductiveKm));
     }
-  }, [accumulatedDistance, currentSession.isActive, currentSession.isPaused, sessionStartKm, totalPausedKm]);
+  }, [shiftDistance, currentSession.isActive, currentSession.isPaused, sessionStartKm, totalPausedKm]);
 
   // --- Persist Session KM State ---
   useEffect(() => {
@@ -160,7 +160,7 @@ export default function ShiftPage() {
     }
     setLoading(true);
     try {
-      const totalKm = Number(accumulatedDistance.toFixed(2));
+      const totalKm = Number(shiftDistance.toFixed(2));
       
       if (Capacitor.getPlatform() !== 'web') {
         stopShiftContext();
@@ -192,7 +192,7 @@ export default function ShiftPage() {
       
       // Clear any previous state and set new starting point
       clearSessionKmState();
-      setSessionStartKm(accumulatedDistance);
+      setSessionStartKm(shiftDistance);
 
       setCurrentSession({ id, startTime: new Date().toISOString(), isActive: true, isPaused: false, pauseStartTime: null, totalPauseDuration: 0 });
       toast({ title: "Sessão iniciada", description: "Modo produtivo ativo." });
@@ -209,7 +209,7 @@ export default function ShiftPage() {
     setLoading(true);
     try {
       await api.patch(`/work-sessions/${currentSession.id}/pause`);
-      setKmAtPauseStart(accumulatedDistance); // Record KM at the moment of pausing
+      setKmAtPauseStart(shiftDistance); // Record KM at the moment of pausing
       setCurrentSession({ ...currentSession, isPaused: true, pauseStartTime: Date.now() });
       toast({ title: "Sessão pausada" });
     } catch (error) {
@@ -228,7 +228,7 @@ export default function ShiftPage() {
 
       let pausedKm = 0;
       if (kmAtPauseStart > 0) {
-        pausedKm = accumulatedDistance - kmAtPauseStart;
+        pausedKm = shiftDistance - kmAtPauseStart;
       }
       setTotalPausedKm(prev => prev + pausedKm);
       setKmAtPauseStart(0);
@@ -325,7 +325,7 @@ export default function ShiftPage() {
                 <div className="p-4 rounded-lg bg-muted/50">
                     <Car className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
                     <p className="text-xs text-muted-foreground">Distância do Turno</p>
-                    <p className="text-2xl font-bold">{accumulatedDistance.toFixed(2)} <span className="text-base font-normal text-muted-foreground">km</span></p>
+                    <p className="text-2xl font-bold">{shiftDistance.toFixed(2)} <span className="text-base font-normal text-muted-foreground">km</span></p>
                 </div>
                 <div className={`p-4 rounded-lg ${currentSession.isActive ? (currentSession.isPaused ? 'bg-amber-500/10' : 'bg-green-500/10') : 'bg-muted/50'}`}>
                     <Timer className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
