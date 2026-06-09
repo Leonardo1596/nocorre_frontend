@@ -60,7 +60,7 @@ export const GpsProvider = ({ children }: { children: React.ReactNode }) => {
       try {
         const { accumulatedDistance: restoredDistance } = await NativeGps.restoreState();
         if (restoredDistance > 0) {
-          setAccumulatedDistance(restoredDistance);
+          setAccumulatedDistance((prevDistance) => prevDistance + restoredDistance);
         }
         const { isRunning } = await NativeGps.isGpsRunning();
         setIsGpsActive(isRunning);
