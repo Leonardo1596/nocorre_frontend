@@ -9,10 +9,10 @@ export interface LocationPoint {
 }
 
 export interface NativeGpsPlugin {
-  startGps(): Promise<void>;
-  stopGps(): Promise<void>;
+  start(): Promise<void>;
+  stop(): Promise<void>;
   isGpsRunning(): Promise<{ isRunning: boolean }>;
-  getPendingLocations(): Promise<{ locations: LocationPoint[] }>;
+  restoreState(): Promise<{ accumulatedDistance: number }>;
   addListener(
     eventName: 'locationUpdate',
     listenerFunc: (location: LocationPoint) => void

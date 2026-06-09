@@ -56,16 +56,20 @@ export const GpsProvider = ({ children }: { children: React.ReactNode }) => {
   const lastLocationRef = useRef<Location | null>(null);
 
   useEffect(() => {
-    const checkGpsStatus = async () => {
+    const restore = async () => {
       try {
+        const { accumulatedDistance: restoredDistance } = await NativeGps.restoreState();
+        if (restoredDistance > 0) {
+          setAccumulatedDistance(restoredDistance);
+        }
         const { isRunning } = await NativeGps.isGpsRunning();
         setIsGpsActive(isRunning);
       } catch (e) {
-        console.error("Error checking GPS status", e);
+        console.error("Error restoring GPS state", e);
       }
     };
 
-    checkGpsStatus();
+    restore();
   }, []);
 
   const handleLocationUpdate = useCallback((locationData: Location) => {
@@ -105,7 +109,7 @@ export const GpsProvider = ({ children }: { children: React.ReactNode }) => {
 
   const startGps = async () => {
     try {
-      await NativeGps.startGps();
+      await NativeGps.start();
       setIsGpsActive(true);
       console.log("GPS service started via context");
     } catch (e) {
@@ -116,7 +120,7 @@ export const GpsProvider = ({ children }: { children: React.ReactNode }) => {
 
   const stopGps = async () => {
     try {
-      await NativeGps.stopGps();
+      await NativeGps.stop();
       setIsGpsActive(false);
       console.log("GPS service stopped via context");
     } catch (e) {
