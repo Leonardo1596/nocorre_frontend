@@ -3,14 +3,18 @@
 import React, {
   createContext,
   useContext,
+  useState,
+  useCallback,
+  useEffect,
 } from "react";
 import { useGps } from "./GpsContext";
+import { NativeGps } from "@/lib/gps";
 
 interface ShiftContextType {
   isShiftActive: boolean;
   startShift: () => void;
   stopShift: () => void;
-  accumulatedDistance: number;
+  shiftDistance: number;
 }
 
 const ShiftContext = createContext<ShiftContextType | undefined>(undefined);
@@ -24,35 +28,39 @@ export const useShift = () => {
 };
 
 export const ShiftProvider = ({ children }: { children: React.ReactNode }) => {
-  // All location and distance logic is now handled by GpsContext.
-  const {
-    isGpsActive,
-    startGps,
-    stopGps,
-    accumulatedDistance,
-    resetAccumulatedDistance,
-  } = useGps();
+  const [isShiftActive, setIsShiftActive] = useState(false);
+  const { startGps, stopGps, accumulatedDistance, resetAccumulatedDistance, isGpsActive } = useGps();
 
-  // isShiftActive is now just a reflection of isGpsActive.
-  const isShiftActive = isGpsActive;
-
-  const startShift = () => {
-    // Reset the distance in the GPS context before starting a new shift.
-    resetAccumulatedDistance();
+  const startShift = useCallback(() => {
     startGps();
-  };
+    setIsShiftActive(true);
+  }, [startGps]);
 
-  const stopShift = () => {
+  const stopShift = useCallback(async () => {
     stopGps();
-    // The distance is preserved in GpsContext until a new shift starts.
-  };
+    setIsShiftActive(false);
+    resetAccumulatedDistance();
+    try {
+      await NativeGps.clearGpsLog();
+    } catch (e) {
+      console.error("Error clearing GPS log", e);
+    }
+  }, [stopGps, resetAccumulatedDistance]);
+
+  useEffect(() => {
+    if (isGpsActive) {
+      setIsShiftActive(true);
+    }
+  }, [isGpsActive]);
 
   const value = {
     isShiftActive,
     startShift,
     stopShift,
-    accumulatedDistance, // Directly from GpsContext
+    shiftDistance: accumulatedDistance,
   };
 
-  return <ShiftContext.Provider value={value}>{children}</ShiftContext.Provider>;
+  return (
+    <ShiftContext.Provider value={value}>{children}</ShiftContext.Provider>
+  );
 };

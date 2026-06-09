@@ -94,7 +94,7 @@ public class NativeGpsPlugin extends Plugin {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && getPermissionState("notifications") != PermissionState.GRANTED) {
             requestPermissionForAlias("notifications", call, "permissionCallback");
-            return; 
+            return;
         }
 
         startGpsService(call);
@@ -174,15 +174,21 @@ public class NativeGpsPlugin extends Plugin {
             locationObj.put("time", lastLocation.getTime());
             ret.put("lastLocation", locationObj);
         }
+        
+        call.resolve(ret);
+    }
 
-        // Clear the file after processing
+    @PluginMethod
+    public void clearGpsLog(PluginCall call) {
+        Context context = getContext();
         try (FileOutputStream fos = context.openFileOutput(PENDING_LOCATIONS_FILE, Context.MODE_PRIVATE)) {
             // Overwriting with an empty string clears the file.
         } catch (IOException e) {
             Log.e(TAG, "Error clearing pending locations file", e);
+            call.reject("Error clearing GPS log", e);
+            return;
         }
-        
-        call.resolve(ret);
+        call.resolve();
     }
 
 
