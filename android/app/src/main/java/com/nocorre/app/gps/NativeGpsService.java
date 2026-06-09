@@ -141,7 +141,6 @@ public class NativeGpsService extends Service {
             )
                 .setMinUpdateIntervalMillis(1000)
                 .setWaitForAccurateLocation(true)
-                .setMaxUpdateDelayMillis(10000)
                 .build();
 
         try {
