@@ -161,6 +161,20 @@ public class NativeGpsPlugin extends Plugin {
             }
         }
 
+        JSObject ret = new JSObject();
+        ret.put("accumulatedDistance", totalDistance / 1000.0);
+
+        if (!locations.isEmpty()) {
+            Location lastLocation = locations.get(locations.size() - 1);
+            JSObject locationObj = new JSObject();
+            locationObj.put("latitude", lastLocation.getLatitude());
+            locationObj.put("longitude", lastLocation.getLongitude());
+            locationObj.put("speed", lastLocation.getSpeed());
+            locationObj.put("accuracy", lastLocation.getAccuracy());
+            locationObj.put("time", lastLocation.getTime());
+            ret.put("lastLocation", locationObj);
+        }
+
         // Clear the file after processing
         try (FileOutputStream fos = context.openFileOutput(PENDING_LOCATIONS_FILE, Context.MODE_PRIVATE)) {
             // Overwriting with an empty string clears the file.
@@ -168,8 +182,6 @@ public class NativeGpsPlugin extends Plugin {
             Log.e(TAG, "Error clearing pending locations file", e);
         }
         
-        JSObject ret = new JSObject();
-        ret.put("accumulatedDistance", totalDistance / 1000.0); // Convert meters to kilometers
         call.resolve(ret);
     }
 
