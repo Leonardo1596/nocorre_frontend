@@ -112,9 +112,6 @@ public class NativeGpsService extends Service {
                             " | Time=" + System.currentTimeMillis()
                         );
 
-                        locationRepository
-                            .setLocationData(location);
-                        
                         // Save location to file
                         String locationString = location.getTime() + "," + location.getLatitude() + "," + location.getLongitude() + "," + location.getSpeed() + "," + location.getAccuracy() + "\n";
                         try {
@@ -126,6 +123,9 @@ public class NativeGpsService extends Service {
                         } catch (Exception e) {
                             Log.e(TAG, "Error writing location to file", e);
                         }
+
+                        locationRepository
+                            .setLocationData(location);
                     }
                 }
             }
