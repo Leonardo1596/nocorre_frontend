@@ -310,7 +310,7 @@ export default function ShiftPage() {
                 <MapPin className="w-4 h-4 mr-2 text-muted-foreground" />
                 Painel de Distância
               </CardTitle>
-              <Badge variant={isGpsActive ? 'default' : 'outline'} className="flex items-center">
+              <Badge variant={isGpsActive ? 'success' : 'outline'} className="flex items-center">
                 {isGpsActive && (
                   <div className="relative flex items-center justify-center w-3 h-3 mr-2">
                     <div className={`absolute w-full h-full rounded-full ${locationIndicator ? 'bg-green-500 animate-ping' : ''}`}></div>
