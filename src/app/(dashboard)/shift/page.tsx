@@ -228,7 +228,7 @@ export default function ShiftPage() {
     }
 
     setLoading(true);
-    
+
     try {
       await api.patch(`/work-sessions/${currentSession.id}/pause`);
 
@@ -330,10 +330,28 @@ export default function ShiftPage() {
                 <p className="text-xl font-bold text-primary">{formatTime(elapsed)}</p>
               </CardContent>
             </Card>
-            <Card className="border-accent/30 bg-accent/5">
+            <Card
+              className={`${currentSession.isActive
+                  ? (currentSession.isPaused
+                    ? 'border-amber-500/30 bg-amber-500/10'
+                    : 'border-green-500/30 bg-green-500/10')
+                  : 'border-accent/30 bg-accent/5'
+                }`}
+            >
               <CardContent className="p-4">
-                <p className="text-[10px] uppercase text-muted-foreground">Tempo Produtivo</p>
-                <p className="text-xl font-bold text-accent">{formatTime(sessionElapsed)}</p>
+                <p className="text-[10px] uppercase text-muted-foreground">
+                  Tempo Produtivo
+                </p>
+                <p
+                  className={`text-xl font-bold ${currentSession.isActive
+                      ? (currentSession.isPaused
+                        ? 'text-amber-600'
+                        : 'text-green-600')
+                      : 'text-accent'
+                    }`}
+                >
+                  {formatTime(sessionElapsed)}
+                </p>
               </CardContent>
             </Card>
           </div>
