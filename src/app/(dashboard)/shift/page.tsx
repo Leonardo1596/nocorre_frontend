@@ -38,19 +38,19 @@ export default function ShiftPage() {
   const [showFinishDialog, setShowFinishDialog] = useState(false);
 
   const [productiveKm, setProductiveKm] = useState<number>(0);
-  
+
   const [sessionStartKm, setSessionStartKm] = useState<number>(() => {
     if (typeof window === 'undefined') return 0;
     const saved = window.localStorage.getItem(SESSION_START_KM_KEY);
     return saved ? parseFloat(saved) : 0;
   });
-  
+
   const [kmAtPauseStart, setKmAtPauseStart] = useState<number>(() => {
     if (typeof window === 'undefined') return 0;
     const saved = window.localStorage.getItem(KM_AT_PAUSE_START_KEY);
     return saved ? parseFloat(saved) : 0;
   });
-  
+
   const [totalPausedKm, setTotalPausedKm] = useState<number>(() => {
     if (typeof window === 'undefined') return 0;
     const saved = window.localStorage.getItem(TOTAL_PAUSED_KM_KEY);
@@ -77,10 +77,20 @@ export default function ShiftPage() {
 
   useEffect(() => {
     if (currentSession.isActive && !currentSession.isPaused) {
-      const newProductiveKm = shiftDistance - sessionStartKm - totalPausedKm;
+      const newProductiveKm =
+        shiftDistance -
+        sessionStartKm -
+        totalPausedKm;
+
       setProductiveKm(Math.max(0, newProductiveKm));
     }
-  }, [shiftDistance, currentSession.isActive, currentSession.isPaused, sessionStartKm, totalPausedKm]);
+  }, [
+    shiftDistance,
+    currentSession.isActive,
+    currentSession.isPaused,
+    sessionStartKm,
+    totalPausedKm,
+  ]);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && currentSession.isActive) {
@@ -111,7 +121,7 @@ export default function ShiftPage() {
         const pausedDuration = currentSession.totalPauseDuration || 0;
         setSessionElapsed(Math.floor((Date.now() - start) / 1000) - pausedDuration);
       }, 1000);
-    } 
+    }
     return () => clearInterval(interval);
   }, [currentSession]);
 
@@ -141,11 +151,11 @@ export default function ShiftPage() {
       const response = await api.post("/shifts/start", { startedAt, timezoneOffset });
       const id = response.data._id || response.data.id;
       setCurrentShift({ id, startTime: startedAt, isActive: true });
-      
+
       if (Capacitor.getPlatform() !== 'web') {
         startShiftContext();
       }
-      
+
       toast({ title: "Turno iniciado" });
     } catch (error: any) {
       console.error("Error during startShift:", error);
@@ -163,16 +173,16 @@ export default function ShiftPage() {
     setLoading(true);
     try {
       const totalKm = Number(shiftDistanceRef.current.toFixed(2));
-      
+
       if (Capacitor.getPlatform() !== 'web') {
         stopShiftContext();
       }
-      
+
       await api.patch(`/shifts/${currentShift.id}/finish`, { totalKm });
 
       setCurrentShift({ id: null, startTime: null, isActive: false });
       setCurrentSession({ id: null, startTime: null, isActive: false, isPaused: false, pauseStartTime: null, totalPauseDuration: 0 });
-      
+
       clearSessionKmState();
 
       toast({ title: "Turno finalizado", description: `${totalKm} km registrados` });
@@ -192,7 +202,7 @@ export default function ShiftPage() {
       const timezoneOffset = new Date().getTimezoneOffset();
       const response = await api.post("/work-sessions/start", { startedAt, timezoneOffset });
       const id = response.data._id || response.data.id;
-      
+
       setSessionStartKm(shiftDistanceRef.current);
 
       setCurrentSession({ id, startTime: new Date().toISOString(), isActive: true, isPaused: false, pauseStartTime: null, totalPauseDuration: 0 });
@@ -207,10 +217,21 @@ export default function ShiftPage() {
 
   async function pauseWorkSession() {
     if (!currentSession.id) return;
+
+    if (shiftDistanceRef.current <= 0) {
+      toast({
+        variant: "destructive",
+        title: "Não é possível pausar",
+        description: "Aguarde o GPS registrar alguma distância antes de pausar."
+      });
+      return;
+    }
+
     setLoading(true);
+    
     try {
       await api.patch(`/work-sessions/${currentSession.id}/pause`);
-      
+
       setKmAtPauseStart(shiftDistanceRef.current);
 
       setCurrentSession(prev => {
@@ -234,8 +255,8 @@ export default function ShiftPage() {
       await api.patch(`/work-sessions/${currentSession.id}/resume`);
 
       let pausedKm = 0;
+
       if (kmAtPauseStart > 0) {
-        // Use the ref to get the absolute latest value, avoiding the race condition
         pausedKm = shiftDistanceRef.current - kmAtPauseStart;
       }
 
@@ -243,13 +264,13 @@ export default function ShiftPage() {
       setKmAtPauseStart(0);
 
       const pauseDuration = Math.floor((Date.now() - currentSession.pauseStartTime) / 1000);
-      
+
       setCurrentSession(prev => {
         if (!prev) return prev;
         const newTotalPauseDuration = (prev.totalPauseDuration || 0) + pauseDuration;
         return { ...prev, isPaused: false, pauseStartTime: null, totalPauseDuration: newTotalPauseDuration };
       });
-      
+
       toast({ title: "Sessão retomada" });
     } catch (error) {
       console.error(error);
@@ -336,18 +357,18 @@ export default function ShiftPage() {
             <CardContent>
               <div className="grid grid-cols-2 gap-4 text-center">
                 <div className="p-4 rounded-lg bg-muted/50">
-                    <Car className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
-                    <p className="text-xs text-muted-foreground">Distância do Turno</p>
-                    <p className="text-2xl font-bold">{shiftDistance.toFixed(2)} <span className="text-base font-normal text-muted-foreground">km</span></p>
+                  <Car className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
+                  <p className="text-xs text-muted-foreground">Distância do Turno</p>
+                  <p className="text-2xl font-bold">{shiftDistance.toFixed(2)} <span className="text-base font-normal text-muted-foreground">km</span></p>
                 </div>
                 <div className={`p-4 rounded-lg ${currentSession.isActive ? (currentSession.isPaused ? 'bg-amber-500/10' : 'bg-green-500/10') : 'bg-muted/50'}`}>
-                    <Timer className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
-                    <p className="text-xs text-muted-foreground">Distância Produtiva</p>
-                    <p className={`text-2xl font-bold ${currentSession.isActive ? (currentSession.isPaused ? 'text-amber-600' : 'text-green-600') : ''}`}>{productiveKm.toFixed(2)} <span className="text-base font-normal text-muted-foreground">km</span></p>
+                  <Timer className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
+                  <p className="text-xs text-muted-foreground">Distância Produtiva</p>
+                  <p className={`text-2xl font-bold ${currentSession.isActive ? (currentSession.isPaused ? 'text-amber-600' : 'text-green-600') : ''}`}>{productiveKm.toFixed(2)} <span className="text-base font-normal text-muted-foreground">km</span></p>
                 </div>
               </div>
               <p className="text-xs text-muted-foreground text-center mt-4">
-                  Coords: {location?.latitude ? location.latitude.toFixed(4) : 'N/A'}, {location?.longitude ? location.longitude.toFixed(4) : 'N/A'}
+                Coords: {location?.latitude ? location.latitude.toFixed(4) : 'N/A'}, {location?.longitude ? location.longitude.toFixed(4) : 'N/A'}
               </p>
             </CardContent>
           </Card>
