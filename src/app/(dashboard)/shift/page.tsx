@@ -21,13 +21,16 @@ import api from "@/lib/api";
 // --- LocalStorage Keys for State Persistence ---
 const SESSION_START_KM_KEY = "session_start_km";
 const TOTAL_PAUSED_KM_KEY = "total_paused_km";
-const KM_AT_PAUSE_START_KEY = "km_at_pause_start"; // New Key
+const KM_AT_PAUSE_START_KEY = "km_at_pause_start";
 
 export default function ShiftPage() {
   const { currentShift, setCurrentShift, currentSession, setCurrentSession } = useApp();
   const { toast } = useToast();
   const { location, isGpsActive } = useGps();
   const { shiftDistance, startShift: startShiftContext, stopShift: stopShiftContext } = useShift();
+
+  // Create a ref to hold the latest shiftDistance
+  const shiftDistanceRef = useRef(shiftDistance);
 
   const [elapsed, setElapsed] = useState(0);
   const [sessionElapsed, setSessionElapsed] = useState(0);
@@ -36,7 +39,6 @@ export default function ShiftPage() {
 
   const [productiveKm, setProductiveKm] = useState<number>(0);
   
-  // --- State Persistence ---
   const [sessionStartKm, setSessionStartKm] = useState<number>(() => {
     if (typeof window === 'undefined') return 0;
     const saved = window.localStorage.getItem(SESSION_START_KM_KEY);
@@ -59,6 +61,11 @@ export default function ShiftPage() {
   const [locationIndicator, setLocationIndicator] = useState(false);
   const lastLocationTime = useRef<number | null>(null);
 
+  // Keep the ref updated with the latest shiftDistance
+  useEffect(() => {
+    shiftDistanceRef.current = shiftDistance;
+  }, [shiftDistance]);
+
   useEffect(() => {
     if (isGpsActive && location) {
       setLocationIndicator(true);
@@ -68,7 +75,6 @@ export default function ShiftPage() {
     }
   }, [location, isGpsActive]);
 
-  // --- Productive KM Calculation ---
   useEffect(() => {
     if (currentSession.isActive && !currentSession.isPaused) {
       const newProductiveKm = shiftDistance - sessionStartKm - totalPausedKm;
@@ -76,7 +82,6 @@ export default function ShiftPage() {
     }
   }, [shiftDistance, currentSession.isActive, currentSession.isPaused, sessionStartKm, totalPausedKm]);
 
-  // --- Persist Session KM State ---
   useEffect(() => {
     if (typeof window !== 'undefined' && currentSession.isActive) {
       window.localStorage.setItem(SESSION_START_KM_KEY, sessionStartKm.toString());
@@ -85,7 +90,6 @@ export default function ShiftPage() {
     }
   }, [sessionStartKm, totalPausedKm, kmAtPauseStart, currentSession.isActive]);
 
-  // --- Timers ---
   useEffect(() => {
     let interval: any;
     if (currentShift.isActive && currentShift.startTime) {
@@ -118,9 +122,8 @@ export default function ShiftPage() {
     return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   }
 
-  // --- Shift/Session Actions ---
-
   const clearSessionKmState = () => {
+    if (typeof window === 'undefined') return;
     window.localStorage.removeItem(SESSION_START_KM_KEY);
     window.localStorage.removeItem(TOTAL_PAUSED_KM_KEY);
     window.localStorage.removeItem(KM_AT_PAUSE_START_KEY);
@@ -159,7 +162,7 @@ export default function ShiftPage() {
     }
     setLoading(true);
     try {
-      const totalKm = Number(shiftDistance.toFixed(2));
+      const totalKm = Number(shiftDistanceRef.current.toFixed(2));
       
       if (Capacitor.getPlatform() !== 'web') {
         stopShiftContext();
@@ -184,13 +187,13 @@ export default function ShiftPage() {
   async function startWorkSession() {
     setLoading(true);
     try {
+      clearSessionKmState();
       const startedAt = new Date().toISOString();
       const timezoneOffset = new Date().getTimezoneOffset();
       const response = await api.post("/work-sessions/start", { startedAt, timezoneOffset });
       const id = response.data._id || response.data.id;
       
-      clearSessionKmState();
-      setSessionStartKm(shiftDistance);
+      setSessionStartKm(shiftDistanceRef.current);
 
       setCurrentSession({ id, startTime: new Date().toISOString(), isActive: true, isPaused: false, pauseStartTime: null, totalPauseDuration: 0 });
       toast({ title: "Sessão iniciada", description: "Modo produtivo ativo." });
@@ -207,8 +210,14 @@ export default function ShiftPage() {
     setLoading(true);
     try {
       await api.patch(`/work-sessions/${currentSession.id}/pause`);
-      setKmAtPauseStart(shiftDistance);
-      setCurrentSession({ ...currentSession, isPaused: true, pauseStartTime: Date.now() });
+      
+      setKmAtPauseStart(shiftDistanceRef.current);
+
+      setCurrentSession(prev => {
+        if (!prev) return prev;
+        return { ...prev, isPaused: true, pauseStartTime: Date.now() };
+      });
+
       toast({ title: "Sessão pausada" });
     } catch (error) {
       console.error(error);
@@ -226,15 +235,21 @@ export default function ShiftPage() {
 
       let pausedKm = 0;
       if (kmAtPauseStart > 0) {
-        pausedKm = shiftDistance - kmAtPauseStart;
+        // Use the ref to get the absolute latest value, avoiding the race condition
+        pausedKm = shiftDistanceRef.current - kmAtPauseStart;
       }
+
       setTotalPausedKm(prev => prev + pausedKm);
       setKmAtPauseStart(0);
 
       const pauseDuration = Math.floor((Date.now() - currentSession.pauseStartTime) / 1000);
-      const newTotalPauseDuration = (currentSession.totalPauseDuration || 0) + pauseDuration;
-
-      setCurrentSession({ ...currentSession, isPaused: false, pauseStartTime: null, totalPauseDuration: newTotalPauseDuration });
+      
+      setCurrentSession(prev => {
+        if (!prev) return prev;
+        const newTotalPauseDuration = (prev.totalPauseDuration || 0) + pauseDuration;
+        return { ...prev, isPaused: false, pauseStartTime: null, totalPauseDuration: newTotalPauseDuration };
+      });
+      
       toast({ title: "Sessão retomada" });
     } catch (error) {
       console.error(error);
