@@ -21,11 +21,12 @@ import api from "@/lib/api";
 // --- LocalStorage Keys for State Persistence ---
 const SESSION_START_KM_KEY = "session_start_km";
 const TOTAL_PAUSED_KM_KEY = "total_paused_km";
+const KM_AT_PAUSE_START_KEY = "km_at_pause_start"; // New Key
 
 export default function ShiftPage() {
   const { currentShift, setCurrentShift, currentSession, setCurrentSession } = useApp();
   const { toast } = useToast();
-  const { location, isGpsActive, accumulatedDistance } = useGps();
+  const { location, isGpsActive } = useGps();
   const { shiftDistance, startShift: startShiftContext, stopShift: stopShiftContext } = useShift();
 
   const [elapsed, setElapsed] = useState(0);
@@ -42,7 +43,11 @@ export default function ShiftPage() {
     return saved ? parseFloat(saved) : 0;
   });
   
-  const [kmAtPauseStart, setKmAtPauseStart] = useState<number>(0); // This is temporary and doesn't need persistence
+  const [kmAtPauseStart, setKmAtPauseStart] = useState<number>(() => {
+    if (typeof window === 'undefined') return 0;
+    const saved = window.localStorage.getItem(KM_AT_PAUSE_START_KEY);
+    return saved ? parseFloat(saved) : 0;
+  });
   
   const [totalPausedKm, setTotalPausedKm] = useState<number>(() => {
     if (typeof window === 'undefined') return 0;
@@ -52,21 +57,13 @@ export default function ShiftPage() {
 
   const [formData, setFormData] = useState({ grossAmount: 0, foodExpense: 0, otherExpense: 0 });
   const [locationIndicator, setLocationIndicator] = useState(false);
-  const [locationUpdateInterval, setLocationUpdateInterval] = useState<number>(0);
   const lastLocationTime = useRef<number | null>(null);
 
   useEffect(() => {
     if (isGpsActive && location) {
       setLocationIndicator(true);
       const timer = setTimeout(() => setLocationIndicator(false), 500);
-
-      const now = Date.now();
-      if (lastLocationTime.current) {
-        const interval = (now - lastLocationTime.current) / 1000;
-        setLocationUpdateInterval(interval);
-      }
-      lastLocationTime.current = now;
-
+      lastLocationTime.current = Date.now();
       return () => clearTimeout(timer);
     }
   }, [location, isGpsActive]);
@@ -84,8 +81,9 @@ export default function ShiftPage() {
     if (typeof window !== 'undefined' && currentSession.isActive) {
       window.localStorage.setItem(SESSION_START_KM_KEY, sessionStartKm.toString());
       window.localStorage.setItem(TOTAL_PAUSED_KM_KEY, totalPausedKm.toString());
+      window.localStorage.setItem(KM_AT_PAUSE_START_KEY, kmAtPauseStart.toString());
     }
-  }, [sessionStartKm, totalPausedKm, currentSession.isActive]);
+  }, [sessionStartKm, totalPausedKm, kmAtPauseStart, currentSession.isActive]);
 
   // --- Timers ---
   useEffect(() => {
@@ -125,6 +123,7 @@ export default function ShiftPage() {
   const clearSessionKmState = () => {
     window.localStorage.removeItem(SESSION_START_KM_KEY);
     window.localStorage.removeItem(TOTAL_PAUSED_KM_KEY);
+    window.localStorage.removeItem(KM_AT_PAUSE_START_KEY);
     setProductiveKm(0);
     setSessionStartKm(0);
     setKmAtPauseStart(0);
@@ -190,7 +189,6 @@ export default function ShiftPage() {
       const response = await api.post("/work-sessions/start", { startedAt, timezoneOffset });
       const id = response.data._id || response.data.id;
       
-      // Clear any previous state and set new starting point
       clearSessionKmState();
       setSessionStartKm(shiftDistance);
 
@@ -209,7 +207,7 @@ export default function ShiftPage() {
     setLoading(true);
     try {
       await api.patch(`/work-sessions/${currentSession.id}/pause`);
-      setKmAtPauseStart(shiftDistance); // Record KM at the moment of pausing
+      setKmAtPauseStart(shiftDistance);
       setCurrentSession({ ...currentSession, isPaused: true, pauseStartTime: Date.now() });
       toast({ title: "Sessão pausada" });
     } catch (error) {
