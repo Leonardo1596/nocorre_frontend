@@ -349,7 +349,7 @@ export default function ShiftPage() {
                   {currentSession.isPaused ? <Play className="w-5 h-5 mr-2" /> : <Pause className="w-5 h-5 mr-2" />}
                   {currentSession.isPaused ? "RETOMAR" : "PAUSAR"}
                 </Button>
-                <Button onClick={() => setShowFinishDialog(true)} variant="secondary" className="h-16 rounded-2xl font-bold">
+                <Button onClick={() => setShowFinishDialog(true)} variant="secondary" className="h-16 rounded-2xl font-bold" disabled={currentSession.isPaused}>
                   <StopCircle className="w-5 h-5 mr-2" />
                   FINALIZAR
                 </Button>
