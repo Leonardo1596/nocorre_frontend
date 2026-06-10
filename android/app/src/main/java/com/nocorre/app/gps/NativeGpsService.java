@@ -36,6 +36,8 @@ public class NativeGpsService extends Service {
     private LocationCallback locationCallback;
 
     private static final String CHANNEL_ID = "GpsServiceChannel";
+    private static final float ACCURACY_THRESHOLD_METERS = 20.0f; // Ignore locations with accuracy > 20m
+    private static final float SPEED_THRESHOLD_MPS = 0.5f;      // Ignore locations if speed is < 0.5 m/s (1.8 km/h)
 
     private LocationRepository locationRepository;
 
@@ -101,6 +103,18 @@ public class NativeGpsService extends Service {
                         locationResult.getLocations()) {
 
                     if (location != null) {
+
+                        // FILTER: Check if the location accuracy is within the threshold
+                        if (location.getAccuracy() > ACCURACY_THRESHOLD_METERS) {
+                            Log.d(TAG, "GPS FILTER | Accuracy too low: " + location.getAccuracy() + "m. Ignoring.");
+                            continue; // Skip this location
+                        }
+
+                        // FILTER: Check if the speed is above the threshold
+                        if (location.getSpeed() < SPEED_THRESHOLD_MPS) {
+                            Log.d(TAG, "GPS FILTER | Speed too low: " + location.getSpeed() + "m/s. Ignoring.");
+                            continue; // Skip this location
+                        }
 
                         Log.d(
                             TAG,
