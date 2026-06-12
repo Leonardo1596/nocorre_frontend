@@ -154,7 +154,6 @@ export default function Dashboard() {
         api.get('/maintenance-settings')
       ]);
 
-      console.log(prevStartDateStr, prevEndDateStr);
       setData(dashRes.data);
       setPreviousWeekData(prevWeekRes.data);
 
@@ -183,7 +182,7 @@ export default function Dashboard() {
       if (previousProfit > 0) {
         const percentageChange = ((currentProfit - previousProfit) / previousProfit) * 100;
         setProfitComparison({
-          percentage: Math.abs(percentageChange.toFixed(0)),
+          percentage: Math.abs(Number(percentageChange.toFixed(0))),
           isIncrease: percentageChange >= 0,
         });
       } else {
@@ -390,7 +389,7 @@ export default function Dashboard() {
             <Card className="border-border/50 bg-card/40">
               <CardContent className="p-4 space-y-2 text-center">
                 <p className="text-[10px] font-bold text-muted-foreground uppercase">Distância percorrida</p>
-                <p className="text-lg font-headline font-bold text-blue-400">{totalKm.toFixed(2)} km</p>
+                <p className="text-lg font-headline font-bold text-blue-400">{totalKm.toFixed(1)} km</p>
               </CardContent>
             </Card>
           </div>
@@ -418,18 +417,18 @@ export default function Dashboard() {
             />
           </div>
           <OperationCard 
-            title="Horas Trabalhadas" 
-            value={formatHours(productiveHours)} 
-            subtext="Tempo produtivo" 
-            icon={Clock} 
-            colorClass="text-blue-400"
-          />
-          <OperationCard 
             title="Horas Ativas" 
             value={formatHours(totalHours)} 
             subtext="Tempo total em turno" 
             icon={Clock} 
             colorClass="text-accent"
+          />
+          <OperationCard 
+            title="Horas Trabalhadas" 
+            value={formatHours(productiveHours)} 
+            subtext="Tempo produtivo" 
+            icon={Clock} 
+            colorClass="text-blue-400"
           />
         </div>
         {showExpenseDetails && (
