@@ -30,8 +30,10 @@ interface MaintenanceSettings {
   kmPerLiter: number;
   oilValue: number;
   oilKm: number;
-  tiresValue: number;
-  tiresKm: number;
+  frontTireValue: number;
+  frontTireKm: number;
+  rearTireValue: number;
+  rearTireKm: number;
   chainValue: number;
   chainKm: number;
 }
@@ -47,8 +49,10 @@ export default function SettingsPage() {
     kmPerLiter: 0,
     oilValue: 0,
     oilKm: 0,
-    tiresValue: 0,
-    tiresKm: 0,
+    frontTireValue: 0,
+    frontTireKm: 0,
+    rearTireValue: 0,
+    rearTireKm: 0,
     chainValue: 0,
     chainKm: 0,
   });
@@ -64,8 +68,10 @@ export default function SettingsPage() {
             kmPerLiter: Number(data.fuel?.kmPerLiter || 0),
             oilValue: Number(data.maintenance?.oil?.price || 0),
             oilKm: Number(data.maintenance?.oil?.lifespanKm || 0),
-            tiresValue: Number(data.maintenance?.tires?.price || 0),
-            tiresKm: Number(data.maintenance?.tires?.lifespanKm || 0),
+            frontTireValue: Number(data.maintenance?.frontTire?.price || 0),
+            frontTireKm: Number(data.maintenance?.frontTire?.lifespanKm || 0),
+            rearTireValue: Number(data.maintenance?.rearTire?.price || 0),
+            rearTireKm: Number(data.maintenance?.rearTire?.lifespanKm || 0),
             chainValue: Number(data.maintenance?.chain?.price || 0),
             chainKm: Number(data.maintenance?.chain?.lifespanKm || 0),
           });
@@ -96,7 +102,8 @@ export default function SettingsPage() {
         },
         maintenance: {
           oil: { price: Number(newSettings.oilValue), lifespanKm: Number(newSettings.oilKm) },
-          tires: { price: Number(newSettings.tiresValue), lifespanKm: Number(newSettings.tiresKm) },
+          frontTire: { price: Number(newSettings.frontTireValue), lifespanKm: Number(newSettings.frontTireKm) },
+          rearTire: { price: Number(newSettings.rearTireValue), lifespanKm: Number(newSettings.rearTireKm) },
           chain: { price: Number(newSettings.chainValue), lifespanKm: Number(newSettings.chainKm) }
         }
       };
@@ -127,8 +134,10 @@ export default function SettingsPage() {
       kmPerLiter: Number(formData.get('kmPerLiter')),
       oilValue: Number(formData.get('oilValue')),
       oilKm: Number(formData.get('oilKm')),
-      tiresValue: Number(formData.get('tiresValue')),
-      tiresKm: Number(formData.get('tiresKm')),
+      frontTireValue: Number(formData.get('frontTireValue')),
+      frontTireKm: Number(formData.get('frontTireKm')),
+      rearTireValue: Number(formData.get('rearTireValue')),
+      rearTireKm: Number(formData.get('rearTireKm')),
       chainValue: Number(formData.get('chainValue')),
       chainKm: Number(formData.get('chainKm')),
     };
@@ -231,28 +240,56 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
-          {/* Pneus */}
+          {/* Pneu Dianteiro */}
           <Card className="border-border/50 bg-card/40">
             <CardHeader className="p-4 pb-2">
-              <CardTitle className="text-xs font-bold flex items-center gap-2"><Disc className="w-3.5 h-3.5 text-orange-400" /> Pneus</CardTitle>
+              <CardTitle className="text-xs font-bold flex items-center gap-2"><Disc className="w-3.5 h-3.5 text-orange-400" /> Pneu Dianteiro</CardTitle>
             </CardHeader>
             <CardContent className="p-4 pt-0 grid grid-cols-2 gap-4">
               <div className="space-y-1">
                 <Label className="text-[9px] uppercase text-muted-foreground">Valor (R$)</Label>
                 <CurrencyInput 
-                  name="tiresValue" 
-                  value={settings.tiresValue} 
-                  onChange={(val) => setSettings(s => ({...s, tiresValue: val}))}
+                  name="frontTireValue" 
+                  value={settings.frontTireValue} 
+                  onChange={(val) => setSettings(s => ({...s, frontTireValue: val}))}
                   className="h-9 text-sm" 
                 />
               </div>
               <div className="space-y-1">
                 <Label className="text-[9px] uppercase text-muted-foreground">Duração (KM)</Label>
                 <Input 
-                  name="tiresKm" 
+                  name="frontTireKm" 
                   type="number" 
-                  defaultValue={settings.tiresKm} 
-                  onChange={(e) => setSettings(s => ({...s, tiresKm: Number(e.target.value)}))}
+                  defaultValue={settings.frontTireKm} 
+                  onChange={(e) => setSettings(s => ({...s, frontTireKm: Number(e.target.value)}))}
+                  className="h-9 text-sm" 
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Pneu Traseiro */}
+          <Card className="border-border/50 bg-card/40">
+            <CardHeader className="p-4 pb-2">
+              <CardTitle className="text-xs font-bold flex items-center gap-2"><Disc className="w-3.5 h-3.5 text-orange-400" /> Pneu Traseiro</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 pt-0 grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label className="text-[9px] uppercase text-muted-foreground">Valor (R$)</Label>
+                <CurrencyInput 
+                  name="rearTireValue" 
+                  value={settings.rearTireValue} 
+                  onChange={(val) => setSettings(s => ({...s, rearTireValue: val}))}
+                  className="h-9 text-sm" 
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[9px] uppercase text-muted-foreground">Duração (KM)</Label>
+                <Input 
+                  name="rearTireKm" 
+                  type="number" 
+                  defaultValue={settings.rearTireKm} 
+                  onChange={(e) => setSettings(s => ({...s, rearTireKm: Number(e.target.value)}))}
                   className="h-9 text-sm" 
                 />
               </div>
