@@ -1,6 +1,7 @@
+
 'use client';
 
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Calendar as CalendarIcon,
@@ -9,17 +10,26 @@ import {
   ChevronRight,
   Loader2,
   ChevronLeft,
+  Trash2,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import api from '@/lib/api';
-
 import {
   format,
   startOfWeek,
@@ -29,7 +39,6 @@ import {
   endOfDay,
   parse,
 } from 'date-fns';
-
 import { ptBR } from 'date-fns/locale';
 import { DateRange } from 'react-day-picker';
 import {
@@ -44,36 +53,41 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 
+const formatBRL = (val: number) => 
+  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
+
+const capitalize = (str: string) => {
+  if (!str) return str;
+  return str.charAt(0).toUpperCase() + str.slice(1);
+};
+
+const AnalyticsRow = ({ label, value, sublabel }: any) => (
+  <div className="flex justify-between items-center py-3 border-b border-white/5 last:border-0">
+    <div className="space-y-0.5">
+      <p className="text-sm font-medium text-foreground/80">{label}</p>
+      {sublabel && <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{sublabel}</p>}
+    </div>
+    <span className="text-sm font-bold font-headline text-foreground">{value}</span>
+  </div>
+);
+
 export default function HistoryPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [dashboard, setDashboard] = useState<any>(null);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [dayToDelete, setDayToDelete] = useState<any | null>(null);
-  const [pressingItem, setPressingItem] = useState<string | null>(null);
-
-  const pressTimer = useRef<NodeJS.Timeout | null>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [selectedDay, setSelectedDay] = useState<any | null>(null);
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: startOfWeek(new Date(), { weekStartsOn: 1 }),
     to: endOfWeek(new Date(), { weekStartsOn: 1 }),
   });
 
-  const handlePressStart = (date: string, data: any) => {
-    pressTimer.current = setTimeout(() => {
-      setDayToDelete(data);
-      setIsDeleteDialogOpen(true);
-      setPressingItem(null);
-    }, 700); // 700ms para acionar a exclusão
-    setPressingItem(date);
-  };
-
-  const handlePressEnd = () => {
-    if (pressTimer.current) {
-      clearTimeout(pressTimer.current);
-    }
-    setPressingItem(null);
+  const handleDayClick = (dayData: any) => {
+    setSelectedDay(dayData);
+    setIsDetailsModalOpen(true);
   };
 
   const fetchHistory = useCallback(async (start: Date, end: Date) => {
@@ -115,19 +129,18 @@ export default function HistoryPage() {
   };
 
   const handleDeleteRequest = async () => {
-    if (!dayToDelete) return;
+    if (!selectedDay) return;
     try {
       setLoading(true);
-      const date = dayToDelete.date;
+      setIsDetailsModalOpen(false);
+      const date = selectedDay.date;
       const timezoneOffset = new Date().getTimezoneOffset();
 
-      console.log(`Requesting to delete data for date: ${date} with offset: ${timezoneOffset}`);
       await Promise.all([
         api.delete(`/shifts/delete-by-date/${date}?timezoneOffset=${timezoneOffset}`),
         api.delete(`/work-sessions/delete-by-date/${date}?timezoneOffset=${timezoneOffset}`),
       ]);
 
-      console.log(`Successfully deleted data for date: ${date}`);
       toast({
         title: 'Registro excluído',
         description: 'O dia foi removido do seu histórico.',
@@ -145,10 +158,10 @@ export default function HistoryPage() {
     } finally {
       setLoading(false);
       setIsDeleteDialogOpen(false);
-      setDayToDelete(null);
+      setSelectedDay(null);
     }
   };
-
+  
   if (loading && !dashboard) {
     return (
       <div className='min-h-[80vh] flex flex-col items-center justify-center gap-4'>
@@ -175,15 +188,15 @@ export default function HistoryPage() {
     <>
       <div className='p-6 space-y-6 max-w-md mx-auto pb-28'>
         <div className='space-y-2'>
-          <h2 className='text-2xl font-headline font-bold'>
-            Histórico de Corres
+          <h2 className='text-3xl font-headline font-bold'>
+            Histórico
           </h2>
-          <p className='text-[10px] text-muted-foreground font-bold uppercase tracking-widest'>
-            Revise seu desempenho por período
+          <p className='text-sm text-muted-foreground'>
+            Revise seu desempenho por período.
           </p>
         </div>
 
-        <div className='flex items-center justify-between bg-card/40 border border-border/50 rounded-2xl p-1.5 shadow-sm'>
+        <div className='flex items-center justify-between bg-card border border-border rounded-2xl p-1.5 shadow-sm'>
           <Button
             variant='ghost'
             size='icon'
@@ -196,7 +209,7 @@ export default function HistoryPage() {
             <PopoverTrigger asChild>
               <Button
                 variant='ghost'
-                className='flex-1 h-8 gap-2 font-bold text-xs uppercase tracking-wider hover:bg-transparent'
+                className='flex-1 h-8 gap-2 font-bold text-xs uppercase tracking-wider hover:bg-transparent text-foreground/80'
               >
                 <CalendarIcon className='w-3.5 h-3.5 text-primary' />
                 {formattedRange}
@@ -233,138 +246,85 @@ export default function HistoryPage() {
 
         <div className='space-y-6'>
           {dashboard?.summary && (
-            <div className='grid grid-cols-2 gap-3'>
-              <Card className='border-border/50 bg-card/40'>
-                <CardContent className='p-3'>
-                  <p className='text-[9px] uppercase font-bold text-muted-foreground'>
+            <div className='grid grid-cols-2 gap-4'>
+              <Card className='border-border bg-card'>
+                <CardContent className='p-4'>
+                  <p className='text-xs uppercase font-medium text-muted-foreground'>
                     Lucro líquido
                   </p>
-                  <p className='text-lg font-bold text-primary'>
-                    R$ {dashboard.summary.netProfit.toFixed(2).replace('.', ',')}
+                  <p className='text-xl font-bold text-primary'>
+                    {formatBRL(dashboard.summary.netProfit)}
                   </p>
                 </CardContent>
               </Card>
-              <Card className='border-border/50 bg-card/40'>
-                <CardContent className='p-3'>
-                  <p className='text-[9px] uppercase font-bold text-muted-foreground'>
-                    Distância percorrida
+              <Card className='border-border bg-card'>
+                <CardContent className='p-4'>
+                  <p className='text-xs uppercase font-medium text-muted-foreground'>
+                    Distância
                   </p>
-                  <p className='text-lg font-bold'>
+                  <p className='text-xl font-bold text-foreground'>
                     {dashboard.summary.totalKm.toFixed(1)} km
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className='border-border/50 bg-card/40'>
-                <CardContent className='p-3'>
-                  <p className='text-[9px] uppercase font-bold text-muted-foreground'>
-                    Horas produtivas
-                  </p>
-                  <p className='text-lg font-bold'>
-                    {dashboard.summary.productiveHoursHuman || '0h'}
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className='border-border/50 bg-card/40'>
-                <CardContent className='p-3'>
-                  <p className='text-[9px] uppercase font-bold text-muted-foreground'>
-                    Faturamento
-                  </p>
-                  <p className='text-lg font-bold'>
-                    R$ {dashboard.summary.grossAmount
-                      .toFixed(2)
-                      .replace('.', ',')}
                   </p>
                 </CardContent>
               </Card>
             </div>
           )}
 
-          <div className='space-y-3'>
-            <h3 className='text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1'>
+          <div className='space-y-4'>
+            <h3 className='text-sm font-medium text-muted-foreground px-1'>
               Detalhamento Diário
             </h3>
             {daysArray.length > 0 ? (
-              daysArray.map((data: any) => {
-                try {
-                  const date = data.date;
-                  const parsedDate = parse(date, 'yyyy-MM-dd', new Date());
+              daysArray.map((dayData: any) => {
+                const date = dayData.date;
+                const parsedDate = parse(date, 'yyyy-MM-dd', new Date());
+                const distanceKm = dayData.distance?.productiveKm || 0;
+                const productiveHours = dayData.distance?.productiveHoursHuman || '0min';
 
-                  if (isNaN(parsedDate.getTime())) {
-                    console.error(`Invalid date format for: ${date}`);
-                    return null;
-                  }
-
-                  const distanceKm =
-                    typeof data.distance === 'object' && data.distance !== null
-                      ? data.distance.productiveKm
-                      : typeof data.distance === 'number'
-                      ? data.distance
-                      : 0;
-
-                  const productiveHours =
-                    typeof data.distance === 'object' && data.distance !== null
-                      ? data.distance.productiveHoursHuman
-                      : '0min';
-
-                  const isPressing = pressingItem === date;
-
-                  return (
-                    <Card
-                      key={date}
-                      onMouseDown={() => handlePressStart(date, data)}
-                      onMouseUp={handlePressEnd}
-                      onMouseLeave={handlePressEnd}
-                      onTouchStart={() => handlePressStart(date, data)}
-                      onTouchEnd={handlePressEnd}
-                      className={`border-border/50 bg-card/20 transition-all duration-200 cursor-pointer ${isPressing ? 'transform scale-95 bg-card/30' : 'hover:bg-card/40'}`}
-                    >
-                      <CardContent className='p-4 flex items-center justify-between'>
-                        <div className='space-y-1 flex-1'>
-                          <div className='flex items-center gap-2'>
-                            <span className='text-sm font-bold'>
-                              {format(parsedDate, 'dd/MM')}
-                            </span>
-                            <Badge
-                              variant='secondary'
-                              className='text-[9px] font-bold uppercase tracking-wider h-4'
-                            >
-                              {data.dayName}
-                            </Badge>
-                          </div>
-                          <div className='flex items-center gap-4 text-[10px] text-muted-foreground'>
-                            <span className='flex items-center gap-1'>
-                              <Route className='w-3 h-3' />
-                              {distanceKm.toFixed(2)} km
-                            </span>
-                            <span className='flex items-center gap-1'>
-                              <Clock className='w-3 h-3' />
-                              {productiveHours || '0min'}
-                            </span>
-                          </div>
+                return (
+                  <Card
+                    key={date}
+                    onClick={() => handleDayClick(dayData)}
+                    className='border-border bg-card transition-all duration-200 cursor-pointer hover:border-primary/50'
+                  >
+                    <CardContent className='p-4 flex items-center justify-between'>
+                      <div className='space-y-1.5 flex-1'>
+                        <div className='flex items-center gap-2'>
+                          <span className='font-bold text-foreground'>
+                            {format(parsedDate, 'dd/MM')}
+                          </span>
+                          <Badge
+                            variant='secondary'
+                            className='text-xs font-medium'
+                          >
+                            {dayData.dayName}
+                          </Badge>
                         </div>
-                        <div className='text-right flex items-center gap-2'>
-                          <div className='space-y-0.5'>
-                            <p className='text-lg font-headline font-bold text-primary'>
-                              R$ {data.financial.netProfit
-                                .toFixed(2)
-                                .replace('.', ',')}
-                            </p>
-                            <p className='text-[9px] text-muted-foreground uppercase font-bold'>
-                              Líquido
-                            </p>
-                          </div>
-                          <ChevronRight className='w-5 h-5 text-muted-foreground/50' />
+                        <div className='flex items-center gap-4 text-sm text-muted-foreground'>
+                          <span className='flex items-center gap-1.5'>
+                            <Route className='w-4 h-4' />
+                            {distanceKm.toFixed(1)} km
+                          </span>
+                          <span className='flex items-center gap-1.5'>
+                            <Clock className='w-4 h-4' />
+                            {productiveHours}
+                          </span>
                         </div>
-                      </CardContent>
-                    </Card>
-                  );
-                } catch (error) {
-                  console.error(
-                    `Failed to render history item for date: ${data.date}`,
-                    error
-                  );
-                  return null;
-                }
+                      </div>
+                      <div className='text-right flex items-center gap-2'>
+                        <div className='space-y-0.5'>
+                          <p className='text-lg font-headline font-bold text-primary'>
+                            {formatBRL(dayData.financial.netProfit)}
+                          </p>
+                          <p className='text-xs text-muted-foreground font-medium'>
+                            Líquido
+                          </p>
+                        </div>
+                        <ChevronRight className='w-5 h-5 text-muted-foreground/50' />
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
               })
             ) : (
               <div className='py-20 text-center space-y-4'>
@@ -383,6 +343,57 @@ export default function HistoryPage() {
           </div>
         </div>
       </div>
+
+      <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
+        <DialogContent className="max-w-[90vw] rounded-3xl bg-card border-border">
+          {selectedDay && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="font-headline text-2xl">
+                  {capitalize(format(parse(selectedDay.date, 'yyyy-MM-dd', new Date()), 'eeee, dd/MM/yyyy', { locale: ptBR }))}
+                </DialogTitle>
+              </DialogHeader>
+
+              <Tabs defaultValue="financeiro" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 bg-background border-border">
+                  <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
+                  <TabsTrigger value="desempenho">Desempenho</TabsTrigger>
+                </TabsList>
+                <TabsContent value="financeiro" className="pt-4">
+                  <Card className="border-none bg-transparent shadow-none">
+                    <CardContent className="p-0 divide-y divide-border">
+                      <AnalyticsRow label="Lucro Líquido" value={<span className="text-primary font-bold">{formatBRL(selectedDay.financial.netProfit)}</span>} />
+                      <AnalyticsRow label="Faturamento Bruto" value={formatBRL(selectedDay.financial.grossAmount)} />
+                      <AnalyticsRow label="Combustível" value={formatBRL(selectedDay.financial.fuelExpense)} sublabel="Despesa" />
+                      <AnalyticsRow label="Alimentação" value={formatBRL(selectedDay.financial.foodExpense)} sublabel="Despesa" />
+                      <AnalyticsRow label="Outros" value={formatBRL(selectedDay.financial.otherExpense)} sublabel="Despesa" />
+                      <AnalyticsRow label="Total de Despesas" value={formatBRL(selectedDay.financial.totalExpenses)} />
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                <TabsContent value="desempenho" className="pt-4">
+                  <Card className="border-none bg-transparent shadow-none">
+                    <CardContent className="p-0 divide-y divide-border">
+                      <AnalyticsRow label="Horas Produtivas" value={selectedDay.distance.productiveHoursHuman} />
+                      <AnalyticsRow label="Horas Totais" value={selectedDay.distance.totalHoursHuman} />
+                      <AnalyticsRow label="Distância Produtiva" value={`${selectedDay.distance.productiveKm.toFixed(1)} km`} />
+                      <AnalyticsRow label="Distância Total" value={`${selectedDay.distance.totalKm.toFixed(1)} km`} />
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+
+              <DialogFooter className="pt-4">
+                <Button variant="destructive" onClick={() => setIsDeleteDialogOpen(true)} className="gap-2 w-full">
+                  <Trash2 className="w-4 h-4"/>
+                  Excluir Registro do Dia
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
@@ -396,7 +407,7 @@ export default function HistoryPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={handlePressEnd}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteRequest}>
               Continuar
             </AlertDialogAction>
