@@ -401,7 +401,7 @@ export default function Dashboard() {
                     value={formatHours(totalHours)}
                     subtext="Tempo total em turno"
                     icon={Clock}
-                    colorClass="text-accent"
+                    colorClass="text-primary"
                   />
                   <OperationCard
                     title="Horas Trabalhadas"

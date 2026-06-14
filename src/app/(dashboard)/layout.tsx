@@ -80,7 +80,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   href={item.href}
                   className={cn(
                     "flex flex-col items-center gap-1 transition-all p-2 rounded-xl",
-                    pathname === item.href ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground"
+                    pathname === item.href ? "text-primary bg-primary/10" : "text-foreground/60 hover:text-foreground"
                   )}
                 >
                   <item.icon className="w-5 h-5" />
