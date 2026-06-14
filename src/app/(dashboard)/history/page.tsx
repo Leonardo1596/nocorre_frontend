@@ -144,7 +144,11 @@ export default function HistoryPage() {
           `/work-sessions/delete-by-date/${date}?timezoneOffset=${timezoneOffset}`
         ),
       ]);
-
+      
+      if (dateRange?.from && dateRange?.to) {
+        await fetchHistory(dateRange.from, dateRange.to);
+      }
+      
       toast({
         title: 'Registro excluído',
         description: 'O dia foi removido do seu histórico.',
