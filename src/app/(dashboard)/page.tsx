@@ -518,7 +518,6 @@ export default function Dashboard() {
                   <AnalyticsRow label="Distância Percorrida" value={`${totalKm.toFixed(1)} km`} sublabel="Km total no turno" />
                   <AnalyticsRow label="Lucro por Hora" value={formatBRL(netPerHourTotal)} sublabel="Saldo líquido" />
                   <AnalyticsRow label="Faturamento por Hora" value={formatBRL(grossPerHourTotal)} sublabel="Saldo bruto" />
-                  <AnalyticsRow label="Custo por KM" value={formatBRL(costPerKm)} sublabel="Eficiência de custo" />
                 </CardContent>
               </Card>
             </section>
