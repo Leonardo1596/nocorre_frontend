@@ -260,8 +260,8 @@ export default function Dashboard() {
   const grossPerHourProductive = productiveHours > 0 ? grossAmount / productiveHours : 0;
 
   // Métricas Totais
-  const netPerHourTotal = totalHours > 0 ? netProfit / totalHours : 0;
-  const grossPerHourTotal = totalHours > 0 ? grossAmount / totalHours : 0;
+  const netPerHourTotal = totalHours > 0 ? netProfit / productiveHours : 0;
+  const grossPerHourTotal = totalHours > 0 ? grossAmount / productiveHours : 0;
 
   const totalKmSafe = totalKm > 0 ? totalKm : 1;
   const netPerKm = netProfit / totalKmSafe;
