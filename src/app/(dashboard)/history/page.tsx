@@ -137,25 +137,30 @@ export default function HistoryPage() {
       const timezoneOffset = new Date().getTimezoneOffset();
 
       await Promise.all([
-        api.delete(`/shifts/delete-by-date/${date}?timezoneOffset=${timezoneOffset}`),
-        api.delete(`/work-sessions/delete-by-date/${date}?timezoneOffset=${timezoneOffset}`),
+        api.delete(
+          `/shifts/delete-by-date/${date}?timezoneOffset=${timezoneOffset}`
+        ),
+        api.delete(
+          `/work-sessions/delete-by-date/${date}?timezoneOffset=${timezoneOffset}`
+        ),
       ]);
 
       toast({
         title: 'Registro excluído',
         description: 'O dia foi removido do seu histórico.',
       });
-      if (dateRange?.from && dateRange?.to) {
-        fetchHistory(dateRange.from, dateRange.to);
-      }
+
+      setSelectedDay(null);
     } catch (error) {
       console.error('Error deleting history:', error);
+
       toast({
         title: 'Erro ao excluir',
-        description: 'Não foi possível remover o registro. Tente novamente.',
+        description: 'Não foi possível remover o registro.',
         variant: 'destructive',
       });
     } finally {
+      document.body.style.pointerEvents = '';
       setLoading(false);
       setIsDeleteDialogOpen(false);
       setSelectedDay(null);
@@ -176,11 +181,11 @@ export default function HistoryPage() {
   const formattedRange =
     dateRange?.from && dateRange?.to
       ? `${format(dateRange.from, 'dd MMM', {
-          locale: ptBR,
-        })} - ${format(dateRange.to, 'dd MMM', { locale: ptBR })}`
+        locale: ptBR,
+      })} - ${format(dateRange.to, 'dd MMM', { locale: ptBR })}`
       : dateRange?.from
-      ? format(dateRange.from, 'dd MMM', { locale: ptBR })
-      : 'Selecione o período';
+        ? format(dateRange.from, 'dd MMM', { locale: ptBR })
+        : 'Selecione o período';
 
   const daysArray = Array.isArray(dashboard?.days) ? dashboard.days : [];
 
