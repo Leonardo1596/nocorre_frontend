@@ -297,7 +297,7 @@ export default function ShiftPage() {
       clearSessionKmState();
       setShowFinishDialog(false);
       setFormData({ grossAmount: 0, foodExpense: 0, otherExpense: 0 });
-      toast({ title: "Sessão finalizada" });
+      toast({ title: "Sessão finalizada", description: `${productiveKmValue} km registrados` });
     } catch (error) {
       console.error(error);
       toast({ variant: "destructive", title: "Erro", description: "Não foi possível finalizar sessão." });

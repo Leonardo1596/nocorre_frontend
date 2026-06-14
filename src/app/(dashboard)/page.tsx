@@ -3,11 +3,11 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  DollarSign, 
-  TrendingUp, 
-  Fuel, 
-  Clock, 
+import {
+  DollarSign,
+  TrendingUp,
+  Fuel,
+  Clock,
   Loader2,
   ChevronRight,
   BarChart3,
@@ -16,12 +16,12 @@ import {
   ChevronLeft,
   Calendar as CalendarIcon
 } from 'lucide-react';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   Cell
 } from 'recharts';
@@ -53,7 +53,7 @@ import { DateRange } from "react-day-picker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // --- Utilitários de Formatação ---
-const formatBRL = (val: number) => 
+const formatBRL = (val: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
 
 function formatHours(hours: number) {
@@ -262,8 +262,8 @@ export default function Dashboard() {
   // Métricas Totais
   const netPerHourTotal = totalHours > 0 ? netProfit / totalHours : 0;
   const grossPerHourTotal = totalHours > 0 ? grossAmount / totalHours : 0;
-  
-  const totalKmSafe = totalKm > 0 ? totalKm : 1; 
+
+  const totalKmSafe = totalKm > 0 ? totalKm : 1;
   const netPerKm = netProfit / totalKmSafe;
   const grossPerKm = grossAmount / totalKmSafe;
   const costPerKm = totalExpenses / totalKmSafe;
@@ -274,7 +274,7 @@ export default function Dashboard() {
     profit: dayData.financial?.netProfit || 0,
   }));
 
-  const formattedRange = dateRange?.from && dateRange?.to 
+  const formattedRange = dateRange?.from && dateRange?.to
     ? `${format(dateRange.from, "dd MMM", { locale: ptBR })} - ${format(dateRange.to, "dd MMM", { locale: ptBR })}`
     : dateRange?.from
       ? format(dateRange.from, "dd MMM", { locale: ptBR })
@@ -282,7 +282,7 @@ export default function Dashboard() {
 
   return (
     <div className="p-6 space-y-8 max-w-md mx-auto pb-28">
-      
+
       {/* HEADER */}
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
@@ -290,7 +290,7 @@ export default function Dashboard() {
             <h2 className="text-2xl font-headline font-bold tracking-tight">Painel de Controle</h2>
             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Sua inteligência financeira</p>
           </div>
-          
+
           <Dialog open={showFuelModal} onOpenChange={setShowFuelModal}>
             <DialogTrigger asChild>
               <Button variant="outline" className="h-9 gap-2 border-border/50 bg-card/50 text-primary rounded-xl shadow-sm px-3">
@@ -306,8 +306,8 @@ export default function Dashboard() {
               <div className="py-4 space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="fuelPriceInput">Preço por Litro (R$)</Label>
-                  <CurrencyInput 
-                    id="fuelPriceInput" 
+                  <CurrencyInput
+                    id="fuelPriceInput"
                     placeholder="R$ 0,00"
                     value={fuelPrice}
                     onChange={(val) => setFuelPrice(val)}
@@ -326,9 +326,9 @@ export default function Dashboard() {
 
         {/* DATE SELECTOR */}
         <div className="flex items-center justify-between bg-card/40 border border-border/50 rounded-2xl p-1.5 shadow-sm">
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors"
             onClick={() => navigateWeek('prev')}
           >
@@ -337,8 +337,8 @@ export default function Dashboard() {
 
           <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
             <PopoverTrigger asChild>
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 className="flex-1 h-8 gap-2 font-bold text-xs uppercase tracking-wider hover:bg-transparent"
               >
                 <CalendarIcon className="w-3.5 h-3.5 text-primary" />
@@ -362,9 +362,9 @@ export default function Dashboard() {
             </PopoverContent>
           </Popover>
 
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors"
             onClick={() => navigateWeek('next')}
           >
@@ -385,31 +385,31 @@ export default function Dashboard() {
             <section className="space-y-4 mt-6">
               <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] px-1">Resumo da Semana</h3>
               <div className="grid grid-cols-1 gap-4">
-                <HeroCard 
-                  title="Lucro Líquido" 
+                <HeroCard
+                  title="Lucro Líquido"
                   value={formatBRL(netProfit)}
                   icon={TrendingUp}
-                  subtext={profitComparison 
+                  subtext={profitComparison
                     ? `${profitComparison.percentage}% a ${profitComparison.isIncrease ? 'mais' : 'menos'} que na semana anterior`
                     : "Dinheiro real no seu bolso"}
                   trendIcon={profitComparison ? (profitComparison.isIncrease ? ArrowUpRight : ArrowDownRight) : null}
                   trendColor={profitComparison ? (profitComparison.isIncrease ? 'text-primary' : 'text-destructive') : 'text-muted-foreground'}
                 />
                 <div className="grid grid-cols-2 gap-4">
-                  <OperationCard 
-                      title="Horas Ativas" 
-                      value={formatHours(totalHours)} 
-                      subtext="Tempo total em turno" 
-                      icon={Clock} 
-                      colorClass="text-accent"
-                    />
-                    <OperationCard 
-                      title="Horas Trabalhadas" 
-                      value={formatHours(productiveHours)} 
-                      subtext="Tempo produtivo" 
-                      icon={Clock} 
-                      colorClass="text-blue-400"
-                    />
+                  <OperationCard
+                    title="Horas Ativas"
+                    value={formatHours(totalHours)}
+                    subtext="Tempo total em turno"
+                    icon={Clock}
+                    colorClass="text-accent"
+                  />
+                  <OperationCard
+                    title="Horas Trabalhadas"
+                    value={formatHours(productiveHours)}
+                    subtext="Tempo produtivo"
+                    icon={Clock}
+                    colorClass="text-blue-400"
+                  />
                 </div>
               </div>
             </section>
@@ -418,21 +418,21 @@ export default function Dashboard() {
             <section className="space-y-4 mt-6">
               <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] px-1">Gestão da Operação</h3>
               <div className="grid grid-cols-2 gap-4">
-                <OperationCard 
-                  title="Faturamento Bruto" 
-                  value={formatBRL(grossAmount)} 
-                  subtext="Total recebido" 
-                  icon={DollarSign} 
+                <OperationCard
+                  title="Faturamento Bruto"
+                  value={formatBRL(grossAmount)}
+                  subtext="Total recebido"
+                  icon={DollarSign}
                   colorClass="text-primary"
                 />
                 <Dialog open={showExpenseDetails} onOpenChange={setShowExpenseDetails}>
                   <DialogTrigger asChild>
                     <div className="cursor-pointer">
-                      <OperationCard 
-                        title="Despesas Totais" 
-                        value={formatBRL(totalExpenses)} 
-                        subtext="Toque para ver detalhes" 
-                        icon={Fuel} 
+                      <OperationCard
+                        title="Despesas Totais"
+                        value={formatBRL(totalExpenses)}
+                        subtext="Toque para ver detalhes"
+                        icon={Fuel}
                         colorClass="text-orange-400"
                       />
                     </div>
@@ -462,7 +462,7 @@ export default function Dashboard() {
             {/* 3. ANALYTICS */}
             <section className="space-y-4 mt-6">
               <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] px-1">Análise de Performance</h3>
-              
+
               <Card className="border-border/50 bg-card/40 overflow-hidden">
                 <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0">
                   <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Faturamento Semanal</CardTitle>
@@ -472,14 +472,14 @@ export default function Dashboard() {
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={chartData}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                      <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fill: 'hsl(var(--muted-foreground))', fontSize: 10}} />
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: 'hsl(var(--popover))', 
-                          border: '1px solid hsl(var(--border))', 
-                          borderRadius: '12px' 
+                      <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'hsl(var(--popover))',
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '12px'
                         }}
-                        cursor={{fill: 'rgba(16, 185, 129, 0.05)'}}
+                        cursor={{ fill: 'rgba(16, 185, 129, 0.05)' }}
                         formatter={(value: any) => [formatBRL(value), 'Faturamento']}
                         itemStyle={{ color: 'hsl(var(--popover-foreground))' }}
                       />
@@ -500,11 +500,11 @@ export default function Dashboard() {
             <section className="space-y-4 mt-6">
               <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] px-1">Análise Produtiva</h3>
               <Card className="border-border/50 bg-card/40">
-                  <CardContent className="p-4 divide-y divide-white/5">
-                      <AnalyticsRow label="Lucro por Hora" value={formatBRL(netPerHourProductive)} sublabel="Saldo líquido" />
-                      <AnalyticsRow label="Faturamento por Hora" value={formatBRL(grossPerHourProductive)} sublabel="Saldo bruto" />
-                      <AnalyticsRow label="Distância Percorrida" value={`${productiveKm.toFixed(1)} km`} sublabel="Km em corrida" />
-                  </CardContent>
+                <CardContent className="p-4 divide-y divide-white/5">
+                  <AnalyticsRow label="Distância Percorrida" value={`${productiveKm.toFixed(1)} km`} sublabel="Km em corrida" />
+                  <AnalyticsRow label="Lucro por Hora" value={formatBRL(netPerHourProductive)} sublabel="Saldo líquido" />
+                  <AnalyticsRow label="Faturamento por Hora" value={formatBRL(grossPerHourProductive)} sublabel="Saldo bruto" />
+                </CardContent>
               </Card>
             </section>
           </div>
@@ -514,12 +514,12 @@ export default function Dashboard() {
             <section className="space-y-4 mt-6">
               <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] px-1">Análise Total</h3>
               <Card className="border-border/50 bg-card/40">
-                  <CardContent className="p-4 divide-y divide-white/5">
-                      <AnalyticsRow label="Lucro por Hora" value={formatBRL(netPerHourTotal)} sublabel="Saldo líquido" />
-                      <AnalyticsRow label="Faturamento por Hora" value={formatBRL(grossPerHourTotal)} sublabel="Saldo bruto" />
-                      <AnalyticsRow label="Custo por KM" value={formatBRL(costPerKm)} sublabel="Eficiência de custo" />
-                      <AnalyticsRow label="Distância Percorrida" value={`${totalKm.toFixed(1)} km`} sublabel="Km total no turno" />
-                  </CardContent>
+                <CardContent className="p-4 divide-y divide-white/5">
+                  <AnalyticsRow label="Distância Percorrida" value={`${totalKm.toFixed(1)} km`} sublabel="Km total no turno" />
+                  <AnalyticsRow label="Lucro por Hora" value={formatBRL(netPerHourTotal)} sublabel="Saldo líquido" />
+                  <AnalyticsRow label="Faturamento por Hora" value={formatBRL(grossPerHourTotal)} sublabel="Saldo bruto" />
+                  <AnalyticsRow label="Custo por KM" value={formatBRL(costPerKm)} sublabel="Eficiência de custo" />
+                </CardContent>
               </Card>
             </section>
           </div>
