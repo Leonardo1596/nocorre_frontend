@@ -91,17 +91,27 @@ const HeroCard = ({ title, value, subtext, icon: Icon, trendIcon: TrendIcon, tre
 );
 
 const OperationCard = ({ title, value, subtext, icon: Icon, colorClass }: any) => (
-  <Card className="border-border/50 bg-card/40 hover:bg-card/60 transition-all duration-300">
-    <CardContent className="p-4">
-      <div className="flex items-center gap-3 mb-3">
-        <div className={cn("p-2 rounded-xl bg-secondary", colorClass)}>
-          <Icon className="w-4 h-4" />
+  <Card className="border-border/50 bg-card/40 hover:bg-card/60 transition-all duration-300 h-full">
+    <CardContent className="p-3 sm:p-4 flex flex-col justify-between h-full">
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <div className={cn("p-2 rounded-xl bg-secondary shrink-0", colorClass)}>
+            <Icon className="w-4 h-4" />
+          </div>
+          {/* Adicionado break-words e text-[9px] para garantir o encaixe */}
+          <p className="text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-wider line-clamp-2 break-words leading-tight">
+            {title}
+          </p>
         </div>
-        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{title}</p>
       </div>
-      <div className="space-y-0.5">
-        <h4 className="text-xl font-headline font-bold">{value}</h4>
-        <p className="text-[10px] text-muted-foreground">{subtext}</p>
+      <div className="space-y-0.5 mt-auto">
+        {/* Ajuste dinâmico para valores muito longos não quebrarem o layout */}
+        <h4 className="text-base sm:text-lg font-headline font-bold truncate">
+          {value}
+        </h4>
+        <p className="text-[9px] sm:text-[10px] text-muted-foreground line-clamp-1">
+          {subtext}
+        </p>
       </div>
     </CardContent>
   </Card>
@@ -496,31 +506,43 @@ export default function Dashboard() {
           </div>
         </TabsContent>
         <TabsContent value="produtivo">
-          <div>
-            <section className="space-y-4 mt-6">
-              <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] px-1">Análise Produtiva</h3>
-              <Card className="border-border/50 bg-card/40">
-                <CardContent className="p-4 divide-y divide-white/5">
-                  <AnalyticsRow label="Distância Percorrida" value={`${productiveKm.toFixed(1)} km`} sublabel="Km em corrida" />
-                  <AnalyticsRow label="Lucro por Hora" value={formatBRL(netPerHourProductive)} sublabel="Saldo líquido" />
-                  <AnalyticsRow label="Faturamento por Hora" value={formatBRL(grossPerHourProductive)} sublabel="Saldo bruto" />
-                </CardContent>
-              </Card>
-            </section>
+          <div className="mt-6">
+            <div className="grid grid-cols-2 gap-4">
+              <OperationCard
+                title="Distância Produtiva"
+                value={`${productiveKm.toFixed(1)} km`}
+                subtext="Km em corrida"
+                icon={TrendingUp}
+                colorClass="text-green-400"
+              />
+              <OperationCard
+                title="Lucro/Hora Produtiva"
+                value={formatBRL(netPerHourProductive)}
+                subtext="Líquido por hora em corrida"
+                icon={DollarSign}
+                colorClass="text-primary"
+              />
+            </div>
           </div>
         </TabsContent>
         <TabsContent value="total">
-          <div>
-            <section className="space-y-4 mt-6">
-              <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] px-1">Análise Total</h3>
-              <Card className="border-border/50 bg-card/40">
-                <CardContent className="p-4 divide-y divide-white/5">
-                  <AnalyticsRow label="Distância Percorrida" value={`${totalKm.toFixed(1)} km`} sublabel="Km total no turno" />
-                  <AnalyticsRow label="Lucro por Hora" value={formatBRL(netPerHourTotal)} sublabel="Saldo líquido" />
-                  <AnalyticsRow label="Faturamento por Hora" value={formatBRL(grossPerHourTotal)} sublabel="Saldo bruto" />
-                </CardContent>
-              </Card>
-            </section>
+          <div className="mt-6">
+            <div className="grid grid-cols-2 gap-4">
+              <OperationCard
+                title="Distância Total"
+                value={`${totalKm.toFixed(1)} km`}
+                subtext="Km total no turno"
+                icon={TrendingUp}
+                colorClass="text-blue-400"
+              />
+              <OperationCard
+                title="Faturamento/Hora"
+                value={formatBRL(grossPerHourTotal)}
+                subtext="Bruto por hora em turno"
+                icon={DollarSign}
+                colorClass="text-yellow-400"
+              />
+            </div>
           </div>
         </TabsContent>
       </Tabs>
