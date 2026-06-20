@@ -56,16 +56,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 const formatBRL = (val: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
 
-function formatHours(hours: number) {
-  const totalMinutes = Math.round((hours || 0) * 60);
-  const h = Math.floor(totalMinutes / 60);
-  const m = totalMinutes % 60;
-  if (h < 0 || m < 0) return `0min`
-  if (h === 0) return `${m}min`;
-  if (m === 0) return `${h}h`;
-  return `${h}h ${m}min`;
-}
-
 // --- Componentes Reutilizáveis ---
 
 const HeroCard = ({ title, value, subtext, icon: Icon, trendIcon: TrendIcon, trendColor }: any) => (
@@ -99,14 +89,12 @@ const OperationCard = ({ title, value, subtext, icon: Icon, colorClass }: any) =
           <div className={cn("p-2 rounded-xl bg-secondary shrink-0", colorClass)}>
             <Icon className="w-4 h-4" />
           </div>
-          {/* Adicionado break-words e text-[9px] para garantir o encaixe */}
           <p className="text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-wider line-clamp-2 break-words leading-tight">
             {title}
           </p>
         </div>
       </div>
       <div className="space-y-0.5 mt-auto">
-        {/* Ajuste dinâmico para valores muito longos não quebrarem o layout */}
         <h4 className="text-base sm:text-lg font-headline font-bold truncate">
           {value}
         </h4>
@@ -138,11 +126,11 @@ export default function Dashboard() {
   const [profitComparison, setProfitComparison] = useState<any>(null);
   const [showFuelModal, setShowFuelModal] = useState(false);
   const [showExpenseDetails, setShowExpenseDetails] = useState(false);
+  const [showDeadKmModal, setShowDeadKmModal] = useState(false);
   const [fuelPrice, setFuelPrice] = useState<number>(0);
   const [updatingFuel, setUpdatingFuel] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
-  // Estados do Filtro de Data
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: startOfWeek(new Date(), { weekStartsOn: 1 }),
     to: endOfWeek(new Date(), { weekStartsOn: 1 }),
@@ -165,8 +153,6 @@ export default function Dashboard() {
         api.get(`/dashboard?start=${prevStartDateStr}&end=${prevEndDateStr}&timezoneOffset=${timezoneOffset}`),
         api.get('/maintenance-settings')
       ]);
-
-      console.log(dashRes.data)
 
       setData(dashRes.data);
       setPreviousWeekData(prevWeekRes.data);
@@ -253,7 +239,8 @@ export default function Dashboard() {
   }
 
   const summary = data?.summary || {};
-  const days = data?.days || {};
+  const days = data?.days || [];
+  const efficiency = summary.efficiency || {};
 
   const grossAmount = Number(summary.grossAmount || 0);
   const netProfit = Number(summary.netProfit || 0);
@@ -261,7 +248,8 @@ export default function Dashboard() {
   const totalKm = Number(summary.totalKm || 0);
   const productiveKm = Number(summary.productiveKm || 0);
   const productiveHours = Number(summary.productiveHours || 0);
-  const totalHours = Number(summary.totalHours || 0);
+  const totalHoursHuman = summary.totalHoursHuman || '0h 0min';
+  const productiveHoursHuman = summary.productiveHoursHuman || '0h 0min';
 
   const fuelExpenses = Number(summary.fuelExpense || 0);
   const maintenanceExpenses = Number(summary.maintenanceExpense || 0);
@@ -270,21 +258,14 @@ export default function Dashboard() {
 
   // Métricas Produtivas
   const netPerHourProductive = productiveHours > 0 ? netProfit / productiveHours : 0;
-  const grossPerHourProductive = productiveHours > 0 ? grossAmount / productiveHours : 0;
 
   // Métricas Totais
-  const netPerHourTotal = totalHours > 0 ? netProfit / productiveHours : 0;
-  const grossPerHourTotal = totalHours > 0 ? grossAmount / productiveHours : 0;
+  const grossPerHourTotal = summary.totalHours > 0 ? grossAmount / summary.totalHours : 0;
 
-  const totalKmSafe = totalKm > 0 ? totalKm : 1;
-  const netPerKm = netProfit / totalKmSafe;
-  const grossPerKm = grossAmount / totalKmSafe;
-  const costPerKm = totalExpenses / totalKmSafe;
-
-  const chartData = Object.entries(days).map(([date, dayData]: [string, any]) => ({
-    day: dayData.dayName ? dayData.dayName.substring(0, 3) : date.substring(8, 10),
-    earnings: dayData.financial?.grossAmount || 0,
-    profit: dayData.financial?.netProfit || 0,
+  const chartData = days.map((day: any) => ({
+    day: day.dayName ? day.dayName.substring(0, 3) : day.date.substring(8, 10),
+    earnings: day.financial?.grossAmount || 0,
+    profit: day.financial?.netProfit || 0,
   }));
 
   const formattedRange = dateRange?.from && dateRange?.to
@@ -292,15 +273,6 @@ export default function Dashboard() {
     : dateRange?.from
       ? format(dateRange.from, "dd MMM", { locale: ptBR })
       : "Selecione o período";
-
-  // Métricas de Eficiência do Turno
-  const utilizationRate = totalHours > 0 ? (productiveHours / totalHours) * 100 : 0;
-  const idleHours = totalHours - productiveHours;
-  const turnProfitPerHour = totalHours > 0 ? netProfit / totalHours : 0;
-  const deadKm = totalKm - productiveKm;
-  const kmEfficiency = totalKm > 0 ? (productiveKm / totalKm) * 100 : 0;
-  const profitPerTotalKm = totalKm > 0 ? netProfit / totalKm : 0;
-
 
   return (
     <div className="p-6 space-y-8 max-w-md mx-auto pb-28">
@@ -421,14 +393,14 @@ export default function Dashboard() {
                 <div className="grid grid-cols-2 gap-4">
                   <OperationCard
                     title="Horas Ativas"
-                    value={formatHours(totalHours)}
+                    value={totalHoursHuman}
                     subtext="Tempo total em turno"
                     icon={Clock}
                     colorClass="text-primary"
                   />
                   <OperationCard
                     title="Horas Trabalhadas"
-                    value={formatHours(productiveHours)}
+                    value={productiveHoursHuman}
                     subtext="Tempo produtivo"
                     icon={Clock}
                     colorClass="text-blue-400"
@@ -535,6 +507,13 @@ export default function Dashboard() {
                 icon={DollarSign}
                 colorClass="text-primary"
               />
+              <OperationCard
+                title="Lucro/KM Produtivo"
+                value={`${formatBRL(efficiency.productiveProfitPerKm)}/km`}
+                subtext="Líquido por km em corrida"
+                icon={DollarSign}
+                colorClass="text-cyan-400"
+              />
             </div>
           </div>
         </TabsContent>
@@ -555,54 +534,69 @@ export default function Dashboard() {
                 icon={DollarSign}
                 colorClass="text-yellow-400"
               />
+              <OperationCard
+                title="Faturamento/KM Produtivo"
+                value={`${formatBRL(summary.grossAmountPerProductiveKm)}/km`}
+                subtext="Bruto por km em corrida"
+                icon={DollarSign}
+                colorClass="text-orange-400"
+              />
             </div>
           </div>
         </TabsContent>
         <TabsContent value="eficiencia">
           <div className="mt-6">
             <div className="grid grid-cols-2 gap-4">
-            <OperationCard
-                  title="Taxa de Utilização"
-                  value={`${utilizationRate.toFixed(1)}%`}
-                  subtext="Percentual do turno utilizado em corridas."
-                  icon={TrendingUp}
-                  colorClass="text-teal-400"
-                />
-                <OperationCard
-                  title="Tempo Ocioso"
-                  value={formatHours(idleHours)}
-                  subtext="Tempo em turno sem corridas."
-                  icon={Clock}
-                  colorClass="text-amber-400"
-                />
-                <OperationCard
-                  title="Lucro/Hora Turno"
-                  value={formatBRL(turnProfitPerHour)}
-                  subtext="Lucro líquido pelas horas totais do turno."
-                  icon={DollarSign}
-                  colorClass="text-blue-400"
-                />
-                <OperationCard
-                  title="KM Mortos"
-                  value={`${deadKm.toFixed(1)} km`}
-                  subtext="Distância percorrida sem gerar receita."
-                  icon={Fuel}
-                  colorClass="text-red-400"
-                />
-                <OperationCard
-                  title="Eficiência de KM"
-                  value={`${kmEfficiency.toFixed(1)}%`}
-                  subtext="Percentual da quilometragem que gerou receita."
-                  icon={TrendingUp}
-                  colorClass="text-indigo-400"
-                />
-                <OperationCard
-                  title="Lucro/KM Total"
-                  value={`${formatBRL(profitPerTotalKm)}/km`}
-                  subtext="Lucro líquido pela quilometragem total."
-                  icon={DollarSign}
-                  colorClass="text-purple-400"
-                />
+              <OperationCard
+                title="Tempo Ocioso"
+                value={efficiency.idleHoursHuman}
+                subtext="Tempo em turno sem corridas."
+                icon={Clock}
+                colorClass="text-amber-400"
+              />
+              <OperationCard
+                title="Lucro/Hora Turno"
+                value={formatBRL(efficiency.turnProfitPerHour)}
+                subtext="Lucro líquido pelas horas totais do turno."
+                icon={DollarSign}
+                colorClass="text-blue-400"
+              />
+              <Dialog open={showDeadKmModal} onOpenChange={setShowDeadKmModal}>
+                <DialogTrigger asChild>
+                  <div className="cursor-pointer">
+                    <OperationCard
+                      title="KM Mortos"
+                      value={`${(efficiency.deadKm || 0).toFixed(1)} km`}
+                      subtext="Toque para ver detalhes"
+                      icon={Fuel}
+                      colorClass="text-red-400"
+                    />
+                  </div>
+                </DialogTrigger>
+                <DialogContent className="max-w-[90vw] rounded-3xl">
+                  <DialogHeader>
+                    <DialogTitle className="font-headline">Detalhes de KM Morto</DialogTitle>
+                    <DialogDescription>
+                      Custo estimado da quilometragem percorrida sem gerar receita.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="py-4">
+                    <Card className="border-border/50 bg-card/40">
+                      <CardContent className="p-4 divide-y divide-white/5">
+                        <AnalyticsRow label="Custo Combustível" value={formatBRL(efficiency.deadFuelExpense)} />
+                        <AnalyticsRow label="Custo Manutenção" value={formatBRL(efficiency.deadMaintenanceExpense)} />
+                      </CardContent>
+                    </Card>
+                  </div>
+                </DialogContent>
+              </Dialog>
+              <OperationCard
+                title="Lucro/KM Total"
+                value={`${formatBRL(efficiency.profitPerTotalKm)}/km`}
+                subtext="Lucro líquido pela quilometragem total."
+                icon={DollarSign}
+                colorClass="text-purple-400"
+              />
             </div>
           </div>
         </TabsContent>
