@@ -509,7 +509,7 @@ export default function Dashboard() {
               />
               <OperationCard
                 title="Lucro/KM Produtivo"
-                value={`${formatBRL(efficiency.productiveProfitPerKm)}/km`}
+                value={`${formatBRL(summary.productiveProfitPerKm)}/km`}
                 subtext="Líquido por km em corrida"
                 icon={DollarSign}
                 colorClass="text-cyan-400"
