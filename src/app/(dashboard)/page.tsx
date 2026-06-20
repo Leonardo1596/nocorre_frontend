@@ -60,6 +60,7 @@ function formatHours(hours: number) {
   const totalMinutes = Math.round((hours || 0) * 60);
   const h = Math.floor(totalMinutes / 60);
   const m = totalMinutes % 60;
+  if (h < 0 || m < 0) return `0min`
   if (h === 0) return `${m}min`;
   if (m === 0) return `${h}h`;
   return `${h}h ${m}min`;
@@ -164,6 +165,8 @@ export default function Dashboard() {
         api.get(`/dashboard?start=${prevStartDateStr}&end=${prevEndDateStr}&timezoneOffset=${timezoneOffset}`),
         api.get('/maintenance-settings')
       ]);
+
+      console.log(dashRes.data)
 
       setData(dashRes.data);
       setPreviousWeekData(prevWeekRes.data);
@@ -290,6 +293,15 @@ export default function Dashboard() {
       ? format(dateRange.from, "dd MMM", { locale: ptBR })
       : "Selecione o período";
 
+  // Métricas de Eficiência do Turno
+  const utilizationRate = totalHours > 0 ? (productiveHours / totalHours) * 100 : 0;
+  const idleHours = totalHours - productiveHours;
+  const turnProfitPerHour = totalHours > 0 ? netProfit / totalHours : 0;
+  const deadKm = totalKm - productiveKm;
+  const kmEfficiency = totalKm > 0 ? (productiveKm / totalKm) * 100 : 0;
+  const profitPerTotalKm = totalKm > 0 ? netProfit / totalKm : 0;
+
+
   return (
     <div className="p-6 space-y-8 max-w-md mx-auto pb-28">
 
@@ -384,10 +396,11 @@ export default function Dashboard() {
       </div>
 
       <Tabs defaultValue="geral" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="geral">Geral</TabsTrigger>
           <TabsTrigger value="produtivo">Produtivo</TabsTrigger>
           <TabsTrigger value="total">Total</TabsTrigger>
+          <TabsTrigger value="eficiencia">Eficiência</TabsTrigger>
         </TabsList>
         <TabsContent value="geral">
           <div>
@@ -542,6 +555,54 @@ export default function Dashboard() {
                 icon={DollarSign}
                 colorClass="text-yellow-400"
               />
+            </div>
+          </div>
+        </TabsContent>
+        <TabsContent value="eficiencia">
+          <div className="mt-6">
+            <div className="grid grid-cols-2 gap-4">
+            <OperationCard
+                  title="Taxa de Utilização"
+                  value={`${utilizationRate.toFixed(1)}%`}
+                  subtext="Percentual do turno utilizado em corridas."
+                  icon={TrendingUp}
+                  colorClass="text-teal-400"
+                />
+                <OperationCard
+                  title="Tempo Ocioso"
+                  value={formatHours(idleHours)}
+                  subtext="Tempo em turno sem corridas."
+                  icon={Clock}
+                  colorClass="text-amber-400"
+                />
+                <OperationCard
+                  title="Lucro/Hora Turno"
+                  value={formatBRL(turnProfitPerHour)}
+                  subtext="Lucro líquido pelas horas totais do turno."
+                  icon={DollarSign}
+                  colorClass="text-blue-400"
+                />
+                <OperationCard
+                  title="KM Mortos"
+                  value={`${deadKm.toFixed(1)} km`}
+                  subtext="Distância percorrida sem gerar receita."
+                  icon={Fuel}
+                  colorClass="text-red-400"
+                />
+                <OperationCard
+                  title="Eficiência de KM"
+                  value={`${kmEfficiency.toFixed(1)}%`}
+                  subtext="Percentual da quilometragem que gerou receita."
+                  icon={TrendingUp}
+                  colorClass="text-indigo-400"
+                />
+                <OperationCard
+                  title="Lucro/KM Total"
+                  value={`${formatBRL(profitPerTotalKm)}/km`}
+                  subtext="Lucro líquido pela quilometragem total."
+                  icon={DollarSign}
+                  colorClass="text-purple-400"
+                />
             </div>
           </div>
         </TabsContent>
