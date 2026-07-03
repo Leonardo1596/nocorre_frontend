@@ -151,9 +151,9 @@ public class NativeGpsService extends Service {
         LocationRequest locationRequest =
             new LocationRequest.Builder(
                 Priority.PRIORITY_HIGH_ACCURACY,
-                1000
+                500
             )
-                .setMinUpdateIntervalMillis(1000)
+                .setMinUpdateIntervalMillis(500)
                 .setWaitForAccurateLocation(true)
                 .build();
 
