@@ -9,6 +9,8 @@ import React, {
 } from "react";
 import { useGps } from "./GpsContext";
 import { NativeGps } from "@/lib/gps";
+import { OverlayPermission } from "@/plugins/uber-accessibility";
+import { useToast } from "@/hooks/use-toast";
 
 interface ShiftContextType {
   isShiftActive: boolean;
@@ -38,6 +40,7 @@ export const ShiftProvider = ({ children }: { children: React.ReactNode }) => {
   const [productiveDistance, setProductiveDistance] = useState(0);
   const [totalPausedKm, setTotalPausedKm] = useState(0);
   const [kmAtPauseStart, setKmAtPauseStart] = useState(0);
+  const { toast } = useToast();
 
   const {
     startGps,
@@ -102,6 +105,16 @@ export const ShiftProvider = ({ children }: { children: React.ReactNode }) => {
   }, [shiftDistance, totalPausedKm, isPaused]);
 
   const startShift = useCallback(async () => {
+    const { hasPermission } = await OverlayPermission.check();
+    if (!hasPermission) {
+      toast({
+        title: "Permissão necessária",
+        description: "Para exibir as informações de corrida, você precisa permitir que o app sobreponha outros aplicativos.",
+      });
+      await OverlayPermission.request();
+      return;
+    }
+
     try {
       await NativeGps.clearGpsLog();
       await NativeGps.clearShiftState();
@@ -115,7 +128,7 @@ export const ShiftProvider = ({ children }: { children: React.ReactNode }) => {
     setTotalPausedKm(0);
     setKmAtPauseStart(0);
     setProductiveDistance(0);
-  }, [startGps, resetAccumulatedDistance]);
+  }, [startGps, resetAccumulatedDistance, toast]);
 
   const stopShift = useCallback(async () => {
     stopGps();
