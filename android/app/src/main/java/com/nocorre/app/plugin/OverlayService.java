@@ -8,6 +8,7 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.TextView;
 
 import com.nocorre.app.R;
 
@@ -22,9 +23,19 @@ public class OverlayService extends Service {
     }
 
     @Override
-    public void onCreate() {
-        super.onCreate();
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        if (intent != null && intent.hasExtra("rideInfo")) {
+            String rideInfo = intent.getStringExtra("rideInfo");
+            if (overlayView == null) {
+                createOverlay();
+            }
+            TextView rideInfoTextView = overlayView.findViewById(R.id.ride_info_text);
+            rideInfoTextView.setText(rideInfo);
+        }
+        return START_NOT_STICKY;
+    }
 
+    private void createOverlay() {
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
         overlayView = LayoutInflater.from(this).inflate(R.layout.overlay_layout, null);
 
@@ -40,6 +51,9 @@ public class OverlayService extends Service {
         params.y = 100;
 
         windowManager.addView(overlayView, params);
+
+        View closeButton = overlayView.findViewById(R.id.close_button);
+        closeButton.setOnClickListener(v -> stopSelf());
     }
 
     @Override

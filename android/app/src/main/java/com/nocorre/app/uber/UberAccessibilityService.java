@@ -1,8 +1,10 @@
 package com.nocorre.app.uber;
 
 import android.accessibilityservice.AccessibilityService;
+import android.content.Intent;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
+import com.nocorre.app.plugin.OverlayService;
 
 public class UberAccessibilityService extends AccessibilityService {
 
@@ -16,9 +18,9 @@ public class UberAccessibilityService extends AccessibilityService {
                 String screenText = extractTextFromNode(source);
                 RideInfo rideInfo = rideParser.parse(screenText);
                 if (rideInfo != null) {
-                    // Here you would broadcast the rideInfo to your app'''s UI
-                    // For now, we'''ll just log it
-                    System.out.println("Uber Ride Info: " + rideInfo.toString());
+                    Intent intent = new Intent(this, OverlayService.class);
+                    intent.putExtra("rideInfo", rideInfo.toString());
+                    startService(intent);
                 }
             }
         }
