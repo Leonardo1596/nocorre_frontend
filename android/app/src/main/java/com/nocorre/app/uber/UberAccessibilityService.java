@@ -4,10 +4,12 @@ import android.accessibilityservice.AccessibilityService;
 import android.content.Intent;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
-import com.nocorre.app.plugin.OverlayService;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 public class UberAccessibilityService extends AccessibilityService {
 
+    public static final String ACTION_RIDE_INFO = "com.nocorre.app.ACTION_RIDE_INFO";
+    public static final String EXTRA_RIDE_INFO = "com.nocorre.app.EXTRA_RIDE_INFO";
     private final UberRideParser rideParser = new UberRideParser();
 
     @Override
@@ -18,9 +20,9 @@ public class UberAccessibilityService extends AccessibilityService {
                 String screenText = extractTextFromNode(source);
                 RideInfo rideInfo = rideParser.parse(screenText);
                 if (rideInfo != null) {
-                    Intent intent = new Intent(this, OverlayService.class);
-                    intent.putExtra("rideInfo", rideInfo.toString());
-                    startService(intent);
+                    Intent intent = new Intent(ACTION_RIDE_INFO);
+                    intent.putExtra(EXTRA_RIDE_INFO, rideInfo);
+                    LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
                 }
             }
         }

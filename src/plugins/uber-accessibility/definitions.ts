@@ -1,10 +1,10 @@
 import { PluginListenerHandle } from "@capacitor/core";
 
 export interface RideInfo {
+  price: number;
+  distance: number;
+  eta: number;
   category: string;
-  price: string;
-  distance: string;
-  eta: string;
 }
 
 export interface UberAccessibilityPlugin {

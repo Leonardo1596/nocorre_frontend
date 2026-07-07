@@ -13,26 +13,30 @@ public class UberRideParser {
         RideInfo rideInfo = new RideInfo();
 
         // Extract price
-        Pattern pricePattern = Pattern.compile("R\\s*\\$(\\d+\\.\\d{2})");
+        Pattern pricePattern = Pattern.compile("R\\s*\\$?\\s*(\\d+,\\d{2})");
         Matcher priceMatcher = pricePattern.matcher(text);
         if (priceMatcher.find()) {
-            rideInfo.price = Double.parseDouble(priceMatcher.group(1));
+            rideInfo.price = Double.parseDouble(priceMatcher.group(1).replace(',', '.'));
         }
 
         // Extract pickup and ride details
-        Pattern distancePattern = Pattern.compile("(\\d+\\.\\d+)\\s*km\\s*\\((\\d+)\\s*min(utos)?\\)");
+        Pattern distancePattern = Pattern.compile("(\\d+\\,\\d+)\\s*km(?:\\s*\\((\\d+)\\s*min(?:utos)?\\))?");
         Matcher distanceMatcher = distancePattern.matcher(text);
 
         // First match is pickup
         if (distanceMatcher.find()) {
-            rideInfo.pickupDistance = Double.parseDouble(distanceMatcher.group(1));
-            rideInfo.pickupDuration = Integer.parseInt(distanceMatcher.group(2));
+            rideInfo.pickupDistance = Double.parseDouble(distanceMatcher.group(1).replace(',', '.'));
+            if (distanceMatcher.group(2) != null) {
+                rideInfo.pickupDuration = Integer.parseInt(distanceMatcher.group(2));
+            }
         }
 
         // Second match is the main ride
         if (distanceMatcher.find()) {
-            rideInfo.rideDistance = Double.parseDouble(distanceMatcher.group(1));
-            rideInfo.rideDuration = Integer.parseInt(distanceMatcher.group(2));
+            rideInfo.rideDistance = Double.parseDouble(distanceMatcher.group(1).replace(',', '.'));
+            if (distanceMatcher.group(2) != null) {
+              rideInfo.rideDuration = Integer.parseInt(distanceMatcher.group(2));
+            }
         }
 
         return rideInfo;
