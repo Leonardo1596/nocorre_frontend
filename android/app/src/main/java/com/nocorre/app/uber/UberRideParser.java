@@ -20,7 +20,7 @@ public class UberRideParser {
         }
 
         // Extract pickup and ride details
-        Pattern distancePattern = Pattern.compile("(\\d+\\,\\d+)\\s*km(?:\\s*\\((\\d+)\\s*min(?:utos)?\\))?");
+        Pattern distancePattern = Pattern.compile("(\\d+[\\.,]\\d+)\\s*km(?:\\s*\\((\\d+)\\s*min(?:utos)?\\))?");
         Matcher distanceMatcher = distancePattern.matcher(text);
 
         // First match is pickup
