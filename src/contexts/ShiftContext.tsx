@@ -105,29 +105,46 @@ export const ShiftProvider = ({ children }: { children: React.ReactNode }) => {
   }, [shiftDistance, totalPausedKm, isPaused]);
 
   const startShift = useCallback(async () => {
-    const { hasPermission } = await OverlayPermission.check();
+    let { hasPermission } = await OverlayPermission.check();
+
     if (!hasPermission) {
       toast({
         title: "Permissão necessária",
-        description: "Para exibir as informações de corrida, você precisa permitir que o app sobreponha outros aplicativos.",
+        description: "Para uma experiência completa, permita que o app sobreponha outros aplicativos.",
+        duration: 5000,
       });
       await OverlayPermission.request();
-      return;
+      const result = await OverlayPermission.check();
+      hasPermission = result.hasPermission;
     }
 
-    try {
-      await NativeGps.clearGpsLog();
-      await NativeGps.clearShiftState();
-    } catch (e) {
-      console.error("Error clearing GPS log", e);
+    if (hasPermission) {
+      try {
+        await NativeGps.clearGpsLog();
+        await NativeGps.clearShiftState();
+      } catch (e) {
+        console.error("Error clearing GPS log", e);
+      }
+      resetAccumulatedDistance();
+      startGps();
+      setIsShiftActive(true);
+      setIsPaused(false);
+      setTotalPausedKm(0);
+      setKmAtPauseStart(0);
+      setProductiveDistance(0);
+      toast({
+        title: "Turno iniciado!",
+        description: "Suas corridas agora serão detectadas.",
+        duration: 3000,
+      });
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Permissão negada",
+        description: "Não é possível detectar corridas sem a permissão de sobreposição.",
+        duration: 5000,
+      });
     }
-    resetAccumulatedDistance();
-    startGps();
-    setIsShiftActive(true);
-    setIsPaused(false);
-    setTotalPausedKm(0);
-    setKmAtPauseStart(0);
-    setProductiveDistance(0);
   }, [startGps, resetAccumulatedDistance, toast]);
 
   const stopShift = useCallback(async () => {
