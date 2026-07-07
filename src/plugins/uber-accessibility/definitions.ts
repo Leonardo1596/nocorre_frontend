@@ -9,7 +9,7 @@ export interface RideInfo {
 
 export interface UberAccessibilityPlugin {
   echo(options: { value: string }): Promise<{ value: string }>;
-  addListener(eventName: 'rideReceived', listenerFunc: (info: RideInfo) => void): PluginListenerHandle;
+  addListener(eventName: 'rideReceived', listenerFunc: (info: RideInfo) => void): Promise<PluginListenerHandle>;
 }
 
 export interface OverlayPermissionPlugin {

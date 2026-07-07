@@ -1,15 +1,10 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode } from "react";
-import { UberAccessibilityPlugin } from "src/plugins/uber-accessibility/definitions";
+import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import { PluginListenerHandle } from "@capacitor/core";
+import { UberAccessibility } from "@/plugins/uber-accessibility";
+import { RideInfo } from "@/plugins/uber-accessibility/definitions";
 import { useToast } from "@/hooks/use-toast";
-
-export interface RideInfo {
-  category: string;
-  price: string;
-  distance: string;
-  eta: string;
-}
 
 interface UberContextType {
   rideInfo: RideInfo | null;
@@ -21,26 +16,34 @@ export const UberProvider = ({ children }: { children: ReactNode }) => {
   const [rideInfo, setRideInfo] = useState<RideInfo | null>(null);
   const { toast } = useToast();
 
-  React.useEffect(() => {
-    const listener = UberAccessibilityPlugin.addListener(
-      "rideReceived",
-      (info: RideInfo) => {
-        setRideInfo(info);
-        toast({
-          title: info.category,
-          description: (
-            <div>
-              <p>Preço: {info.price}</p>
-              <p>Distância: {info.distance}</p>
-              <p>ETA: {info.eta}</p>
-            </div>
-          ),
-        });
-      }
-    );
+  useEffect(() => {
+    let listenerHandle: PluginListenerHandle;
+
+    const addListener = async () => {
+        listenerHandle = await UberAccessibility.addListener(
+            "rideReceived",
+            (info: RideInfo) => {
+                setRideInfo(info);
+                toast({
+                    title: `Nova corrida: ${info.category}`,
+                    description: (
+                        <div className="text-sm">
+                            <p><strong>Preço:</strong> {info.price}</p>
+                            <p><strong>Distância:</strong> {info.distance}</p>
+                            <p><strong>Tempo:</strong> {info.eta}</p>
+                        </div>
+                    ),
+                    duration: 15000,
+                });
+            }
+        );
+    }
+    addListener();
 
     return () => {
-      listener.remove();
+      if(listenerHandle) {
+        listenerHandle.remove();
+      }
     };
   }, [toast]);
 
