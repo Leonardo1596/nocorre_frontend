@@ -9,8 +9,6 @@ import React, {
 } from "react";
 import { useGps } from "./GpsContext";
 import { NativeGps } from "@/lib/gps";
-import { OverlayPermission } from "@/plugins/uber-accessibility";
-import { useToast } from "@/hooks/use-toast";
 
 interface ShiftContextType {
   isShiftActive: boolean;
@@ -40,7 +38,6 @@ export const ShiftProvider = ({ children }: { children: React.ReactNode }) => {
   const [productiveDistance, setProductiveDistance] = useState(0);
   const [totalPausedKm, setTotalPausedKm] = useState(0);
   const [kmAtPauseStart, setKmAtPauseStart] = useState(0);
-  const { toast } = useToast();
 
   const {
     startGps,
@@ -105,47 +102,20 @@ export const ShiftProvider = ({ children }: { children: React.ReactNode }) => {
   }, [shiftDistance, totalPausedKm, isPaused]);
 
   const startShift = useCallback(async () => {
-    let { hasPermission } = await OverlayPermission.check();
-
-    if (!hasPermission) {
-      toast({
-        title: "Permissão necessária",
-        description: "Para uma experiência completa, permita que o app sobreponha outros aplicativos.",
-        duration: 5000,
-      });
-      await OverlayPermission.request();
-      const result = await OverlayPermission.check();
-      hasPermission = result.hasPermission;
+    try {
+      await NativeGps.clearGpsLog();
+      await NativeGps.clearShiftState();
+    } catch (e) {
+      console.error("Error clearing GPS log", e);
     }
-
-    if (hasPermission) {
-      try {
-        await NativeGps.clearGpsLog();
-        await NativeGps.clearShiftState();
-      } catch (e) {
-        console.error("Error clearing GPS log", e);
-      }
-      resetAccumulatedDistance();
-      startGps();
-      setIsShiftActive(true);
-      setIsPaused(false);
-      setTotalPausedKm(0);
-      setKmAtPauseStart(0);
-      setProductiveDistance(0);
-      toast({
-        title: "Turno iniciado!",
-        description: "Suas corridas agora serão detectadas.",
-        duration: 3000,
-      });
-    } else {
-      toast({
-        variant: "destructive",
-        title: "Permissão negada",
-        description: "Não é possível detectar corridas sem a permissão de sobreposição.",
-        duration: 5000,
-      });
-    }
-  }, [startGps, resetAccumulatedDistance, toast]);
+    resetAccumulatedDistance();
+    startGps();
+    setIsShiftActive(true);
+    setIsPaused(false);
+    setTotalPausedKm(0);
+    setKmAtPauseStart(0);
+    setProductiveDistance(0);
+  }, [startGps, resetAccumulatedDistance]);
 
   const stopShift = useCallback(async () => {
     stopGps();

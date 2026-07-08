@@ -221,20 +221,6 @@ export default function Dashboard() {
     }
   };
 
-  const handleTestRide = () => {
-    toast({
-        title: "Nova corrida: UberX",
-        description: (
-            <div className="text-sm">
-                <p><strong>Preço:</strong> R$ 25,00</p>
-                <p><strong>Distância:</strong> 10 km</p>
-                <p><strong>Tempo:</strong> 15 min</p>
-            </div>
-        ),
-        duration: 15000,
-    });
-  };
-
   const navigateWeek = (direction: 'prev' | 'next') => {
     if (!dateRange?.from || !dateRange?.to) return;
     const offset = direction === 'prev' ? -7 : 7;
@@ -617,7 +603,6 @@ export default function Dashboard() {
       </Tabs>
 
       <div className="flex justify-center pb-8 pt-4">
-        <Button onClick={handleTestRide} variant="secondary" className="mr-4">Testar Notificação de Corrida</Button>
         <Button variant="link" className="text-primary text-xs font-bold uppercase tracking-widest gap-2" asChild>
           <Link href="/history">
             Acessar Histórico Completo
