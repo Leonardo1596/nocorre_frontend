@@ -7,7 +7,7 @@ const config: CapacitorConfig = {
   bundledWebRuntime: false,
   plugins: {
     // Your custom plugin
-    NativeGps: {}, // Ensure this line exists
+    Gps: {}, // Ensure this line exists
   },
 };
 

@@ -8,7 +8,7 @@ import React, {
   useCallback,
   useRef,
 } from "react";
-import { NativeGps } from "@/lib/gps";
+import { Gps } from "@/lib/gps";
 
 // Helper function to calculate distance between two lat/lon points using the Haversine formula
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -58,7 +58,7 @@ export const GpsProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const restore = async () => {
       try {
-        const { accumulatedDistance: restoredDistance, lastLocation } = await NativeGps.restoreState();
+        const { accumulatedDistance: restoredDistance, lastLocation } = await Gps.restoreState();
         if (restoredDistance > 0) {
           setAccumulatedDistance(restoredDistance);
         }
@@ -67,7 +67,7 @@ export const GpsProvider = ({ children }: { children: React.ReactNode }) => {
           lastLocationRef.current = lastLocation
         }
 
-        const { isRunning } = await NativeGps.isGpsRunning();
+        const { isRunning } = await Gps.isGpsRunning();
         setIsGpsActive(isRunning);
       } catch (e) {
         console.error("Error restoring GPS state", e);
@@ -100,7 +100,7 @@ export const GpsProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const setupListener = async () => {
-        const listener = await NativeGps.addListener("locationUpdate", handleLocationUpdate);
+        const listener = await Gps.addListener("locationUpdate", handleLocationUpdate);
         return () => {
             listener.remove();
         };
@@ -114,7 +114,7 @@ export const GpsProvider = ({ children }: { children: React.ReactNode }) => {
 
   const startGps = async () => {
     try {
-      await NativeGps.startGps();
+      await Gps.startGps();
       setIsGpsActive(true);
       console.log("GPS service started via context");
     } catch (e) {
@@ -125,7 +125,7 @@ export const GpsProvider = ({ children }: { children: React.ReactNode }) => {
 
   const stopGps = async () => {
     try {
-      await NativeGps.stopGps();
+      await Gps.stopGps();
       setIsGpsActive(false);
       console.log("GPS service stopped via context");
     } catch (e) {

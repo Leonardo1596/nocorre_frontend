@@ -17,7 +17,7 @@ export interface ShiftState {
   kmAtPauseStart: number;
 }
 
-export interface NativeGpsPlugin {
+export interface GpsPlugin {
   startGps(): Promise<void>;
   stopGps(): Promise<void>;
   isGpsRunning(): Promise<{ isRunning: boolean }>;
@@ -26,12 +26,14 @@ export interface NativeGpsPlugin {
   setShiftState(state: ShiftState): Promise<void>;
   clearShiftState(): Promise<void>;
   clearGpsLog(): Promise<void>;
+  isAccessibilityServiceEnabled(): Promise<{ isEnabled: boolean }>;
+  openAccessibilitySettings(): Promise<void>;
   addListener(
     eventName: 'locationUpdate',
     listenerFunc: (location: LocationPoint) => void
   ): Promise<any>;
 }
 
-const NativeGps = registerPlugin<NativeGpsPlugin>('NativeGps');
+const Gps = registerPlugin<GpsPlugin>('Gps');
 
-export { NativeGps };
+export { Gps };
