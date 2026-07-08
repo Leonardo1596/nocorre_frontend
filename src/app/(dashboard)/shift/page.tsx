@@ -9,14 +9,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Play, Pause, StopCircle, Car, Timer, Loader2, MapPin } from "lucide-react";
+import { Play, Pause, StopCircle, Car, Timer, Loader2, MapPin, Settings } from "lucide-react";
 
 import { useApp } from "@/contexts/AppContext";
 import { useGps } from "@/contexts/GpsContext";
 import { useShift } from "@/contexts/ShiftContext";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
+import { Gps } from "@/lib/gps";
 
 // --- LocalStorage Keys for State Persistence ---
 const SESSION_START_KM_KEY = "session_start_km";
@@ -29,13 +31,13 @@ export default function ShiftPage() {
   const { location, isGpsActive } = useGps();
   const { shiftDistance, startShift: startShiftContext, stopShift: stopShiftContext } = useShift();
 
-  // Create a ref to hold the latest shiftDistance
   const shiftDistanceRef = useRef(shiftDistance);
 
   const [elapsed, setElapsed] = useState(0);
   const [sessionElapsed, setSessionElapsed] = useState(0);
   const [loading, setLoading] = useState(false);
   const [showFinishDialog, setShowFinishDialog] = useState(false);
+  const [showAccessibilityDialog, setShowAccessibilityDialog] = useState(false);
 
   const [productiveKm, setProductiveKm] = useState<number>(0);
 
@@ -61,7 +63,6 @@ export default function ShiftPage() {
   const [locationIndicator, setLocationIndicator] = useState(false);
   const lastLocationTime = useRef<number | null>(null);
 
-  // Keep the ref updated with the latest shiftDistance
   useEffect(() => {
     shiftDistanceRef.current = shiftDistance;
   }, [shiftDistance]);
@@ -144,6 +145,20 @@ export default function ShiftPage() {
   }
 
   async function startShift() {
+    if (Capacitor.getPlatform() !== 'web') {
+      try {
+        const { isEnabled } = await Gps.isAccessibilityServiceEnabled();
+        if (!isEnabled) {
+          setShowAccessibilityDialog(true);
+          return; // Stop execution here if permission is not granted
+        }
+      } catch (error) {
+        console.error("Error checking accessibility service:", error);
+        toast({ variant: "destructive", title: "Erro de Acessibilidade", description: "Não foi possível verificar o serviço de acessibilidade." });
+        return; // Also stop if there's an error
+      }
+    }
+
     setLoading(true);
     try {
       const startedAt = new Date().toISOString();
@@ -305,6 +320,11 @@ export default function ShiftPage() {
       setLoading(false);
     }
   }
+  
+  const handleOpenAccessibilitySettings = async () => {
+    await Gps.openAccessibilitySettings();
+    setShowAccessibilityDialog(false);
+  };
 
   return (
     <div className="p-6 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -347,9 +367,7 @@ export default function ShiftPage() {
                       ? (currentSession.isPaused
                         ? 'text-amber-600'
                         : 'text-green-600')
-                      : 'text-accent'
-                    }`}
-                >
+                      : 'text-accent'}`}>
                   {formatTime(sessionElapsed)}
                 </p>
               </CardContent>
@@ -417,6 +435,24 @@ export default function ShiftPage() {
           </div>
         </div>
       )}
+
+      <AlertDialog open={showAccessibilityDialog} onOpenChange={setShowAccessibilityDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Permissão de Acessibilidade Necessária</AlertDialogTitle>
+            <AlertDialogDescription>
+              Para que nosso aplicativo possa ler as informações de ganhos e corridas da Uber, é necessário ativar nosso serviço de acessibilidade. Isso nos permite calcular seus ganhos em tempo real.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Agora não</AlertDialogCancel>
+            <AlertDialogAction onClick={handleOpenAccessibilitySettings}>
+              <Settings className="w-4 h-4 mr-2" />
+              Configurar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={showFinishDialog} onOpenChange={setShowFinishDialog}>
         <DialogContent className="rounded-2xl">
