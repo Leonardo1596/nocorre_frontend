@@ -31,10 +31,10 @@ public class NodeInfo {
     public String toString() {
         return "NodeInfo{" +
                 "depth=" + depth +
-                ", text='" + text + ''' +
-                ", contentDescription='" + contentDescription + ''' +
-                ", viewId='" + viewId + ''' +
-                ", className='" + className + ''' +
+                ", text='" + text + '\'' +
+                ", contentDescription='" + contentDescription + '\'' +
+                ", viewId='" + viewId + '\'' +
+                ", className='" + className + '\'' +
                 ", clickable=" + clickable +
                 ", visible=" + visible +
                 ", bounds=" + bounds +
