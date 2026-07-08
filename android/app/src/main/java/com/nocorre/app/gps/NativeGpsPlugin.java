@@ -1,10 +1,13 @@
 package com.nocorre.app.gps;
 
 import android.Manifest;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.location.Location;
 import android.os.Build;
+import android.provider.Settings;
+import android.text.TextUtils;
 import android.util.Log;
 
 import androidx.lifecycle.Observer;
@@ -18,6 +21,7 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
+import com.nocorre.app.accessibility.UberAccessibilityService;
 
 import org.json.JSONException;
 
@@ -31,7 +35,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @CapacitorPlugin(
-    name = "NativeGps",
+    name = "Gps",
     permissions = {
         @Permission(
             alias = "location",
@@ -236,6 +240,51 @@ public class NativeGpsPlugin extends Plugin {
                 call.reject("Error clearing GPS log");
             }
         }
+    }
+
+    @PluginMethod
+    public void isAccessibilityServiceEnabled(PluginCall call) {
+        JSObject ret = new JSObject();
+        boolean isEnabled = isAccessibilityServiceEnabled(getContext(), UberAccessibilityService.class);
+        ret.put("isEnabled", isEnabled);
+        call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void openAccessibilitySettings(PluginCall call) {
+        Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
+        getContext().startActivity(intent);
+        call.resolve();
+    }
+
+    private boolean isAccessibilityServiceEnabled(Context context, Class<?> accessibilityService) {
+        ComponentName expectedComponentName = new ComponentName(context, accessibilityService);
+        Log.d(TAG, "Checking for service: " + expectedComponentName.flattenToString());
+
+        String enabledServicesSetting = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
+        Log.d(TAG, "Enabled services setting: " + enabledServicesSetting);
+
+        if (enabledServicesSetting == null) {
+            Log.d(TAG, "Enabled services setting is null. Service is disabled.");
+            return false;
+        }
+
+        TextUtils.SimpleStringSplitter colonSplitter = new TextUtils.SimpleStringSplitter(':');
+        colonSplitter.setString(enabledServicesSetting);
+
+        while (colonSplitter.hasNext()) {
+            String componentNameString = colonSplitter.next();
+            Log.d(TAG, "Found enabled service component: " + componentNameString);
+            ComponentName enabledComponentName = ComponentName.unflattenFromString(componentNameString);
+
+            if (enabledComponentName != null && enabledComponentName.equals(expectedComponentName)) {
+                Log.d(TAG, "Service is enabled!");
+                return true;
+            }
+        }
+
+        Log.d(TAG, "Service is disabled.");
+        return false;
     }
 
 
