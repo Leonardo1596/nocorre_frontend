@@ -15,11 +15,11 @@ public class UberAccessibilityService extends AccessibilityService {
     private static final String TAG = "UBER_ACCESSIBILITY";
     private static final String UBER_PACKAGE_NAME = "com.ubercab.driver";
 
-    // Pattern to find trip value, e.g., R$ 6,46 or $6.46
-    private static final Pattern VALUE_PATTERN = Pattern.compile("(?:R\$|\$)\s*(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2}))");
+    // Corrected pattern to find trip value, e.g., R$ 6,46 or $6.46
+    private static final Pattern VALUE_PATTERN = Pattern.compile("(?:R\\$|\\$)\\s*(\\d{1,3}(?:[.,]\\d{3})*(?:[.,]\\d{2}))");
 
     // Pattern to find distance and time, e.g., "2.2 km (5 min)" or "5.9 km (9 minutos)"
-    private static final Pattern DISTANCE_TIME_PATTERN = Pattern.compile("(\d+[.,]\d*)\s*km\s*\((\d+)\s*min(utos)?\)");
+    private static final Pattern DISTANCE_TIME_PATTERN = Pattern.compile("(\\d+[.,]\\d*)\\s*km\\s*\\((\\d+)\\s*min(utos)?\\)");
 
     // Holds the log message of the last detected trip to avoid duplicate logging
     private static String lastLoggedTrip = null;
