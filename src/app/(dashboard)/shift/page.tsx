@@ -4,6 +4,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Capacitor } from '@capacitor/core';
 
+import { Eye } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +13,8 @@ import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Play, Pause, StopCircle, Car, Timer, Loader2, MapPin } from "lucide-react";
+
+import { NativeGps } from "@/lib/gps"
 
 import { useApp } from "@/contexts/AppContext";
 import { useGps } from "@/contexts/GpsContext";
@@ -26,7 +30,71 @@ const KM_AT_PAUSE_START_KEY = "km_at_pause_start";
 export default function ShiftPage() {
   const { currentShift, setCurrentShift, currentSession, setCurrentSession } = useApp();
   const { toast } = useToast();
-  const { location, isGpsActive } = useGps();
+
+
+  const handleOverlayToggle = async () => {
+    try {
+
+      if (Capacitor.getPlatform() === "web") {
+        toast({
+          title: "Indisponível",
+          description: "Overlay funciona apenas no Android."
+        });
+        return;
+      }
+
+      const { granted } = await NativeGps.canDrawOverlays();
+
+      if (!granted) {
+
+        await NativeGps.requestOverlayPermission();
+
+        toast({
+          title: "Permissão necessária",
+          description: "Conceda a permissão e volte ao aplicativo."
+        });
+
+        return;
+      }
+
+      if (!overlayEnabled) {
+
+        await NativeGps.showOverlay();
+
+        setOverlayEnabled(true);
+
+        toast({
+          title: "Overlay ativado"
+        });
+
+      } else {
+
+        await NativeGps.hideOverlay();
+
+        setOverlayEnabled(false);
+
+        toast({
+          title: "Overlay desativado"
+        });
+
+      }
+
+    } catch (error) {
+
+      console.error(error);
+
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Não foi possível alterar o overlay."
+      });
+
+    }
+  };
+
+
+
+  const { location, speed, isGpsActive } = useGps();
   const { shiftDistance, startShift: startShiftContext, stopShift: stopShiftContext } = useShift();
 
   // Create a ref to hold the latest shiftDistance
@@ -36,6 +104,8 @@ export default function ShiftPage() {
   const [sessionElapsed, setSessionElapsed] = useState(0);
   const [loading, setLoading] = useState(false);
   const [showFinishDialog, setShowFinishDialog] = useState(false);
+
+  const [overlayEnabled, setOverlayEnabled] = useState(false);
 
   const [productiveKm, setProductiveKm] = useState<number>(0);
 
@@ -332,10 +402,10 @@ export default function ShiftPage() {
             </Card>
             <Card
               className={`${currentSession.isActive
-                  ? (currentSession.isPaused
-                    ? 'border-amber-500/30 bg-amber-500/10'
-                    : 'border-green-500/30 bg-green-500/10')
-                  : 'border-accent/30 bg-accent/5'
+                ? (currentSession.isPaused
+                  ? 'border-amber-500/30 bg-amber-500/10'
+                  : 'border-green-500/30 bg-green-500/10')
+                : 'border-accent/30 bg-accent/5'
                 }`}
             >
               <CardContent className="p-4">
@@ -344,10 +414,10 @@ export default function ShiftPage() {
                 </p>
                 <p
                   className={`text-xl font-bold ${currentSession.isActive
-                      ? (currentSession.isPaused
-                        ? 'text-amber-600'
-                        : 'text-green-600')
-                      : 'text-accent'
+                    ? (currentSession.isPaused
+                      ? 'text-amber-600'
+                      : 'text-green-600')
+                    : 'text-accent'
                     }`}
                 >
                   {formatTime(sessionElapsed)}
@@ -385,13 +455,50 @@ export default function ShiftPage() {
                   <p className={`text-2xl font-bold ${currentSession.isActive ? (currentSession.isPaused ? 'text-amber-600' : 'text-green-600') : ''}`}>{productiveKm.toFixed(2)} <span className="text-base font-normal text-muted-foreground">km</span></p>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground text-center mt-4">
-                Coords: {location?.latitude ? location.latitude.toFixed(4) : 'N/A'}, {location?.longitude ? location.longitude.toFixed(4) : 'N/A'}
-              </p>
+              <div className="mt-4 space-y-2">
+                <div className="p-4 rounded-lg bg-blue-500/10 text-center">
+                  <p className="text-xs text-muted-foreground">
+                    Velocidade Atual
+                  </p>
+
+                  <p className="text-3xl font-bold text-blue-600">
+                    {speed.toFixed(0)}
+                    <span className="text-base font-normal ml-1 text-muted-foreground">
+                      km/h
+                    </span>
+                  </p>
+                </div>
+
+                <p className="text-xs text-muted-foreground text-center">
+                  Coords:{" "}
+                  {location?.latitude
+                    ? location.latitude.toFixed(4)
+                    : "N/A"}
+                  ,{" "}
+                  {location?.longitude
+                    ? location.longitude.toFixed(4)
+                    : "N/A"}
+                </p>
+              </div>
             </CardContent>
           </Card>
 
           <div className="grid grid-cols-1 gap-4">
+            <Button
+              onClick={handleOverlayToggle}
+              variant="outline"
+              className={`h-14 rounded-2xl font-bold ${overlayEnabled
+                  ? "bg-blue-600 text-white hover:bg-blue-700 border-blue-600"
+                  : ""
+                }`}
+            >
+              <Eye className="w-5 h-5 mr-2" />
+
+              {overlayEnabled
+                ? "DESATIVAR OVERLAY"
+                : "ATIVAR OVERLAY"}
+            </Button>
+
             {!currentSession.isActive ? (
               <Button onClick={startWorkSession} disabled={loading || !isGpsActive} className="h-16 rounded-2xl font-bold">
                 <Timer className="w-5 h-5 mr-2" />

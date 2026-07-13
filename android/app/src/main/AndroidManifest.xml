@@ -18,6 +18,9 @@
     <!-- NOTIFICAÇÕES (Android 13+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- Overlay -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
     <!-- HARDWARE GPS -->
     <uses-feature android:name="android.hardware.location.gps" />
 
@@ -63,6 +66,29 @@
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="location" />
+
+        <!-- Overlay -->
+        <service
+            android:name=".OverlayService"
+            android:enabled="true"
+            android:exported="false" />
+
+        <!-- Accessibility Service -->
+        <service
+            android:name=".UberAccessibilityService"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:enabled="true"
+            android:exported="false">
+
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_config" />
+
+        </service>
 
     </application>
 

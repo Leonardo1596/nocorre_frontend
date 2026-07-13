@@ -6,141 +6,455 @@ import React, {
   useEffect,
   useState,
   useCallback,
-  useRef,
 } from "react";
+
 import { NativeGps } from "@/lib/gps";
 
-// Helper function to calculate distance between two lat/lon points using the Haversine formula
-function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const R = 6371; // Radius of the Earth in km
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a =
-    0.5 -
-    Math.cos(dLat) / 2 +
-    (Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      (1 - Math.cos(dLon))) / 2;
-
-  return R * 2 * Math.asin(Math.sqrt(a)); // Distance in km
-}
 
 interface Location {
-    latitude: number;
-    longitude: number;
+  latitude: number;
+  longitude: number;
+  speed: number;
+  accuracy: number;
 }
+
 
 interface GpsContextType {
+
   location: Location | null;
+
+  speed: number;
+
   startGps: () => void;
+
   stopGps: () => void;
+
   isGpsActive: boolean;
+
   accumulatedDistance: number;
-  resetAccumulatedDistance: () => void;
+
+  resetAccumulatedDistance: () => Promise<void>;
 }
 
-const GpsContext = createContext<GpsContextType | undefined>(undefined);
+
+
+const GpsContext =
+  createContext<GpsContextType | undefined>(undefined);
+
+
 
 export const useGps = () => {
-  const context = useContext(GpsContext);
+
+  const context =
+    useContext(GpsContext);
+
+
   if (!context) {
-    throw new Error("useGps must be used within a GpsProvider");
+
+    throw new Error(
+      "useGps must be used within a GpsProvider"
+    );
+
   }
+
+
   return context;
 };
 
-export const GpsProvider = ({ children }: { children: React.ReactNode }) => {
-  const [location, setLocation] = useState<Location | null>(null);
-  const [isGpsActive, setIsGpsActive] = useState(false);
-  const [accumulatedDistance, setAccumulatedDistance] = useState(0);
-  const lastLocationRef = useRef<Location | null>(null);
 
+
+
+export const GpsProvider = ({
+  children,
+}: {
+  children: React.ReactNode;
+}) => {
+
+
+  const [location, setLocation] =
+    useState<Location | null>(null);
+
+
+  const [speed, setSpeed] =
+    useState(0);
+
+
+  const [isGpsActive, setIsGpsActive] =
+    useState(false);
+
+
+  const [accumulatedDistance, setAccumulatedDistance] =
+    useState(0);
+
+
+
+
+  const normalizeSpeed = (
+    speedMs: number
+  ) => {
+
+    let kmh =
+      speedMs * 3.6;
+
+
+    if (kmh < 5) {
+
+      kmh = 0;
+
+    }
+
+
+    return Math.round(kmh);
+  };
+
+
+
+
+
+  /**
+   * Restaura estado salvo pelo Android
+   */
   useEffect(() => {
+
+
     const restore = async () => {
+
+
       try {
-        const { accumulatedDistance: restoredDistance, lastLocation } = await NativeGps.restoreState();
-        if (restoredDistance > 0) {
-          setAccumulatedDistance(restoredDistance);
-        }
 
-        if (lastLocation) {
-          lastLocationRef.current = lastLocation
-        }
 
-        const { isRunning } = await NativeGps.isGpsRunning();
-        setIsGpsActive(isRunning);
-      } catch (e) {
-        console.error("Error restoring GPS state", e);
+        const distance =
+          await NativeGps.getDistance();
+
+
+
+        setAccumulatedDistance(
+          distance.kilometers
+        );
+
+
+
+        const {
+          isRunning
+        } =
+          await NativeGps.isGpsRunning();
+
+
+
+        setIsGpsActive(
+          isRunning
+        );
+
+
+
+      } catch(e) {
+
+
+        console.error(
+          "Error restoring GPS state",
+          e
+        );
+
       }
+
     };
+
+
 
     restore();
+
+
   }, []);
 
-  const handleLocationUpdate = useCallback((locationData: Location) => {
-    if (locationData) {
-      setLocation(locationData);
-      if (lastLocationRef.current) {
-        const newDistance = getDistance(
-          lastLocationRef.current.latitude,
-          lastLocationRef.current.longitude,
-          locationData.latitude,
-          locationData.longitude
+
+
+
+
+
+
+  /**
+   * Recebe somente localização e velocidade.
+   * A distância vem do serviço nativo.
+   */
+  const handleLocationUpdate =
+    useCallback(
+      async (
+        locationData: Location
+      ) => {
+
+
+        if (!locationData) {
+
+          return;
+
+        }
+
+
+
+        setLocation(
+          locationData
         );
-        setAccumulatedDistance((prevDistance) => prevDistance + newDistance);
-      }
-      lastLocationRef.current = locationData;
-    }
-  }, []);
 
-  const resetAccumulatedDistance = useCallback(() => {
-    setAccumulatedDistance(0);
-    lastLocationRef.current = null;
-  }, []);
+
+
+        setSpeed(
+          normalizeSpeed(
+            locationData.speed
+          )
+        );
+
+
+
+        try {
+
+
+          const distance =
+            await NativeGps.getDistance();
+
+
+
+          setAccumulatedDistance(
+            distance.kilometers
+          );
+
+
+        } catch(e) {
+
+
+          console.error(
+            "Erro buscando distância",
+            e
+          );
+
+        }
+
+
+      },
+      []
+    );
+
+
+
+
+
+
+
+
+  /**
+   * Agora o reset acontece no Android
+   */
+  const resetAccumulatedDistance =
+    useCallback(
+      async () => {
+
+
+        try {
+
+
+          await NativeGps.resetDistance();
+
+
+          setAccumulatedDistance(
+            0
+          );
+
+
+        } catch(e) {
+
+
+          console.error(
+            "Erro resetando distância",
+            e
+          );
+
+        }
+
+
+      },
+      []
+    );
+
+
+
+
+
+
+
 
   useEffect(() => {
-    const setupListener = async () => {
-        const listener = await NativeGps.addListener("locationUpdate", handleLocationUpdate);
+
+
+    const setupListener =
+      async () => {
+
+
+        const listener =
+          await NativeGps.addListener(
+            "locationUpdate",
+            handleLocationUpdate
+          );
+
+
         return () => {
-            listener.remove();
+
+          listener.remove();
+
         };
-    }
-    const removeListener = setupListener();
+
+      };
+
+
+
+    const removeListener =
+      setupListener();
+
+
 
     return () => {
-      removeListener.then(r => r());
+
+
+      removeListener.then(
+        (remove) => remove()
+      );
+
+
     };
+
+
   }, [handleLocationUpdate]);
 
-  const startGps = async () => {
-    try {
-      await NativeGps.startGps();
-      setIsGpsActive(true);
-      console.log("GPS service started via context");
-    } catch (e) {
-      console.error("Error starting GPS service via context", e);
-      setIsGpsActive(false);
-    }
-  };
 
-  const stopGps = async () => {
-    try {
-      await NativeGps.stopGps();
-      setIsGpsActive(false);
-      console.log("GPS service stopped via context");
-    } catch (e) {
-      console.error("Error stopping GPS service via context", e);
-    }
-  };
 
-  const value = {
+
+
+
+
+
+
+  const startGps =
+    async () => {
+
+
+      try {
+
+
+        await NativeGps.startGps();
+
+
+        setIsGpsActive(
+          true
+        );
+
+
+        console.log(
+          "GPS service started via context"
+        );
+
+
+
+      } catch(e) {
+
+
+        console.error(
+          "Error starting GPS service via context",
+          e
+        );
+
+
+        setIsGpsActive(
+          false
+        );
+
+      }
+
+    };
+
+
+
+
+
+
+
+  const stopGps =
+    async () => {
+
+
+      try {
+
+
+        await NativeGps.stopGps();
+
+
+        setIsGpsActive(
+          false
+        );
+
+
+
+        console.log(
+          "GPS service stopped via context"
+        );
+
+
+
+      } catch(e) {
+
+
+        console.error(
+          "Error stopping GPS service via context",
+          e
+        );
+
+      }
+
+    };
+
+
+
+
+
+
+
+
+
+  const value: GpsContextType = {
+
+
     location,
+
+
+    speed,
+
+
     startGps,
+
+
     stopGps,
+
+
     isGpsActive,
+
+
     accumulatedDistance,
+
+
     resetAccumulatedDistance,
+
+
   };
 
-  return <GpsContext.Provider value={value}>{children}</GpsContext.Provider>;
+
+
+
+
+  return (
+
+    <GpsContext.Provider value={value}>
+
+      {children}
+
+    </GpsContext.Provider>
+
+  );
+
 };

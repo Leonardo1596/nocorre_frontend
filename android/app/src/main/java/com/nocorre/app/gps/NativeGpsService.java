@@ -22,6 +22,11 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.Priority;
 import com.nocorre.app.R;
 
+import com.nocorre.app.OverlayService;
+
+import android.content.SharedPreferences;
+
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
@@ -32,18 +37,31 @@ public class NativeGpsService extends Service {
     private static final String PENDING_LOCATIONS_FILE = "gps_pending_locations.log";
     public static boolean isRunning = false;
 
+    private static NativeGpsService instance;
+
+public static NativeGpsService getInstance() {
+    return instance;
+}
+
     private FusedLocationProviderClient fusedLocationClient;
     private LocationCallback locationCallback;
 
     private static final String CHANNEL_ID = "GpsServiceChannel";
+    private static final String PREFS_NAME = "gps_state";
+    private static final String KEY_DISTANCE = "distance";
     private static final float ACCURACY_THRESHOLD_METERS = 20.0f; // Ignore locations with accuracy > 20m
     private static final float SPEED_THRESHOLD_MPS = 0.5f;      // Ignore locations if speed is < 0.5 m/s (1.8 km/h)
 
     private LocationRepository locationRepository;
 
+    private Location lastLocation = null;
+    private float accumulatedDistanceMeters = 0f;
+
     @Override
     public void onCreate() {
         super.onCreate();
+
+        instance = this;
 
         Log.d(TAG, "onCreate");
 
@@ -55,6 +73,19 @@ public class NativeGpsService extends Service {
 
         createNotificationChannel();
         createLocationCallback();
+
+        SharedPreferences prefs =
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+
+accumulatedDistanceMeters =
+        prefs.getFloat(KEY_DISTANCE, 0f);
+
+        lastLocation = null;
+
+Log.d(TAG,
+        "Distância restaurada: "
+                + (accumulatedDistanceMeters / 1000f)
+                + " km");
     }
 
     @Override
@@ -126,20 +157,77 @@ public class NativeGpsService extends Service {
                             " | Time=" + System.currentTimeMillis()
                         );
 
+                        // Calcula distância acumulada
+if (lastLocation != null) {
+
+    float distance = lastLocation.distanceTo(location);
+
+    // Ignora saltos absurdos do GPS
+    if (distance > 0 && distance < 100) {
+
+    accumulatedDistanceMeters += distance;
+
+    SharedPreferences prefs =
+            getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+
+    prefs.edit()
+        .putFloat(KEY_DISTANCE, accumulatedDistanceMeters)
+        .commit();
+}
+}
+
+lastLocation = location;
+
+Log.d(
+    TAG,
+    "DISTÂNCIA ACUMULADA: "
+            + (accumulatedDistanceMeters / 1000f)
+            + " km"
+);
+
                         // Save location to file
                         String locationString = location.getTime() + "," + location.getLatitude() + "," + location.getLongitude() + "," + location.getSpeed() + "," + location.getAccuracy() + "\n";
                         try {
-                            File file = new File(getFilesDir(), PENDING_LOCATIONS_FILE);
-                            FileOutputStream fileOutputStream = new FileOutputStream(file, true);
-                            OutputStreamWriter outputStreamWriter = new OutputStreamWriter(fileOutputStream);
-                            outputStreamWriter.write(locationString);
-                            outputStreamWriter.close();
-                        } catch (Exception e) {
-                            Log.e(TAG, "Error writing location to file", e);
-                        }
 
-                        locationRepository
-                            .setLocationData(location);
+    File file =
+            new File(getFilesDir(), PENDING_LOCATIONS_FILE);
+
+    try (
+        FileOutputStream fileOutputStream =
+                new FileOutputStream(file, true);
+
+        OutputStreamWriter outputStreamWriter =
+                new OutputStreamWriter(fileOutputStream)
+    ) {
+
+        outputStreamWriter.write(locationString);
+        outputStreamWriter.flush();
+
+    }
+
+} catch (Exception e) {
+
+    Log.e(TAG, "Error writing location to file", e);
+
+}
+
+                        try {
+    locationRepository.setLocationData(location);
+} catch (Exception e) {
+    Log.e(TAG, "Erro salvando localização", e);
+}
+
+// Atualiza o overlay
+try {
+    OverlayService overlay = OverlayService.getInstance();
+
+    if (overlay != null) {
+        overlay.updateSpeed(location.getSpeed());
+    }
+
+} catch (Exception e) {
+    Log.e(TAG, "Erro atualizando overlay", e);
+}
                     }
                 }
             }
@@ -189,6 +277,8 @@ public class NativeGpsService extends Service {
         Log.d(TAG, "onDestroy");
         isRunning = false;
 
+        instance = null;
+
         if (
             fusedLocationClient != null &&
             locationCallback != null
@@ -235,4 +325,22 @@ public class NativeGpsService extends Service {
             }
         }
     }
+    public void resetDistance() {
+
+    accumulatedDistanceMeters = 0f;
+    lastLocation = null;
+
+    SharedPreferences prefs =
+            getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+
+    prefs.edit()
+            .remove(KEY_DISTANCE)
+            .commit();
+
+    Log.d(TAG, "Distância resetada");
+}
+
+public float getAccumulatedDistanceMeters() {
+    return accumulatedDistanceMeters;
+}
 }
