@@ -59,6 +59,14 @@ public class UberAccessibilityService extends AccessibilityService {
         }
 
 
+if (
+        event.getEventType() != AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
+        &&
+        event.getEventType() != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+) {
+    return;
+}
+
 
         AccessibilityNodeInfo root =
                 getRootInActiveWindow();
@@ -106,15 +114,22 @@ public class UberAccessibilityService extends AccessibilityService {
 
             // Corrida normal = Accept
             // Radar = Match
-            if(
-                    text.equalsIgnoreCase("Accept")
-                    ||
-                    text.equalsIgnoreCase("Match")
-            ) {
+            String normalized =
+        text.trim().toLowerCase();
 
-                hasActionButton = true;
+if(
+        normalized.equals("accept")
+        ||
+        normalized.equals("match")
+        ||
+        normalized.equals("aceitar")
+        ||
+        normalized.equals("selecionar")
+) {
 
-            }
+    hasActionButton = true;
+
+}
 
 
 
@@ -313,56 +328,48 @@ public class UberAccessibilityService extends AccessibilityService {
         //-----------------------------------------
 
         Intent intent =
-                new Intent(
-                        "UBER_NEW_TRIP"
-                );
+        new Intent("UBER_NEW_TRIP");
 
+intent.setPackage(
+        getPackageName()
+);
 
+intent.putExtra(
+        "fare",
+        trip.fare
+);
 
-        intent.putExtra(
-                "fare",
-                trip.fare
-        );
+intent.putExtra(
+        "pickupDistanceKm",
+        trip.pickupDistanceKm
+);
 
+intent.putExtra(
+        "pickupTime",
+        trip.pickupTime
+);
 
-        intent.putExtra(
-                "pickupDistanceKm",
-                trip.pickupDistanceKm
-        );
+intent.putExtra(
+        "tripDistanceKm",
+        trip.tripDistanceKm
+);
 
+intent.putExtra(
+        "tripTime",
+        trip.tripTime
+);
 
-        intent.putExtra(
-                "pickupTime",
-                trip.pickupTime
-        );
+intent.putExtra(
+        "origin",
+        trip.origin
+);
 
+intent.putExtra(
+        "destination",
+        trip.destination
+);
 
-        intent.putExtra(
-                "tripDistanceKm",
-                trip.tripDistanceKm
-        );
-
-
-        intent.putExtra(
-                "tripTime",
-                trip.tripTime
-        );
-
-
-        intent.putExtra(
-                "origin",
-                trip.origin
-        );
-
-
-        intent.putExtra(
-                "destination",
-                trip.destination
-        );
-
-
-
-        sendBroadcast(intent);
+sendBroadcast(intent);
 
     }
 

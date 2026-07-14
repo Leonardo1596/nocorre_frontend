@@ -217,22 +217,39 @@ Log.d(
     Log.e(TAG, "Erro salvando localização", e);
 }
 
-// Atualiza o overlay
+// Atualiza somente o velocímetro
 try {
-    OverlayService overlay = OverlayService.getInstance();
 
-    if (overlay != null) {
-        overlay.updateSpeed(location.getSpeed());
+    OverlayService overlay =
+            OverlayService.getInstance();
+
+    if (
+            overlay != null
+            &&
+            overlay.isSpeedOverlayActive()
+    ) {
+
+        overlay.updateSpeed(
+                location.getSpeed()
+        );
+
     }
 
 } catch (Exception e) {
-    Log.e(TAG, "Erro atualizando overlay", e);
+
+    Log.e(
+            TAG,
+            "Erro atualizando velocímetro",
+            e
+    );
+
 }
-                    }
-                }
-            }
-        };
-    }
+
+                    } // if (location != null)
+                } // for
+            } // onLocationResult
+        }; // new LocationCallback
+    } // createLocationCallback
 
     private void startLocationUpdates() {
 

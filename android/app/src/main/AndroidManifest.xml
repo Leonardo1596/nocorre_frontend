@@ -1,95 +1,202 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+
     <!-- INTERNET -->
     <uses-permission android:name="android.permission.INTERNET" />
+
 
     <!-- LOCALIZAÇÃO -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
-    <!-- BACKGROUND LOCATION (Android 10+) -->
+    <!-- BACKGROUND LOCATION Android 10+ -->
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+
 
     <!-- FOREGROUND SERVICE -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
 
-    <!-- NOTIFICAÇÕES (Android 13+) -->
+
+    <!-- NOTIFICAÇÕES Android 13+ -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- Overlay -->
+
+    <!-- DISPLAY OVER OTHER APPS -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
-    <!-- HARDWARE GPS -->
-    <uses-feature android:name="android.hardware.location.gps" />
+
+    <!-- GPS -->
+    <uses-feature
+        android:name="android.hardware.location.gps"
+        android:required="false" />
+
+
 
     <application
+
         android:allowBackup="true"
+
         android:icon="@mipmap/ic_launcher"
+
         android:label="@string/app_name"
+
         android:roundIcon="@mipmap/ic_launcher_round"
+
         android:supportsRtl="true"
+
         android:theme="@style/AppTheme">
 
+
+
+
+
         <!-- MAIN ACTIVITY -->
+
         <activity
+
             android:name=".MainActivity"
+
             android:exported="true"
+
             android:launchMode="singleTask"
+
             android:theme="@style/AppTheme.NoActionBarLaunch"
+
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density">
 
+
             <intent-filter>
+
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
+
             </intent-filter>
+
 
         </activity>
 
+
+
+
+
         <!-- FILE PROVIDER -->
+
         <provider
+
             android:name="androidx.core.content.FileProvider"
+
             android:authorities="${applicationId}.fileprovider"
+
             android:exported="false"
+
             android:grantUriPermissions="true">
 
+
             <meta-data
+
                 android:name="android.support.FILE_PROVIDER_PATHS"
+
                 android:resource="@xml/file_paths" />
+
 
         </provider>
 
+
+
+
+
         <!-- GPS FOREGROUND SERVICE -->
+
         <service
+
             android:name=".gps.NativeGpsService"
+
             android:enabled="true"
+
             android:exported="false"
+
             android:foregroundServiceType="location" />
 
-        <!-- Overlay -->
-        <service
-            android:name=".OverlayService"
-            android:enabled="true"
-            android:exported="false" />
 
-        <!-- Accessibility Service -->
+
+
+
+
+
+        <!-- OVERLAY VELOCÍMETRO -->
+
         <service
-            android:name=".UberAccessibilityService"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+
+            android:name=".OverlayService"
+
             android:enabled="true"
+
+            android:exported="false"
+
+            android:stopWithTask="false" />
+
+
+
+
+
+
+
+        <!-- OVERLAY CORRIDA UBER -->
+
+        <service
+
+            android:name=".UberOverlayService"
+
+            android:enabled="true"
+
+            android:exported="false"
+
+            android:stopWithTask="false" />
+
+
+
+
+
+
+
+        <!-- ACCESSIBILITY SERVICE -->
+
+        <service
+
+            android:name=".UberAccessibilityService"
+
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+
+            android:enabled="true"
+
             android:exported="false">
 
+
+
             <intent-filter>
+
                 <action android:name="android.accessibilityservice.AccessibilityService" />
+
             </intent-filter>
 
+
+
             <meta-data
+
                 android:name="android.accessibilityservice"
+
                 android:resource="@xml/accessibility_config" />
+
+
 
         </service>
 
+
+
     </application>
+
 
 </manifest>

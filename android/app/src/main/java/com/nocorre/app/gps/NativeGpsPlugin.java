@@ -35,8 +35,8 @@ import android.content.IntentFilter;
 
 import org.json.JSONObject;
 
+import com.nocorre.app.UberOverlayService;
 import com.nocorre.app.OverlayService;
-
 
 @CapacitorPlugin(
     name = "NativeGps",
@@ -134,16 +134,10 @@ public class NativeGpsPlugin extends Plugin {
         try {
 
     Intent overlayIntent =
-            new Intent(
-                    getContext(),
-                    OverlayService.class
-            );
-
-
-    overlayIntent.putExtra(
-            "overlay_type",
-            "uber_trip"
-    );
+        new Intent(
+                getContext(),
+                UberOverlayService.class
+        );
 
 
     overlayIntent.putExtra(
@@ -353,6 +347,17 @@ public void stopGps(
 
         overlayIntent.setAction(
                 "HIDE_OVERLAY"
+        );
+
+        Intent uberIntent =
+        new Intent(
+                getContext(),
+                UberOverlayService.class
+        );
+
+getContext()
+        .stopService(
+                uberIntent
         );
 
 
@@ -973,16 +978,9 @@ public void showUberOverlay(
 
 
         Intent intent =
-                new Intent(
-                        getContext(),
-                        OverlayService.class
-                );
-
-
-
-        intent.putExtra(
-                "overlay_type",
-                "uber_trip"
+        new Intent(
+                getContext(),
+                UberOverlayService.class
         );
 
 
@@ -1042,10 +1040,10 @@ public void hideUberOverlay(
 
 
         Intent intent =
-                new Intent(
-                        getContext(),
-                        OverlayService.class
-                );
+        new Intent(
+                getContext(),
+                UberOverlayService.class
+        );
 
 
         intent.setAction(

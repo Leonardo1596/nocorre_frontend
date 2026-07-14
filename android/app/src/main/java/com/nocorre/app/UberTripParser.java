@@ -20,7 +20,6 @@ public class UberTripParser {
             return trip;
         }
 
-        String previous = "";
         String current;
 
         boolean foundPickup = false;
@@ -35,24 +34,29 @@ public class UberTripParser {
             }
 
             //----------------------------------------------------
-            // VALOR
+            // VALOR DA CORRIDA
+            // Pega somente o PRIMEIRO "R$" encontrado.
             //----------------------------------------------------
 
-            Matcher fareMatcher =
-                    FARE_PATTERN.matcher(current);
+            if (!trip.isOffer) {
 
-            if (fareMatcher.find()) {
+                Matcher fareMatcher =
+                        FARE_PATTERN.matcher(current);
 
-                try {
+                if (fareMatcher.find()) {
 
-                    trip.fare = Double.parseDouble(
-                            fareMatcher.group(1)
-                                    .replace(",", ".")
-                    );
+                    try {
 
-                    trip.isOffer = true;
+                        trip.fare =
+                                Double.parseDouble(
+                                        fareMatcher.group(1)
+                                                .replace(",", ".")
+                                );
 
-                } catch (Exception ignored) {
+                        trip.isOffer = true;
+
+                    } catch (Exception ignored) {
+                    }
                 }
             }
 
@@ -99,6 +103,9 @@ public class UberTripParser {
                     !current.contains("km") &&
                     !current.startsWith("R$") &&
                     !current.equalsIgnoreCase("Accept") &&
+                    !current.equalsIgnoreCase("Match") &&
+                    !current.equalsIgnoreCase("Aceitar") &&
+                    !current.equalsIgnoreCase("Selecionar") &&
                     !current.equalsIgnoreCase("Moto") &&
                     !current.equalsIgnoreCase("Exclusive") &&
                     !current.equalsIgnoreCase("Verified")) {
@@ -117,6 +124,9 @@ public class UberTripParser {
                     !current.contains("km") &&
                     !current.startsWith("R$") &&
                     !current.equalsIgnoreCase("Accept") &&
+                    !current.equalsIgnoreCase("Match") &&
+                    !current.equalsIgnoreCase("Aceitar") &&
+                    !current.equalsIgnoreCase("Selecionar") &&
                     !current.equalsIgnoreCase("Moto") &&
                     !current.equalsIgnoreCase("Exclusive") &&
                     !current.equalsIgnoreCase("Verified") &&
@@ -124,8 +134,6 @@ public class UberTripParser {
 
                 trip.destination = current;
             }
-
-            previous = current;
         }
 
         return trip;

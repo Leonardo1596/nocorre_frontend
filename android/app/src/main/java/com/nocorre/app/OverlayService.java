@@ -28,12 +28,17 @@ public class OverlayService extends Service {
 
     private WindowManager windowManager;
 
-    private View overlayView;
+    private View speedOverlayView;
+private View uberOverlayView;
 
-    private TextView speedText;
+private TextView speedText;
+private TextView uberText;
 
 
     private String overlayType = "speed";
+
+
+    private boolean speedOverlayActive = false;
 
 
 
@@ -43,23 +48,35 @@ public class OverlayService extends Service {
             );
 
 
+private void removeUberOverlay(){
+
+    if(
+            uberOverlayView != null
+            &&
+            windowManager != null
+    ){
+
+        windowManager.removeView(
+                uberOverlayView
+        );
+
+        uberOverlayView = null;
+        uberText = null;
+    }
+
+}
+
 
     private Runnable hideRunnable =
-            new Runnable() {
+        new Runnable() {
 
-        @Override
-        public void run() {
+    @Override
+    public void run() {
 
-            Log.d(
-                    TAG,
-                    "Tempo expirado. Removendo overlay"
-            );
+        removeUberOverlay();
 
-
-            stopSelf();
-
-        }
-    };
+    }
+};
 
 
 
@@ -74,103 +91,95 @@ public class OverlayService extends Service {
 
 
 
-    @Override
-    public void onCreate() {
+    public boolean isSpeedOverlayActive() {
 
-        super.onCreate();
+        return speedOverlayActive;
 
-
-        instance = this;
+    }
 
 
 
-        try {
+
+    public void enableSpeedOverlay() {
 
 
-            windowManager =
-                    (WindowManager) getSystemService(
-                            WINDOW_SERVICE
-                    );
+        speedOverlayActive = true;
 
 
-
-            if(overlayView == null) {
-
-
-                overlayView =
-                        LayoutInflater.from(this)
-                                .inflate(
-                                        R.layout.overlay_layout,
-                                        null
-                                );
+        overlayType = "speed";
 
 
-
-                speedText =
-                        overlayView.findViewById(
-                                R.id.speedText
-                        );
+        if(speedText != null) {
 
 
+            speedText.post(() -> {
 
-                WindowManager.LayoutParams params =
-                        new WindowManager.LayoutParams(
+                speedText.setText("0");
 
-                                WindowManager.LayoutParams.WRAP_CONTENT,
-
-                                WindowManager.LayoutParams.WRAP_CONTENT,
-
-                                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-
-                                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-                                        | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
-                                        | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
-
-                                PixelFormat.TRANSLUCENT
-                        );
-
-
-
-                params.gravity =
-                        Gravity.TOP | Gravity.END;
-
-
-                params.x = 20;
-
-                params.y = 200;
-
-
-
-                windowManager.addView(
-                        overlayView,
-                        params
-                );
-
-
-                Log.d(
-                        TAG,
-                        "Overlay iniciado"
-                );
-
-            }
-
-
-
-        } catch(Exception e) {
-
-
-            Log.e(
-                    TAG,
-                    "Erro ao criar overlay",
-                    e
-            );
-
-
-            stopSelf();
+            });
 
         }
 
+
     }
+
+
+
+
+    public void disableSpeedOverlay() {
+
+
+        speedOverlayActive = false;
+
+    }
+
+
+
+
+
+
+   @Override
+public void onCreate() {
+
+    super.onCreate();
+
+
+    instance = this;
+
+
+    try {
+
+
+        windowManager =
+                (WindowManager) getSystemService(
+                        WINDOW_SERVICE
+                );
+
+
+        createSpeedOverlay();
+
+
+        Log.d(
+                TAG,
+                "Overlay velocímetro iniciado"
+        );
+
+
+    } catch(Exception e) {
+
+
+        Log.e(
+                TAG,
+                "Erro criando overlay",
+                e
+        );
+
+
+        stopSelf();
+
+    }
+
+}
 
 
 
@@ -211,12 +220,6 @@ public class OverlayService extends Service {
         ) {
 
 
-            Log.d(
-                    TAG,
-                    "Recebido comando para remover overlay"
-            );
-
-
             stopSelf();
 
 
@@ -235,15 +238,6 @@ public class OverlayService extends Service {
 
 
 
-        Log.d(
-                TAG,
-                "Recebi comando overlay: "
-                +
-                type
-        );
-
-
-
         if(type != null) {
 
             overlayType = type;
@@ -253,12 +247,15 @@ public class OverlayService extends Service {
 
 
 
-
         if(
-                "uber_trip".equals(
-                        overlayType
-                )
-        ) {
+    "uber_trip".equals(
+        overlayType
+    )
+)
+{
+
+    createUberOverlay();
+
 
 
             String tripJson =
@@ -285,16 +282,12 @@ public class OverlayService extends Service {
                     );
 
 
+
                     handler.postDelayed(
                             hideRunnable,
-                            20000
+                            10000
                     );
 
-
-                    Log.d(
-                            TAG,
-                            "Overlay Uber programado para fechar em 20 segundos"
-                    );
 
 
                 } catch(Exception e) {
@@ -302,13 +295,19 @@ public class OverlayService extends Service {
 
                     Log.e(
                             TAG,
-                            "Erro lendo corrida Uber",
+                            "Erro lendo corrida",
                             e
                     );
 
                 }
 
             }
+
+
+        } else {
+
+
+            enableSpeedOverlay();
 
         }
 
@@ -329,7 +328,12 @@ public class OverlayService extends Service {
     ) {
 
 
-        if(speedText == null) {
+
+        if(
+                speedText == null
+                ||
+                !speedOverlayActive
+        ) {
 
             return;
 
@@ -374,250 +378,294 @@ public class OverlayService extends Service {
         JSONObject trip
 ) {
 
-    Log.d(
-            TAG,
-            "Calculando dados Uber"
-    );
 
+    if(uberText == null) {
 
-    if(speedText == null) {
         return;
+
+    }
+
+
+    uberText.post(() -> {
+
+
+            try {
+
+
+                double fare =
+                        trip.optDouble(
+                                "fare",
+                                0
+                        );
+
+
+
+                double totalKm =
+
+                        trip.optDouble(
+                                "pickupDistanceKm",
+                                0
+                        )
+                        +
+                        trip.optDouble(
+                                "tripDistanceKm",
+                                0
+                        );
+
+
+
+                int totalMinutes =
+
+                        extractMinutes(
+                                trip.optString(
+                                        "pickupTime",
+                                        "0"
+                                )
+                        )
+
+                        +
+
+                        extractMinutes(
+                                trip.optString(
+                                        "tripTime",
+                                        "0"
+                                )
+                        );
+
+
+
+                double gainKm = 0;
+
+
+                if(totalKm > 0) {
+
+                    gainKm =
+                            fare / totalKm;
+
+                }
+
+
+
+                double gainHour = 0;
+
+
+                if(totalMinutes > 0) {
+
+
+                    gainHour =
+                            fare /
+                            (totalMinutes / 60.0);
+
+
+                }
+
+
+
+
+                uberText.setText(
+
+                        "💰 R$ "
+                        +
+                        String.format(
+                                "%.2f",
+                                fare
+                        )
+
+                        +
+
+                        "\n🚗 R$ "
+                        +
+                        String.format(
+                                "%.2f",
+                                gainKm
+                        )
+                        +
+                        "/km"
+
+                        +
+
+                        "\n⏱ R$ "
+                        +
+                        String.format(
+                                "%.2f",
+                                gainHour
+                        )
+                        +
+                        "/h"
+
+                );
+
+
+
+            } catch(Exception e) {
+
+
+                Log.e(
+                        TAG,
+                        "Erro calculando corrida",
+                        e
+                );
+
+            }
+
+
+        });
+
+
     }
 
 
 
-    speedText.post(() -> {
+
+
+
+
+    private int extractMinutes(
+            String time
+    ) {
+
 
         try {
 
 
-            double fare =
-                    trip.optDouble(
-                            "fare",
-                            0
+            String numbers =
+                    time.replaceAll(
+                            "[^0-9]",
+                            ""
                     );
 
 
+            if(numbers.isEmpty()) {
 
-            double pickupKm =
-                    trip.optDouble(
-                            "pickupDistanceKm",
-                            0
-                    );
-
-
-
-            double tripKm =
-                    trip.optDouble(
-                            "tripDistanceKm",
-                            0
-                    );
-
-
-
-            String pickupTime =
-                    trip.optString(
-                            "pickupTime",
-                            "0"
-                    );
-
-
-
-            String tripTime =
-                    trip.optString(
-                            "tripTime",
-                            "0"
-                    );
-
-
-
-            int pickupMinutes =
-                    extractMinutes(
-                            pickupTime
-                    );
-
-
-
-            int tripMinutes =
-                    extractMinutes(
-                            tripTime
-                    );
-
-
-
-            int totalMinutes =
-                    pickupMinutes + tripMinutes;
-
-
-
-            double totalKm =
-                    pickupKm + tripKm;
-
-
-
-            double gainKm =
-                    0;
-
-
-
-            if(totalKm > 0) {
-
-                gainKm =
-                        fare / totalKm;
+                return 0;
 
             }
 
 
-
-            double gainHour =
-                    0;
-
-
-
-            if(totalMinutes > 0) {
-
-                gainHour =
-                        fare /
-                        (totalMinutes / 60.0);
-
-            }
-
-
-
-
-            String text =
-
-
-                    "🚗 UBER\n\n" +
-
-
-                    "💰 R$ "
-                    +
-                    String.format(
-                            "%.2f",
-                            fare
-                    )
-
-                    +
-
-                    "\n\n📊 RESULTADO\n\n"
-
-                    +
-
-                    "💵 Ganho/KM\nR$ "
-                    +
-                    String.format(
-                            "%.2f",
-                            gainKm
-                    )
-
-                    +
-
-                    "\n\n⏰ Ganho/HORA\nR$ "
-                    +
-                    String.format(
-                            "%.2f",
-                            gainHour
-                    )
-
-                    +
-
-                    "\n\n📏 KM total: "
-                    +
-                    String.format(
-                            "%.1f",
-                            totalKm
-                    )
-
-                    +
-
-                    "\n⏱ Tempo total: "
-                    +
-                    totalMinutes
-                    +
-                    " min";
-
-
-
-            speedText.setText(
-                    text
+            return Integer.parseInt(
+                    numbers
             );
-
 
 
         } catch(Exception e) {
 
 
-            Log.e(
-                    TAG,
-                    "Erro calculando Uber",
-                    e
-            );
-
-        }
-
-    });
-
-}
-
-
-
-private int extractMinutes(String time) {
-
-    try {
-
-        if(time == null || time.isEmpty()) {
-
             return 0;
 
         }
 
-
-        String numbers =
-                time.replaceAll(
-                        "[^0-9]",
-                        ""
-                );
-
-
-        if(numbers.isEmpty()) {
-
-            return 0;
-
-        }
-
-
-        return Integer.parseInt(numbers);
-
-
-
-    } catch(Exception e) {
-
-
-        Log.e(
-                TAG,
-                "Erro convertendo tempo: " + time,
-                e
-        );
-
-
-        return 0;
 
     }
 
+
+
+
+    private void createSpeedOverlay(){
+
+    speedOverlayView =
+            LayoutInflater.from(this)
+                    .inflate(
+                            R.layout.overlay_speed,
+                            null
+                    );
+
+
+    speedText =
+            speedOverlayView.findViewById(
+                    R.id.speedText
+            );
+
+
+    WindowManager.LayoutParams params =
+            new WindowManager.LayoutParams(
+
+                    100,
+                    100,
+
+                    WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+
+                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+
+                    PixelFormat.TRANSLUCENT
+            );
+
+
+    params.gravity =
+        Gravity.TOP | Gravity.START;
+
+
+params.x = 20;
+
+params.y = 200;
+
+
+    windowManager.addView(
+            speedOverlayView,
+            params
+    );
+
 }
+
+
+private void createUberOverlay(){
+
+    if(uberOverlayView != null){
+        return;
+    }
+
+
+    uberOverlayView =
+            LayoutInflater.from(this)
+                    .inflate(
+                            R.layout.overlay_layout,
+                            null
+                    );
+
+
+    uberText =
+            uberOverlayView.findViewById(
+                    R.id.speedText
+            );
+
+
+    WindowManager.LayoutParams params =
+            new WindowManager.LayoutParams(
+
+                    280,
+
+                    WindowManager.LayoutParams.WRAP_CONTENT,
+
+                    WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+
+                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+
+                    PixelFormat.TRANSLUCENT
+            );
+
+
+    params.gravity =
+            Gravity.BOTTOM | Gravity.END;
+
+
+    params.x = 20;
+
+    params.y = 300;
+
+
+    windowManager.addView(
+            uberOverlayView,
+            params
+    );
+
+}
+
+
+
 
 
 
     @Override
     public void onDestroy() {
-
-
-        Log.d(
-                TAG,
-                "Destruindo overlay"
-        );
-
 
 
         handler.removeCallbacks(
@@ -628,45 +676,46 @@ private int extractMinutes(String time) {
 
         try {
 
+    if(
+            speedOverlayView != null
+            &&
+            windowManager != null
+    ){
 
-            if(
-                    overlayView != null
-                    &&
-                    windowManager != null
-            ) {
+        windowManager.removeView(
+                speedOverlayView
+        );
 
-
-                windowManager.removeView(
-                        overlayView
-                );
-
-
-                overlayView = null;
-
-            }
+    }
 
 
+    if(
+            uberOverlayView != null
+            &&
+            windowManager != null
+    ){
 
-        } catch(Exception e) {
+        windowManager.removeView(
+                uberOverlayView
+        );
+
+    }
 
 
-            Log.e(
-                    TAG,
-                    "Erro ao remover overlay",
-                    e
-            );
+} catch(Exception ignored){
 
-        }
+}
 
 
+
+        speedOverlayView = null;
+uberOverlayView = null;
 
         speedText = null;
 
         windowManager = null;
 
-
         instance = null;
-
 
 
         super.onDestroy();

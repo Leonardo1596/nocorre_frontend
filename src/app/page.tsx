@@ -118,64 +118,6 @@ export default function Home() {
 
       <Dashboard />
 
-
-      {
-        trip && (
-
-          <div>
-
-            <h2>
-              Nova corrida Uber
-            </h2>
-
-
-            <p>
-              Valor: R$ {trip.fare}
-            </p>
-
-
-            <p>
-              Buscar passageiro:
-              {trip.pickupDistanceKm} km
-            </p>
-
-
-            <p>
-              Tempo até passageiro:
-              {trip.pickupTime}
-            </p>
-
-
-            <p>
-              Distância da viagem:
-              {trip.tripDistanceKm} km
-            </p>
-
-
-            <p>
-              Tempo da viagem:
-              {trip.tripTime}
-            </p>
-
-
-            <p>
-              Origem:
-              {trip.origin}
-            </p>
-
-
-            <p>
-              Destino:
-              {trip.destination}
-            </p>
-
-
-          </div>
-
-        )
-      }
-
-
     </DashboardLayout>
   );
 }
