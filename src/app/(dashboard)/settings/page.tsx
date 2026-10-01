@@ -154,44 +154,69 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="p-6 space-y-8 animate-in fade-in duration-500 pb-28 max-w-md mx-auto">
-      {/* Perfil & Logout */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-bold text-xl">
-            {user?.name?.[0]}
+    <div className="p-4 sm:p-6 space-y-6 animate-in fade-in duration-300 pb-28 max-w-md mx-auto">
+      {/* Header & Perfil Card */}
+      <Card className="relative overflow-hidden rounded-3xl border border-border/80 bg-card/80 p-5 shadow-sm">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
+        <div className="flex items-center justify-between relative z-10">
+          <div className="flex items-center gap-3.5">
+            <div className="relative">
+              <div className="w-13 h-13 rounded-2xl bg-gradient-to-tr from-primary to-emerald-400 p-[2px] shadow-sm">
+                <div className="w-full h-full rounded-2xl bg-card flex items-center justify-center text-primary font-headline font-black text-xl">
+                  {(user?.name?.[0] || 'M').toUpperCase()}
+                </div>
+              </div>
+              <span className="absolute -bottom-1 -right-1 flex h-3.5 w-3.5">
+                <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-primary border-2 border-card"></span>
+              </span>
+            </div>
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <h2 className="text-base sm:text-lg font-headline font-black text-foreground">{user?.name || 'Motorista'}</h2>
+              </div>
+              <p className="text-xs text-muted-foreground truncate max-w-[180px]">{user?.email}</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-lg font-headline font-bold">{user?.name}</h2>
-            <p className="text-xs text-muted-foreground">{user?.email}</p>
-          </div>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={logout} 
+            className="h-10 w-10 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+            title="Sair da Conta"
+          >
+            <LogOut className="w-4 h-4" />
+          </Button>
         </div>
-        <Button variant="ghost" size="icon" onClick={logout} className="text-destructive">
-          <LogOut className="w-5 h-5" />
-        </Button>
-      </div>
+      </Card>
 
       {/* Formulário Principal */}
       <form onSubmit={handleFullSubmit} className="space-y-6">
-        <div className="space-y-4">
+        {/* Veículo & Consumo */}
+        <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
-            <Car className="w-4 h-4 text-primary" />
+            <div className="p-1.5 rounded-lg bg-primary/10 text-primary border border-primary/20">
+              <Car className="w-3.5 h-3.5" />
+            </div>
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Veículo e Consumo</h3>
           </div>
           
-          <Card className="border-border/50 bg-card/40 overflow-hidden">
-            <CardContent className="p-4 grid grid-cols-2 gap-4">
+          <Card className="rounded-2xl border border-border/70 bg-card/70 overflow-hidden shadow-sm">
+            <CardContent className="p-4 grid grid-cols-2 gap-3.5">
               <div className="space-y-2">
-                <Label htmlFor="fuelPrice" className="text-[10px] uppercase font-bold text-muted-foreground">Preço/L (R$)</Label>
+                <Label htmlFor="fuelPrice" className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider flex items-center gap-1.5">
+                  <Fuel className="w-3 h-3 text-primary" /> Preço/L (R$)
+                </Label>
                 <CurrencyInput 
                   name="fuelPrice" 
                   value={settings.fuelPrice} 
                   onChange={(val) => setSettings(s => ({...s, fuelPrice: val}))}
-                  className="bg-background/50" 
+                  className="bg-secondary/40 border-border/80 h-11 rounded-xl text-base font-bold tabular-nums" 
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="kmPerLiter" className="text-[10px] uppercase font-bold text-muted-foreground">KM por Litro</Label>
+                <Label htmlFor="kmPerLiter" className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider flex items-center gap-1.5">
+                  <Car className="w-3 h-3 text-primary" /> KM por Litro
+                </Label>
                 <Input 
                   id="kmPerLiter" 
                   name="kmPerLiter" 
@@ -199,143 +224,172 @@ export default function SettingsPage() {
                   step="0.1" 
                   defaultValue={settings.kmPerLiter} 
                   onChange={(e) => setSettings(s => ({...s, kmPerLiter: Number(e.target.value)}))}
-                  className="bg-background/50" 
+                  className="bg-secondary/40 border-border/80 h-11 rounded-xl text-base font-bold tabular-nums" 
                 />
               </div>
             </CardContent>
           </Card>
         </div>
 
-        <div className="space-y-4">
+        {/* Manutenção Preventiva */}
+        <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
-            <Settings2 className="w-4 h-4 text-primary" />
+            <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-500 border border-amber-500/20">
+              <Settings2 className="w-3.5 h-3.5" />
+            </div>
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Planilha de Manutenção</h3>
           </div>
 
-          {/* Óleo */}
-          <Card className="border-border/50 bg-card/40">
-            <CardHeader className="p-4 pb-2">
-              <CardTitle className="text-xs font-bold flex items-center gap-2"><Droplets className="w-3.5 h-3.5 text-blue-400" /> Óleo do Motor</CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 pt-0 grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <Label className="text-[9px] uppercase text-muted-foreground">Valor (R$)</Label>
-                <CurrencyInput 
-                  name="oilValue" 
-                  value={settings.oilValue} 
-                  onChange={(val) => setSettings(s => ({...s, oilValue: val}))}
-                  className="h-9 text-sm" 
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-[9px] uppercase text-muted-foreground">Duração (KM)</Label>
-                <Input 
-                  name="oilKm" 
-                  type="number" 
-                  defaultValue={settings.oilKm} 
-                  onChange={(e) => setSettings(s => ({...s, oilKm: Number(e.target.value)}))}
-                  className="h-9 text-sm" 
-                />
-              </div>
-            </CardContent>
-          </Card>
+          <div className="space-y-3">
+            {/* Óleo */}
+            <Card className="rounded-2xl border border-border/70 bg-card/70 shadow-sm">
+              <CardHeader className="p-4 pb-2">
+                <CardTitle className="text-xs font-bold flex items-center gap-2 text-foreground">
+                  <div className="p-1 rounded-md bg-blue-500/10 text-blue-400">
+                    <Droplets className="w-3.5 h-3.5" />
+                  </div>
+                  Óleo do Motor
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 pt-1 grid grid-cols-2 gap-3.5">
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">Valor (R$)</Label>
+                  <CurrencyInput 
+                    name="oilValue" 
+                    value={settings.oilValue} 
+                    onChange={(val) => setSettings(s => ({...s, oilValue: val}))}
+                    className="h-10 text-sm font-bold bg-secondary/40 rounded-xl" 
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">Duração (KM)</Label>
+                  <Input 
+                    name="oilKm" 
+                    type="number" 
+                    defaultValue={settings.oilKm} 
+                    onChange={(e) => setSettings(s => ({...s, oilKm: Number(e.target.value)}))}
+                    className="h-10 text-sm font-bold bg-secondary/40 rounded-xl" 
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
-          {/* Pneu Dianteiro */}
-          <Card className="border-border/50 bg-card/40">
-            <CardHeader className="p-4 pb-2">
-              <CardTitle className="text-xs font-bold flex items-center gap-2"><Disc className="w-3.5 h-3.5 text-orange-400" /> Pneu Dianteiro</CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 pt-0 grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <Label className="text-[9px] uppercase text-muted-foreground">Valor (R$)</Label>
-                <CurrencyInput 
-                  name="frontTireValue" 
-                  value={settings.frontTireValue} 
-                  onChange={(val) => setSettings(s => ({...s, frontTireValue: val}))}
-                  className="h-9 text-sm" 
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-[9px] uppercase text-muted-foreground">Duração (KM)</Label>
-                <Input 
-                  name="frontTireKm" 
-                  type="number" 
-                  defaultValue={settings.frontTireKm} 
-                  onChange={(e) => setSettings(s => ({...s, frontTireKm: Number(e.target.value)}))}
-                  className="h-9 text-sm" 
-                />
-              </div>
-            </CardContent>
-          </Card>
+            {/* Pneu Dianteiro */}
+            <Card className="rounded-2xl border border-border/70 bg-card/70 shadow-sm">
+              <CardHeader className="p-4 pb-2">
+                <CardTitle className="text-xs font-bold flex items-center gap-2 text-foreground">
+                  <div className="p-1 rounded-md bg-orange-500/10 text-orange-400">
+                    <Disc className="w-3.5 h-3.5" />
+                  </div>
+                  Pneu Dianteiro
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 pt-1 grid grid-cols-2 gap-3.5">
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">Valor (R$)</Label>
+                  <CurrencyInput 
+                    name="frontTireValue" 
+                    value={settings.frontTireValue} 
+                    onChange={(val) => setSettings(s => ({...s, frontTireValue: val}))}
+                    className="h-10 text-sm font-bold bg-secondary/40 rounded-xl" 
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">Duração (KM)</Label>
+                  <Input 
+                    name="frontTireKm" 
+                    type="number" 
+                    defaultValue={settings.frontTireKm} 
+                    onChange={(e) => setSettings(s => ({...s, frontTireKm: Number(e.target.value)}))}
+                    className="h-10 text-sm font-bold bg-secondary/40 rounded-xl" 
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
-          {/* Pneu Traseiro */}
-          <Card className="border-border/50 bg-card/40">
-            <CardHeader className="p-4 pb-2">
-              <CardTitle className="text-xs font-bold flex items-center gap-2"><Disc className="w-3.5 h-3.5 text-orange-400" /> Pneu Traseiro</CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 pt-0 grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <Label className="text-[9px] uppercase text-muted-foreground">Valor (R$)</Label>
-                <CurrencyInput 
-                  name="rearTireValue" 
-                  value={settings.rearTireValue} 
-                  onChange={(val) => setSettings(s => ({...s, rearTireValue: val}))}
-                  className="h-9 text-sm" 
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-[9px] uppercase text-muted-foreground">Duração (KM)</Label>
-                <Input 
-                  name="rearTireKm" 
-                  type="number" 
-                  defaultValue={settings.rearTireKm} 
-                  onChange={(e) => setSettings(s => ({...s, rearTireKm: Number(e.target.value)}))}
-                  className="h-9 text-sm" 
-                />
-              </div>
-            </CardContent>
-          </Card>
+            {/* Pneu Traseiro */}
+            <Card className="rounded-2xl border border-border/70 bg-card/70 shadow-sm">
+              <CardHeader className="p-4 pb-2">
+                <CardTitle className="text-xs font-bold flex items-center gap-2 text-foreground">
+                  <div className="p-1 rounded-md bg-orange-500/10 text-orange-400">
+                    <Disc className="w-3.5 h-3.5" />
+                  </div>
+                  Pneu Traseiro
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 pt-1 grid grid-cols-2 gap-3.5">
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">Valor (R$)</Label>
+                  <CurrencyInput 
+                    name="rearTireValue" 
+                    value={settings.rearTireValue} 
+                    onChange={(val) => setSettings(s => ({...s, rearTireValue: val}))}
+                    className="h-10 text-sm font-bold bg-secondary/40 rounded-xl" 
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">Duração (KM)</Label>
+                  <Input 
+                    name="rearTireKm" 
+                    type="number" 
+                    defaultValue={settings.rearTireKm} 
+                    onChange={(e) => setSettings(s => ({...s, rearTireKm: Number(e.target.value)}))}
+                    className="h-10 text-sm font-bold bg-secondary/40 rounded-xl" 
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
-          {/* Corrente / Relação */}
-          <Card className="border-border/50 bg-card/40">
-            <CardHeader className="p-4 pb-2">
-              <CardTitle className="text-xs font-bold flex items-center gap-2"><Wrench className="w-3.5 h-3.5 text-accent" /> Corrente / Relação</CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 pt-0 grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <Label className="text-[9px] uppercase text-muted-foreground">Valor (R$)</Label>
-                <CurrencyInput 
-                  name="chainValue" 
-                  value={settings.chainValue} 
-                  onChange={(val) => setSettings(s => ({...s, chainValue: val}))}
-                  className="h-9 text-sm" 
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-[9px] uppercase text-muted-foreground">Duração (KM)</Label>
-                <Input 
-                  name="chainKm" 
-                  type="number" 
-                  defaultValue={settings.chainKm} 
-                  onChange={(e) => setSettings(s => ({...s, chainKm: Number(e.target.value)}))}
-                  className="h-9 text-sm" 
-                />
-              </div>
-            </CardContent>
-          </Card>
+            {/* Corrente / Relação */}
+            <Card className="rounded-2xl border border-border/70 bg-card/70 shadow-sm">
+              <CardHeader className="p-4 pb-2">
+                <CardTitle className="text-xs font-bold flex items-center gap-2 text-foreground">
+                  <div className="p-1 rounded-md bg-emerald-500/10 text-primary">
+                    <Wrench className="w-3.5 h-3.5" />
+                  </div>
+                  Corrente / Relação
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 pt-1 grid grid-cols-2 gap-3.5">
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">Valor (R$)</Label>
+                  <CurrencyInput 
+                    name="chainValue" 
+                    value={settings.chainValue} 
+                    onChange={(val) => setSettings(s => ({...s, chainValue: val}))}
+                    className="h-10 text-sm font-bold bg-secondary/40 rounded-xl" 
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">Duração (KM)</Label>
+                  <Input 
+                    name="chainKm" 
+                    type="number" 
+                    defaultValue={settings.chainKm} 
+                    onChange={(e) => setSettings(s => ({...s, chainKm: Number(e.target.value)}))}
+                    className="h-10 text-sm font-bold bg-secondary/40 rounded-xl" 
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
-        <Button type="submit" disabled={saving} className="w-full h-14 rounded-2xl font-bold gap-2 shadow-lg shadow-primary/20">
+        <Button 
+          type="submit" 
+          disabled={saving} 
+          className="w-full h-14 rounded-2xl font-headline font-black text-sm tracking-wide gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 active:scale-[0.99] transition-all"
+        >
           {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <CircleDollarSign className="w-5 h-5" />}
           SALVAR TODAS AS CONFIGURAÇÕES
         </Button>
       </form>
 
       {/* Preferências Visuais */}
-      <div className="space-y-4 pt-4 border-t border-border">
+      <div className="space-y-3 pt-3 border-t border-border/80">
         <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest px-1">Visual do App</h3>
-        <Card className="border-border/50 bg-card/40">
-          <CardContent className="p-2 flex items-center justify-around">
+        <Card className="rounded-2xl border border-border/70 bg-card/70 p-1.5 shadow-sm">
+          <CardContent className="p-0 flex items-center justify-around gap-1">
             {[
               { id: 'light', icon: Sun, label: 'Claro' },
               { id: 'dark', icon: Moon, label: 'Escuro' },
@@ -345,7 +399,10 @@ export default function SettingsPage() {
                 key={t.id}
                 variant={theme === t.id ? 'secondary' : 'ghost'} 
                 size="sm" 
-                className="flex-1 gap-2 rounded-xl text-[10px] font-bold uppercase"
+                className={cn(
+                  "flex-1 gap-2 rounded-xl text-xs font-bold uppercase transition-all h-10",
+                  theme === t.id ? "bg-primary/10 text-primary border border-primary/20" : "text-muted-foreground hover:text-foreground"
+                )}
                 onClick={() => setTheme(t.id)}
               >
                 <t.icon className="w-3.5 h-3.5" /> {t.label}

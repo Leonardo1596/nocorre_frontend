@@ -59,46 +59,51 @@ const formatBRL = (val: number) =>
 // --- Componentes Reutilizáveis ---
 
 const HeroCard = ({ title, value, subtext, icon: Icon, trendIcon: TrendIcon, trendColor }: any) => (
-  <Card className="relative overflow-hidden border-none bg-gradient-to-br from-primary/20 to-card shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-500">
-    <CardContent className="p-6">
-      <div className="flex justify-between items-start">
-        <div className="space-y-1">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest">{title}</p>
-          <h3 className="text-3xl font-headline font-bold text-foreground">{value}</h3>
-          <p className={cn("text-[10px] text-muted-foreground font-medium flex items-center gap-1", trendColor)}>
-            {TrendIcon && <TrendIcon className="w-3 h-3" />}
-            {subtext}
-          </p>
+  <Card className="relative overflow-hidden rounded-3xl border border-primary/20 hero-gradient shadow-xl shadow-primary/5 transition-all duration-300">
+    <div className="absolute top-0 right-0 w-36 h-36 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
+    <CardContent className="p-5 sm:p-6 relative z-10">
+      <div className="flex justify-between items-start gap-4">
+        <div className="space-y-2">
+          <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">{title}</p>
+          <h3 className="text-3xl sm:text-4xl font-headline font-black text-foreground tracking-tight tabular-nums">{value}</h3>
+          <div className="flex items-center gap-1.5 pt-1">
+            <span className={cn(
+              "inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full border",
+              trendColor?.includes('destructive')
+                ? "bg-destructive/10 text-destructive border-destructive/20"
+                : trendColor?.includes('primary')
+                  ? "bg-primary/10 text-primary border-primary/20"
+                  : "bg-secondary text-muted-foreground border-border"
+            )}>
+              {TrendIcon && <TrendIcon className="w-3.5 h-3.5 shrink-0" />}
+              {subtext}
+            </span>
+          </div>
         </div>
-        <div className="p-3 rounded-2xl bg-primary/10 text-primary">
+        <div className="p-3.5 rounded-2xl bg-primary/15 text-primary border border-primary/25 shadow-inner shrink-0">
           <Icon className="w-6 h-6" />
         </div>
-      </div>
-      <div className="absolute -bottom-2 -right-2 opacity-5">
-        <Icon className="w-24 h-24" />
       </div>
     </CardContent>
   </Card>
 );
 
 const OperationCard = ({ title, value, subtext, icon: Icon, colorClass }: any) => (
-  <Card className="border-border/50 bg-card/40 hover:bg-card/60 transition-all duration-300 h-full">
-    <CardContent className="p-3 sm:p-4 flex flex-col justify-between h-full">
-      <div>
-        <div className="flex items-center gap-2 mb-3">
-          <div className={cn("p-2 rounded-xl bg-secondary shrink-0", colorClass)}>
-            <Icon className="w-4 h-4" />
-          </div>
-          <p className="text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-wider line-clamp-2 break-words leading-tight">
-            {title}
-          </p>
+  <Card className="rounded-2xl border border-border/70 bg-card/70 hover:bg-card/95 hover:border-border transition-all duration-200 h-full shadow-sm group">
+    <CardContent className="p-3.5 sm:p-4 flex flex-col justify-between h-full space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider line-clamp-1 leading-tight">
+          {title}
+        </p>
+        <div className={cn("p-2 rounded-xl bg-secondary/80 border border-white/5 shrink-0 transition-transform group-hover:scale-105", colorClass)}>
+          <Icon className="w-4 h-4" />
         </div>
       </div>
-      <div className="space-y-0.5 mt-auto">
-        <h4 className="text-base sm:text-lg font-headline font-bold truncate">
+      <div className="space-y-0.5">
+        <h4 className="text-lg sm:text-xl font-headline font-black text-foreground tracking-tight tabular-nums truncate">
           {value}
         </h4>
-        <p className="text-[9px] sm:text-[10px] text-muted-foreground line-clamp-1">
+        <p className="text-[10px] text-muted-foreground font-medium line-clamp-1">
           {subtext}
         </p>
       </div>
@@ -107,12 +112,12 @@ const OperationCard = ({ title, value, subtext, icon: Icon, colorClass }: any) =
 );
 
 const AnalyticsRow = ({ label, value, sublabel }: any) => (
-  <div className="flex justify-between items-center py-3 border-b border-white/5 last:border-0">
+  <div className="flex justify-between items-center py-3 border-b border-border/40 last:border-0">
     <div className="space-y-0.5">
-      <p className="text-xs font-medium text-foreground">{label}</p>
-      {sublabel && <p className="text-[10px] text-muted-foreground uppercase">{sublabel}</p>}
+      <p className="text-xs font-semibold text-foreground/90">{label}</p>
+      {sublabel && <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">{sublabel}</p>}
     </div>
-    <span className="text-sm font-bold font-headline">{value}</span>
+    <span className="text-sm font-bold font-headline tabular-nums text-foreground">{value}</span>
   </div>
 );
 
@@ -304,15 +309,15 @@ export default function Dashboard() {
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-headline font-bold tracking-tight">Painel de Controle</h2>
-            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Sua inteligência financeira</p>
+            <h2 className="text-2xl font-headline font-black tracking-tight text-foreground">Painel Financeiro</h2>
+            <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">Sua inteligência de rentabilidade</p>
           </div>
 
           <Dialog open={showFuelModal} onOpenChange={setShowFuelModal}>
             <DialogTrigger asChild>
-              <Button variant="outline" className="h-9 gap-2 border-border/50 bg-card/50 text-primary rounded-xl shadow-sm px-3">
+              <Button variant="outline" className="h-10 gap-2 border-primary/30 bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs uppercase tracking-wider rounded-2xl shadow-sm px-3.5 transition-all">
                 <Fuel className="w-4 h-4" />
-                <span className="text-[10px] font-bold uppercase">Abastecer</span>
+                <span>Abastecer</span>
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-[90vw] rounded-3xl">
@@ -332,7 +337,7 @@ export default function Dashboard() {
                 </div>
               </div>
               <DialogFooter>
-                <Button onClick={handleFuelUpdate} disabled={updatingFuel} className="w-full h-12 font-bold">
+                <Button onClick={handleFuelUpdate} disabled={updatingFuel} className="w-full h-12 font-bold rounded-2xl">
                   {updatingFuel && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                   ATUALIZAR AGORA
                 </Button>
@@ -342,11 +347,11 @@ export default function Dashboard() {
         </div>
 
         {/* DATE SELECTOR */}
-        <div className="flex items-center justify-between bg-card/40 border border-border/50 rounded-2xl p-1.5 shadow-sm">
+        <div className="flex items-center justify-between bg-card/70 border border-border/80 rounded-2xl p-1 shadow-sm">
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors"
+            className="h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors text-muted-foreground"
             onClick={() => navigateWeek('prev')}
           >
             <ChevronLeft className="w-4 h-4" />
@@ -356,10 +361,10 @@ export default function Dashboard() {
             <PopoverTrigger asChild>
               <Button
                 variant="ghost"
-                className="flex-1 h-8 gap-2 font-bold text-xs uppercase tracking-wider hover:bg-transparent"
+                className="flex-1 h-9 gap-2 font-bold text-xs uppercase tracking-wider hover:bg-primary/5 text-foreground/90 rounded-xl"
               >
-                <CalendarIcon className="w-3.5 h-3.5 text-primary" />
-                {formattedRange}
+                <CalendarIcon className="w-4 h-4 text-primary shrink-0" />
+                <span>{formattedRange}</span>
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0 rounded-2xl border-border" align="center">
@@ -382,7 +387,7 @@ export default function Dashboard() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors"
+            className="h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors text-muted-foreground"
             onClick={() => navigateWeek('next')}
           >
             <ChevronRight className="w-4 h-4" />
@@ -391,11 +396,11 @@ export default function Dashboard() {
       </div>
 
       <Tabs defaultValue="geral" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="geral">Geral</TabsTrigger>
-          <TabsTrigger value="produtivo">Produtivo</TabsTrigger>
-          <TabsTrigger value="total">Total</TabsTrigger>
-          <TabsTrigger value="eficiencia">Eficiência</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4 p-1.5 h-12 rounded-2xl bg-secondary/70 border border-border/60">
+          <TabsTrigger value="geral" className="rounded-xl text-xs font-semibold data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all">Geral</TabsTrigger>
+          <TabsTrigger value="produtivo" className="rounded-xl text-xs font-semibold data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all">Produtivo</TabsTrigger>
+          <TabsTrigger value="total" className="rounded-xl text-xs font-semibold data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all">Total</TabsTrigger>
+          <TabsTrigger value="eficiencia" className="rounded-xl text-xs font-semibold data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all">Eficiência</TabsTrigger>
         </TabsList>
         <TabsContent value="geral">
           <div>

@@ -195,21 +195,30 @@ export default function HistoryPage() {
 
   return (
     <>
-      <div className='p-6 space-y-6 max-w-md mx-auto pb-28'>
-        <div className='space-y-2'>
-          <h2 className='text-3xl font-headline font-bold'>
-            Histórico
-          </h2>
-          <p className='text-sm text-muted-foreground'>
-            Revise seu desempenho por período.
-          </p>
+      <div className='p-4 sm:p-6 space-y-6 max-w-md mx-auto pb-28 animate-in fade-in duration-300'>
+        {/* Header */}
+        <div className='flex items-center justify-between'>
+          <div>
+            <h2 className='text-2xl font-headline font-black tracking-tight text-foreground'>
+              Histórico
+            </h2>
+            <p className='text-[10px] text-muted-foreground font-semibold uppercase tracking-widest'>
+              Desempenho por período
+            </p>
+          </div>
+          {daysArray.length > 0 && (
+            <Badge variant="outline" className="border-primary/30 bg-primary/10 text-primary text-[10px] font-bold px-2.5 py-1 rounded-full">
+              {daysArray.length} {daysArray.length === 1 ? 'dia' : 'dias'}
+            </Badge>
+          )}
         </div>
 
-        <div className='flex items-center justify-between bg-card border border-border rounded-2xl p-1.5 shadow-sm'>
+        {/* Date Selector */}
+        <div className='flex items-center justify-between bg-card/70 border border-border/80 rounded-2xl p-1 shadow-sm'>
           <Button
             variant='ghost'
             size='icon'
-            className='h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors'
+            className='h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors text-muted-foreground'
             onClick={() => navigateWeek('prev')}
           >
             <ChevronLeft className='w-4 h-4' />
@@ -218,10 +227,10 @@ export default function HistoryPage() {
             <PopoverTrigger asChild>
               <Button
                 variant='ghost'
-                className='flex-1 h-8 gap-2 font-bold text-xs uppercase tracking-wider hover:bg-transparent text-foreground/80'
+                className='flex-1 h-9 gap-2 font-bold text-xs uppercase tracking-wider hover:bg-primary/5 text-foreground/90 rounded-xl'
               >
-                <CalendarIcon className='w-3.5 h-3.5 text-primary' />
-                {formattedRange}
+                <CalendarIcon className='w-4 h-4 text-primary shrink-0' />
+                <span>{formattedRange}</span>
               </Button>
             </PopoverTrigger>
             <PopoverContent
@@ -246,7 +255,7 @@ export default function HistoryPage() {
           <Button
             variant='ghost'
             size='icon'
-            className='h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors'
+            className='h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors text-muted-foreground'
             onClick={() => navigateWeek('next')}
           >
             <ChevronRight className='w-4 h-4' />
@@ -254,97 +263,120 @@ export default function HistoryPage() {
         </div>
 
         <div className='space-y-6'>
+          {/* Summary Cards */}
           {dashboard?.summary && (
-            <div className='grid grid-cols-2 gap-4'>
-              <Card className='border-border bg-card'>
-                <CardContent className='p-4'>
-                  <p className='text-xs uppercase font-medium text-muted-foreground'>
-                    Lucro líquido
+            <div className='grid grid-cols-2 gap-3.5'>
+              <Card className='relative overflow-hidden rounded-2xl border border-primary/20 bg-card/80 p-4 shadow-sm group hover:border-primary/40 transition-all'>
+                <div className="absolute top-0 right-0 w-24 h-24 bg-primary/10 rounded-full blur-xl pointer-events-none" />
+                <div className="space-y-2 relative z-10">
+                  <p className='text-[10px] font-bold uppercase tracking-wider text-muted-foreground'>
+                    Lucro Líquido
                   </p>
-                  <p className='text-xl font-bold text-primary'>
+                  <p className='text-xl sm:text-2xl font-headline font-black text-primary tabular-nums tracking-tight'>
                     {formatBRL(dashboard.summary.netProfit)}
                   </p>
-                </CardContent>
+                  <p className='text-[9px] text-muted-foreground/80 font-medium'>
+                    Bruto: {formatBRL(dashboard.summary.grossAmount || 0)}
+                  </p>
+                </div>
               </Card>
-              <Card className='border-border bg-card'>
-                <CardContent className='p-4'>
-                  <p className='text-xs uppercase font-medium text-muted-foreground'>
-                    Distância
+
+              <Card className='relative overflow-hidden rounded-2xl border border-border/80 bg-card/80 p-4 shadow-sm group hover:border-border transition-all'>
+                <div className="space-y-2">
+                  <p className='text-[10px] font-bold uppercase tracking-wider text-muted-foreground'>
+                    Distância Total
                   </p>
-                  <p className='text-xl font-bold text-foreground'>
-                    {dashboard.summary.totalKm.toFixed(1)} km
+                  <p className='text-xl sm:text-2xl font-headline font-black text-foreground tabular-nums tracking-tight'>
+                    {dashboard.summary.totalKm.toFixed(1)} <span className="text-xs font-normal text-muted-foreground">km</span>
                   </p>
-                </CardContent>
+                  <p className='text-[9px] text-muted-foreground/80 font-medium'>
+                    Produtivo: {(dashboard.summary.productiveKm || 0).toFixed(1)} km
+                  </p>
+                </div>
               </Card>
             </div>
           )}
 
-          <div className='space-y-4'>
-            <h3 className='text-sm font-medium text-muted-foreground px-1'>
-              Detalhamento Diário
-            </h3>
-            {daysArray.length > 0 ? (
-              daysArray.map((dayData: any) => {
-                const date = dayData.date;
-                const parsedDate = parse(date, 'yyyy-MM-dd', new Date());
-                const distanceKm = dayData.distance?.productiveKm || 0;
-                const productiveHours = dayData.distance?.productiveHoursHuman || '0min';
+          {/* Daily Breakdown List */}
+          <div className='space-y-3'>
+            <div className="flex items-center justify-between px-1">
+              <h3 className='text-xs font-bold uppercase tracking-widest text-muted-foreground'>
+                Jornadas Diárias
+              </h3>
+            </div>
 
-                return (
-                  <Card
-                    key={date}
-                    onClick={() => handleDayClick(dayData)}
-                    className='border-border bg-card transition-all duration-200 cursor-pointer hover:border-primary/50'
-                  >
-                    <CardContent className='p-4 flex items-center justify-between'>
-                      <div className='space-y-1.5 flex-1'>
-                        <div className='flex items-center gap-2'>
-                          <span className='font-bold text-foreground'>
-                            {format(parsedDate, 'dd/MM')}
-                          </span>
-                          <Badge
-                            variant='secondary'
-                            className='text-xs font-medium'
-                          >
-                            {dayData.dayName}
-                          </Badge>
+            {daysArray.length > 0 ? (
+              <div className="space-y-2.5">
+                {daysArray.map((dayData: any) => {
+                  const date = dayData.date;
+                  const parsedDate = parse(date, 'yyyy-MM-dd', new Date());
+                  const distanceKm = dayData.distance?.productiveKm || 0;
+                  const productiveHours = dayData.distance?.productiveHoursHuman || '0min';
+
+                  return (
+                    <Card
+                      key={date}
+                      onClick={() => handleDayClick(dayData)}
+                      className='rounded-2xl border border-border/70 bg-card/70 hover:bg-card/95 hover:border-primary/40 transition-all duration-200 cursor-pointer shadow-sm active:scale-[0.99] group'
+                    >
+                      <CardContent className='p-4 flex items-center justify-between'>
+                        <div className='space-y-1.5 flex-1 pr-3'>
+                          <div className='flex items-center gap-2'>
+                            <span className='font-headline font-bold text-base text-foreground'>
+                              {format(parsedDate, 'dd/MM')}
+                            </span>
+                            <Badge
+                              variant='secondary'
+                              className='text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-md bg-secondary/80 text-foreground/80 border border-white/5'
+                            >
+                              {dayData.dayName}
+                            </Badge>
+                          </div>
+                          <div className='flex items-center gap-3.5 text-xs text-muted-foreground'>
+                            <span className='flex items-center gap-1.5 font-medium'>
+                              <Route className='w-3.5 h-3.5 text-primary/70' />
+                              {distanceKm.toFixed(1)} km
+                            </span>
+                            <span className='flex items-center gap-1.5 font-medium'>
+                              <Clock className='w-3.5 h-3.5 text-primary/70' />
+                              {productiveHours}
+                            </span>
+                          </div>
                         </div>
-                        <div className='flex items-center gap-4 text-sm text-muted-foreground'>
-                          <span className='flex items-center gap-1.5'>
-                            <Route className='w-4 h-4' />
-                            {distanceKm.toFixed(1)} km
-                          </span>
-                          <span className='flex items-center gap-1.5'>
-                            <Clock className='w-4 h-4' />
-                            {productiveHours}
-                          </span>
+
+                        <div className='text-right flex items-center gap-2.5'>
+                          <div className='space-y-0.5'>
+                            <p className='text-base sm:text-lg font-headline font-black text-primary tabular-nums tracking-tight'>
+                              {formatBRL(dayData.financial.netProfit)}
+                            </p>
+                            <p className='text-[10px] text-muted-foreground font-semibold uppercase tracking-wider'>
+                              Líquido
+                            </p>
+                          </div>
+                          <div className="w-8 h-8 rounded-xl bg-secondary/60 flex items-center justify-center text-muted-foreground group-hover:text-primary group-hover:bg-primary/10 transition-colors">
+                            <ChevronRight className='w-4 h-4' />
+                          </div>
                         </div>
-                      </div>
-                      <div className='text-right flex items-center gap-2'>
-                        <div className='space-y-0.5'>
-                          <p className='text-lg font-headline font-bold text-primary'>
-                            {formatBRL(dayData.financial.netProfit)}
-                          </p>
-                          <p className='text-xs text-muted-foreground font-medium'>
-                            Líquido
-                          </p>
-                        </div>
-                        <ChevronRight className='w-5 h-5 text-muted-foreground/50' />
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
             ) : (
-              <div className='py-20 text-center space-y-4'>
+              <div className='py-16 text-center space-y-3 bg-card/40 rounded-2xl border border-dashed border-border/80'>
                 {loading ? (
                   <Loader2 className='w-8 h-8 text-primary animate-spin mx-auto' />
                 ) : (
                   <>
-                    <CalendarIcon className='w-12 h-12 text-muted-foreground mx-auto opacity-20' />
-                    <p className='text-sm text-muted-foreground'>
-                      Nenhum registro neste período.
-                    </p>
+                    <CalendarIcon className='w-10 h-10 text-muted-foreground/40 mx-auto' />
+                    <div className="space-y-1">
+                      <p className='text-sm font-semibold text-foreground'>
+                        Nenhum registro encontrado
+                      </p>
+                      <p className='text-xs text-muted-foreground'>
+                        Não foram realizadas corridas neste período.
+                      </p>
+                    </div>
                   </>
                 )}
               </div>
@@ -364,13 +396,13 @@ export default function HistoryPage() {
               </DialogHeader>
 
               <Tabs defaultValue="financeiro" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 bg-background border-border">
-                  <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
-                  <TabsTrigger value="desempenho">Desempenho</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-2 p-1.5 h-11 rounded-2xl bg-secondary/70 border border-border/60">
+                  <TabsTrigger value="financeiro" className="rounded-xl text-xs font-semibold data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all">Financeiro</TabsTrigger>
+                  <TabsTrigger value="desempenho" className="rounded-xl text-xs font-semibold data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all">Desempenho</TabsTrigger>
                 </TabsList>
-                <TabsContent value="financeiro" className="pt-4">
+                <TabsContent value="financeiro" className="pt-2">
                   <Card className="border-none bg-transparent shadow-none">
-                    <CardContent className="p-0 divide-y divide-border">
+                    <CardContent className="p-0 divide-y divide-border/40">
                       <AnalyticsRow label="Lucro Líquido" value={<span className="text-primary font-bold">{formatBRL(selectedDay.financial.netProfit)}</span>} />
                       <AnalyticsRow label="Faturamento Bruto" value={formatBRL(selectedDay.financial.grossAmount)} />
                       <AnalyticsRow label="Combustível" value={formatBRL(selectedDay.financial.fuelExpense)} sublabel="Despesa" />
@@ -380,9 +412,9 @@ export default function HistoryPage() {
                     </CardContent>
                   </Card>
                 </TabsContent>
-                <TabsContent value="desempenho" className="pt-4">
+                <TabsContent value="desempenho" className="pt-2">
                   <Card className="border-none bg-transparent shadow-none">
-                    <CardContent className="p-0 divide-y divide-border">
+                    <CardContent className="p-0 divide-y divide-border/40">
                       <AnalyticsRow label="Horas Produtivas" value={selectedDay.distance.productiveHoursHuman} />
                       <AnalyticsRow label="Horas Totais" value={selectedDay.distance.totalHoursHuman} />
                       <AnalyticsRow label="Distância Produtiva" value={`${selectedDay.distance.productiveKm.toFixed(1)} km`} />
@@ -392,8 +424,12 @@ export default function HistoryPage() {
                 </TabsContent>
               </Tabs>
 
-              <DialogFooter className="pt-4">
-                <Button variant="destructive" onClick={() => setIsDeleteDialogOpen(true)} className="gap-2 w-full">
+              <DialogFooter className="pt-3">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsDeleteDialogOpen(true)} 
+                  className="gap-2 w-full h-11 rounded-2xl border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive font-semibold text-xs uppercase tracking-wider transition-colors"
+                >
                   <Trash2 className="w-4 h-4"/>
                   Excluir Registro do Dia
                 </Button>

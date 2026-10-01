@@ -7,57 +7,58 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 210 20% 98%;
+    --foreground: 222 47% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 160 85% 45%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 154 75% 42%;
     --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
+    --secondary: 214 18% 93%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 214 18% 93%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 154 75% 42%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 1rem;
+    --border: 214 20% 90%;
+    --input: 214 20% 90%;
+    --ring: 154 75% 42%;
+    --radius: 1.125rem;
   }
 
   .dark {
-    --background: 228 12% 12%;
-    --foreground: 220 20% 90%;
-    --card: 228 12% 16%;
-    --card-foreground: 220 20% 90%;
-    --popover: 228 12% 14%;
-    --popover-foreground: 220 20% 90%;
-    --primary: 160 85% 45%;
-    --primary-foreground: 228 10% 95%;
-    --secondary: 228 10% 25%;
-    --secondary-foreground: 220 20% 90%;
-    --muted: 228 10% 25%;
-    --muted-foreground: 228 10% 60%;
-    --accent: 160 85% 55%;
-    --accent-foreground: 228 10% 95%;
-    --destructive: 0 75% 55%;
+    --background: 224 28% 6%;
+    --foreground: 210 25% 98%;
+    --card: 224 22% 10%;
+    --card-foreground: 210 25% 98%;
+    --popover: 224 22% 10%;
+    --popover-foreground: 210 25% 98%;
+    --primary: 154 75% 48%;
+    --primary-foreground: 224 30% 6%;
+    --secondary: 224 16% 15%;
+    --secondary-foreground: 210 20% 90%;
+    --muted: 224 16% 15%;
+    --muted-foreground: 218 14% 62%;
+    --accent: 154 75% 48%;
+    --accent-foreground: 224 30% 6%;
+    --destructive: 0 78% 62%;
     --destructive-foreground: 0 0% 100%;
-    --border: 228 12% 20%;
-    --input: 228 12% 22%;
-    --ring: 160 85% 50%;
+    --border: 224 16% 18%;
+    --input: 224 16% 18%;
+    --ring: 154 75% 48%;
+    --radius: 1.125rem;
   }
 }
 
 @layer base {
   * {
     @apply border-border;
-    -webkit-user-select: none; /* Safari */
-    -ms-user-select: none; /* IE 10 and IE 11 */
-    user-select: none; /* Standard syntax */
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
   }
   body {
     @apply bg-background text-foreground font-body antialiased selection:bg-primary/30;
@@ -66,20 +67,36 @@
   }
 }
 
-/* Adicione quaisquer outras classes utilitárias ou estilos personalizados aqui */
 .glass-morphism {
-  @apply bg-card/90 backdrop-blur-xl shadow-2xl;
+  background: hsla(var(--card) / 0.82);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.glass-dock {
+  background: hsla(var(--card) / 0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid hsla(var(--border) / 0.8);
 }
 
 .hero-gradient {
-  background: linear-gradient(135deg, hsl(var(--primary) / 0.15) 0%, transparent 100%);
+  background: radial-gradient(circle at top right, hsla(var(--primary) / 0.18), transparent 70%),
+              linear-gradient(180deg, hsla(var(--card) / 0.95) 0%, hsla(var(--card) / 0.7) 100%);
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+.hud-panel {
+  background: linear-gradient(180deg, hsla(var(--card) / 0.95) 0%, hsla(var(--card) / 0.6) 100%);
+  border: 1px solid hsla(var(--border) / 0.7);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.5s ease-out forwards;
+@keyframes pulse-radar {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.6); opacity: 0; }
+  100% { transform: scale(0.95); opacity: 0; }
+}
+
+.animate-pulse-radar {
+  animation: pulse-radar 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }

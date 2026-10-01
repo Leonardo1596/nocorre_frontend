@@ -61,11 +61,37 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <GpsProvider>
       <ShiftProvider>
         <AppProvider>
-          <div className="min-h-screen bg-background flex flex-col pb-24">
-            <header className="px-6 py-4 flex items-center justify-between sticky top-0 z-10 glass-morphism">
-              <span className="font-headline font-bold text-xl text-primary">NoCorre</span>
-              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs">
-                {(user?.name?.[0] || 'U').toUpperCase()}
+          <div className="min-h-screen bg-background flex flex-col pb-24 text-foreground selection:bg-primary/20">
+            {/* Top Bar */}
+            <header className="sticky top-0 z-40 w-full glass-dock border-x-0 border-t-0 px-4 sm:px-6 py-3 transition-all">
+              <div className="max-w-md mx-auto flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="relative flex items-center justify-center w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 text-primary">
+                    <span className="font-headline font-black text-sm tracking-tight">NC</span>
+                    <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                    </span>
+                  </div>
+                  <div>
+                    <h1 className="font-headline font-black text-lg tracking-tight leading-none text-foreground flex items-center gap-1.5">
+                      NoCorre
+                    </h1>
+                    <p className="text-[10px] text-muted-foreground font-medium tracking-wide">Inteligência no Volante</p>
+                  </div>
+                </div>
+
+                <Link
+                  href="/settings"
+                  className="flex items-center gap-2 p-1 pl-2.5 rounded-full bg-secondary/80 border border-border hover:border-primary/40 transition-colors"
+                >
+                  <span className="text-xs font-semibold max-w-[90px] truncate text-foreground/80">
+                    {user?.name?.split(' ')[0] || 'Motorista'}
+                  </span>
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-primary to-emerald-400 flex items-center justify-center text-primary-foreground font-bold text-xs shadow-sm">
+                    {(user?.name?.[0] || 'M').toUpperCase()}
+                  </div>
+                </Link>
               </div>
             </header>
             
@@ -73,21 +99,37 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               {children}
             </main>
 
-            <nav className="fixed bottom-0 left-0 right-0 glass-morphism border-t border-border px-4 py-2 flex items-center justify-around z-50">
-              {navItems.map((item) => (
-                <Link 
-                  key={item.href} 
-                  href={item.href}
-                  className={cn(
-                    "flex flex-col items-center gap-1 transition-all p-2 rounded-xl",
-                    pathname === item.href ? "text-primary bg-primary/10" : "text-foreground/60 hover:text-foreground"
-                  )}
-                >
-                  <item.icon className="w-5 h-5" />
-                  <span className="text-[10px] font-medium">{item.label}</span>
-                </Link>
-              ))}
-            </nav>
+            {/* Bottom Dock Navigation */}
+            <div className="fixed bottom-0 left-0 right-0 z-50 p-2 sm:p-3 pointer-events-none">
+              <nav className="max-w-md mx-auto glass-dock rounded-3xl p-1.5 shadow-2xl pointer-events-auto flex items-center justify-around">
+                {navItems.map((item) => {
+                  const isActive = pathname === item.href;
+                  return (
+                    <Link 
+                      key={item.href} 
+                      href={item.href}
+                      className={cn(
+                        "relative flex flex-col items-center justify-center flex-1 py-2 px-1 rounded-2xl transition-all duration-300 min-h-[48px]",
+                        isActive 
+                          ? "text-primary font-bold" 
+                          : "text-muted-foreground hover:text-foreground active:scale-95"
+                      )}
+                    >
+                      {isActive && (
+                        <span className="absolute inset-0 bg-primary/10 rounded-2xl border border-primary/20 animate-in fade-in zoom-in-95 duration-200" />
+                      )}
+                      <item.icon className={cn("w-5 h-5 relative z-10 transition-transform duration-200", isActive && "scale-110 text-primary")} />
+                      <span className={cn(
+                        "text-[10px] relative z-10 tracking-tight mt-1 transition-colors",
+                        isActive ? "text-primary font-bold" : "text-muted-foreground font-medium"
+                      )}>
+                        {item.label}
+                      </span>
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
           </div>
         </AppProvider>
       </ShiftProvider>
