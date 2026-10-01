@@ -127,7 +127,7 @@ export default function Dashboard() {
   const [efficiencyProfitComparison, setEfficiencyProfitComparison] = useState<any>(null);
   const [showFuelModal, setShowFuelModal] = useState(false);
   const [showExpenseDetails, setShowExpenseDetails] = useState(false);
-  const [showDeadKmModal, setShowDeadKmModal] = useState(false);
+  const [showEfficiencyExpenseDetails, setShowEfficiencyExpenseDetails] = useState(false);
   const [fuelPrice, setFuelPrice] = useState<number>(0);
   const [updatingFuel, setUpdatingFuel] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
@@ -271,6 +271,13 @@ export default function Dashboard() {
   const maintenanceExpenses = Number(summary.maintenanceExpense || 0);
   const foodExpenses = Number(summary.foodExpense || 0);
   const otherExpenses = Number(summary.otherExpense || 0);
+
+  // Eficiência - Despesas pelo KM Total
+  const efficiencyFuelExpenses = Number(efficiency.fuelExpense ?? 0);
+  const efficiencyMaintenanceExpenses = Number(efficiency.maintenanceExpense ?? 0);
+  const efficiencyTotalExpenses = efficiency.totalExpenses != null
+    ? Number(efficiency.totalExpenses)
+    : (efficiencyFuelExpenses + efficiencyMaintenanceExpenses + foodExpenses + otherExpenses);
 
   // Métricas Produtivas
   const netPerHourProductive = productiveHours > 0 ? netProfit / productiveHours : 0;
@@ -588,42 +595,44 @@ export default function Dashboard() {
                 icon={DollarSign}
                 colorClass="text-blue-400"
               />
-              <Dialog open={showDeadKmModal} onOpenChange={setShowDeadKmModal}>
+              <OperationCard
+                title="KM Mortos"
+                value={`${(efficiency.deadKm || 0).toFixed(1)} km`}
+                subtext="Quilometragem sem corrida"
+                icon={Fuel}
+                colorClass="text-red-400"
+              />
+              <Dialog open={showEfficiencyExpenseDetails} onOpenChange={setShowEfficiencyExpenseDetails}>
                 <DialogTrigger asChild>
                   <div className="cursor-pointer">
                     <OperationCard
-                      title="KM Mortos"
-                      value={`${(efficiency.deadKm || 0).toFixed(1)} km`}
+                      title="Despesas Totais"
+                      value={formatBRL(efficiencyTotalExpenses)}
                       subtext="Toque para ver detalhes"
                       icon={Fuel}
-                      colorClass="text-red-400"
+                      colorClass="text-orange-400"
                     />
                   </div>
                 </DialogTrigger>
                 <DialogContent className="max-w-[90vw] rounded-3xl">
                   <DialogHeader>
-                    <DialogTitle className="font-headline">Detalhes de KM Morto</DialogTitle>
+                    <DialogTitle className="font-headline">Detalhes das Despesas</DialogTitle>
                     <DialogDescription>
-                      Custo estimado da quilometragem percorrida sem gerar receita.
+                      Despesas calculadas com base na quilometragem total.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="py-4">
                     <Card className="border-border/50 bg-card/40">
                       <CardContent className="p-4 divide-y divide-white/5">
-                        <AnalyticsRow label="Custo Combustível" value={formatBRL(efficiency.deadFuelExpense)} />
-                        <AnalyticsRow label="Custo Manutenção" value={formatBRL(efficiency.deadMaintenanceExpense)} />
+                        <AnalyticsRow label="Combustível" value={formatBRL(efficiencyFuelExpenses)} />
+                        <AnalyticsRow label="Manutenção" value={formatBRL(efficiencyMaintenanceExpenses)} />
+                        <AnalyticsRow label="Alimentação" value={formatBRL(foodExpenses)} />
+                        <AnalyticsRow label="Outros" value={formatBRL(otherExpenses)} />
                       </CardContent>
                     </Card>
                   </div>
                 </DialogContent>
               </Dialog>
-              <OperationCard
-                title="Lucro/KM Total"
-                value={`${formatBRL(efficiency.profitPerTotalKm || 0)}/km`}
-                subtext="Lucro líquido pela quilometragem total."
-                icon={DollarSign}
-                colorClass="text-purple-400"
-              />
             </div>
           </div>
         </TabsContent>
