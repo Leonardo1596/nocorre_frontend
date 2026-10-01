@@ -124,6 +124,7 @@ export default function Dashboard() {
   const [data, setData] = useState<any>(null);
   const [previousWeekData, setPreviousWeekData] = useState<any>(null);
   const [profitComparison, setProfitComparison] = useState<any>(null);
+  const [efficiencyProfitComparison, setEfficiencyProfitComparison] = useState<any>(null);
   const [showFuelModal, setShowFuelModal] = useState(false);
   const [showExpenseDetails, setShowExpenseDetails] = useState(false);
   const [showDeadKmModal, setShowDeadKmModal] = useState(false);
@@ -188,8 +189,22 @@ export default function Dashboard() {
       } else {
         setProfitComparison(null);
       }
+
+      const currentEffProfit = data.summary?.efficiency?.netProfit ?? 0;
+      const previousEffProfit = previousWeekData.summary?.efficiency?.netProfit ?? 0;
+
+      if (previousEffProfit > 0) {
+        const effChange = ((currentEffProfit - previousEffProfit) / previousEffProfit) * 100;
+        setEfficiencyProfitComparison({
+          percentage: Math.abs(Number(effChange.toFixed(0))),
+          isIncrease: effChange >= 0,
+        });
+      } else {
+        setEfficiencyProfitComparison(null);
+      }
     } else {
       setProfitComparison(null);
+      setEfficiencyProfitComparison(null);
     }
   }, [data, previousWeekData]);
 
@@ -244,6 +259,7 @@ export default function Dashboard() {
 
   const grossAmount = Number(summary.grossAmount || 0);
   const netProfit = Number(summary.netProfit || 0);
+  const efficiencyNetProfit = Number(efficiency.netProfit ?? 0);
   const totalExpenses = Number(summary.totalExpenses || 0);
   const totalKm = Number(summary.totalKm || 0);
   const productiveKm = Number(summary.productiveKm || 0);
@@ -545,18 +561,29 @@ export default function Dashboard() {
           </div>
         </TabsContent>
         <TabsContent value="eficiencia">
-          <div className="mt-6">
+          <div className="space-y-4 mt-6">
+            <HeroCard
+              title="Lucro Líquido"
+              value={formatBRL(efficiencyNetProfit)}
+              icon={TrendingUp}
+              subtext={efficiencyProfitComparison
+                ? `${efficiencyProfitComparison.percentage}% a ${efficiencyProfitComparison.isIncrease ? 'mais' : 'menos'} que na semana anterior`
+                : "Calculado com base no KM total"}
+              trendIcon={efficiencyProfitComparison ? (efficiencyProfitComparison.isIncrease ? ArrowUpRight : ArrowDownRight) : null}
+              trendColor={efficiencyProfitComparison ? (efficiencyProfitComparison.isIncrease ? 'text-primary' : 'text-destructive') : 'text-muted-foreground'}
+            />
+
             <div className="grid grid-cols-2 gap-4">
               <OperationCard
                 title="Tempo Ocioso"
-                value={efficiency.idleHoursHuman}
+                value={efficiency.idleHoursHuman || '0h 0min'}
                 subtext="Tempo em turno sem corridas."
                 icon={Clock}
                 colorClass="text-amber-400"
               />
               <OperationCard
                 title="Lucro/Hora Turno"
-                value={formatBRL(efficiency.turnProfitPerHour)}
+                value={formatBRL(efficiency.turnProfitPerHour || 0)}
                 subtext="Lucro líquido pelas horas totais do turno."
                 icon={DollarSign}
                 colorClass="text-blue-400"
@@ -592,7 +619,7 @@ export default function Dashboard() {
               </Dialog>
               <OperationCard
                 title="Lucro/KM Total"
-                value={`${formatBRL(efficiency.profitPerTotalKm)}/km`}
+                value={`${formatBRL(efficiency.profitPerTotalKm || 0)}/km`}
                 subtext="Lucro líquido pela quilometragem total."
                 icon={DollarSign}
                 colorClass="text-purple-400"
