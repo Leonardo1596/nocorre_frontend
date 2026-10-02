@@ -125,6 +125,11 @@ public class NativeGpsPlugin extends Plugin {
                 intent.getStringExtra("destination")
         );
 
+        trip.put(
+                "rating",
+                intent.getDoubleExtra("rating", 0.0)
+        );
+
         notifyListeners(
                 "uberTrip",
                 trip,

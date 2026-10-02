@@ -12,6 +12,9 @@ public class UberTripParser {
     private static final Pattern DISTANCE_TIME_PATTERN =
             Pattern.compile("([0-9]+(?:[\\.,][0-9]+)?)\\s*km\\s*\\((.*?)\\)");
 
+    private static final Pattern RATING_PATTERN =
+            Pattern.compile("(?:★|⭐|\\*|Nota)?\\s*([45][\\.,][0-9]{2})");
+
     public static UberTrip parse(List<String> texts) {
 
         UberTrip trip = new UberTrip();
@@ -91,6 +94,21 @@ public class UberTripParser {
                     trip.tripTime = time;
 
                     foundTrip = true;
+                }
+            }
+
+            //----------------------------------------------------
+            // NOTA DO PASSAGEIRO (ex: 4.93 ou ★ 4,93)
+            //----------------------------------------------------
+            if (trip.rating == 0) {
+                Matcher ratingMatcher = RATING_PATTERN.matcher(current);
+                if (ratingMatcher.find()) {
+                    try {
+                        trip.rating = Double.parseDouble(
+                                ratingMatcher.group(1).replace(",", ".")
+                        );
+                    } catch (Exception ignored) {
+                    }
                 }
             }
 
