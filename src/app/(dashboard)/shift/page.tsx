@@ -386,18 +386,20 @@ export default function ShiftPage() {
 
         <div className="flex items-center gap-2">
           <Badge
-            variant={isGpsActive ? 'default' : isReactivating ? 'secondary' : 'outline'}
+            variant={currentShift.isActive && isGpsActive ? 'default' : isReactivating ? 'secondary' : 'outline'}
             className={cn(
               "rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all",
-              isReactivating
-                ? "bg-amber-500/15 text-amber-500 border-amber-500/30 animate-pulse"
-                : isGpsActive 
-                  ? "bg-primary/15 text-primary border-primary/30" 
-                  : "bg-secondary text-muted-foreground border-border"
+              !currentShift.isActive
+                ? "bg-secondary text-muted-foreground border-border"
+                : isReactivating
+                  ? "bg-amber-500/15 text-amber-500 border-amber-500/30 animate-pulse"
+                  : isGpsActive 
+                    ? "bg-primary/15 text-primary border-primary/30" 
+                    : "bg-amber-500/15 text-amber-500 border-amber-500/30"
             )}
           >
             <span className="relative flex h-2 w-2">
-              {(isGpsActive || isReactivating) && (
+              {currentShift.isActive && (isGpsActive || isReactivating) && (
                 <span className={cn(
                   "absolute inline-flex h-full w-full rounded-full opacity-75",
                   isReactivating
@@ -407,10 +409,22 @@ export default function ShiftPage() {
               )}
               <span className={cn(
                 "relative inline-flex rounded-full h-2 w-2",
-                isReactivating ? "bg-amber-500" : isGpsActive ? "bg-primary" : "bg-muted-foreground"
+                !currentShift.isActive 
+                  ? "bg-muted-foreground/40" 
+                  : isReactivating 
+                    ? "bg-amber-500" 
+                    : isGpsActive 
+                      ? "bg-primary" 
+                      : "bg-amber-500"
               )} />
             </span>
-            {isReactivating ? 'Reativando GPS...' : isGpsActive ? 'GPS Ativo' : 'Sem GPS'}
+            {!currentShift.isActive 
+              ? 'GPS Desativado' 
+              : isReactivating 
+                ? 'Reativando GPS...' 
+                : isGpsActive 
+                  ? 'GPS Ativo' 
+                  : 'Buscando GPS...'}
           </Badge>
         </div>
       </div>

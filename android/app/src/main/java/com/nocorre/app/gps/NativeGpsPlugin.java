@@ -347,25 +347,19 @@ public void stopGps(
                         OverlayService.class
                 );
 
-
-        overlayIntent.setAction(
-                "HIDE_OVERLAY"
-        );
-
         Intent uberIntent =
         new Intent(
                 getContext(),
                 UberOverlayService.class
         );
 
-getContext()
-        .stopService(
-                uberIntent
-        );
-
+        getContext()
+                .stopService(
+                        uberIntent
+                );
 
         getContext()
-                .startService(
+                .stopService(
                         overlayIntent
                 );
 

@@ -89,16 +89,18 @@ export const GpsProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   /**
-   * Restaura estado salvo pelo Android / Storage inicial
+   * Restaura estado salvo pelo Android / Storage inicial (executa apenas uma vez no mount)
    */
   useEffect(() => {
+    let isMounted = true;
+
     const restore = async () => {
       try {
         const distance = await NativeGps.getDistance();
-        setAccumulatedDistance(distance.kilometers);
+        if (isMounted) setAccumulatedDistance(distance.kilometers);
 
         const { isRunning } = await NativeGps.isGpsRunning();
-        setIsGpsActive(isRunning);
+        if (isMounted) setIsGpsActive(isRunning);
 
         // Se o storage indica que o GPS deveria estar rodando (turno ativo)
         if (typeof window !== "undefined") {
@@ -114,7 +116,7 @@ export const GpsProvider = ({ children }: { children: React.ReactNode }) => {
             if (isRunning) {
               console.log("[GPS] Serviço nativo estava rodando sem turno ativo. Parando...");
               await NativeGps.stopGps();
-              setIsGpsActive(false);
+              if (isMounted) setIsGpsActive(false);
             }
           }
         }
@@ -124,7 +126,12 @@ export const GpsProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     restore();
-  }, [reactivateGps]);
+
+    return () => {
+      isMounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /**
    * Recebe localização e velocidade.
@@ -189,7 +196,7 @@ export const GpsProvider = ({ children }: { children: React.ReactNode }) => {
   /**
    * Iniciar GPS explicitamente
    */
-  const startGps = async () => {
+  const startGps = useCallback(async () => {
     desiredGpsActive.current = true;
     if (typeof window !== "undefined") {
       localStorage.setItem(DESIRED_GPS_KEY, "true");
@@ -204,12 +211,12 @@ export const GpsProvider = ({ children }: { children: React.ReactNode }) => {
       console.error("Error starting GPS service via context", e);
       setIsGpsActive(false);
     }
-  };
+  }, []);
 
   /**
    * Parar GPS explicitamente (quando o motorista encerra o turno)
    */
-  const stopGps = async () => {
+  const stopGps = useCallback(async () => {
     desiredGpsActive.current = false;
     if (typeof window !== "undefined") {
       localStorage.removeItem(DESIRED_GPS_KEY);
@@ -223,10 +230,10 @@ export const GpsProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (e) {
       console.error("Error stopping GPS service via context", e);
     }
-  };
+  }, []);
 
   /**
-   * WATCHDOG: Monitoramento contínuo para reativar caso fique inativo
+   * WATCHDOG: Monitoramento contínuo para reativar caso fique inativo durante turno
    */
   useEffect(() => {
     if (!autoReactivate) return;
@@ -237,9 +244,9 @@ export const GpsProvider = ({ children }: { children: React.ReactNode }) => {
       try {
         const { isRunning } = await NativeGps.isGpsRunning();
 
-        // Se o GPS está inativo pelo serviço nativo ou pelo estado React
-        if (!isRunning || !isGpsActive) {
-          console.warn("[GPS Watchdog] Inatividade do GPS detectada. Acionando reativação...");
+        // Se o serviço nativo parou inesperadamente
+        if (!isRunning) {
+          console.warn("[GPS Watchdog] Serviço nativo inativo durante turno. Acionando reativação...");
           await reactivateGps();
           return;
         }
@@ -260,7 +267,7 @@ export const GpsProvider = ({ children }: { children: React.ReactNode }) => {
     }, 4000);
 
     return () => clearInterval(watchdog);
-  }, [autoReactivate, isGpsActive, reactivateGps]);
+  }, [autoReactivate, reactivateGps]);
 
   /**
    * LIFECYCLE RECONNECT: Reativar quando o app volta ao primeiro plano ou recupera conexão
@@ -272,7 +279,7 @@ export const GpsProvider = ({ children }: { children: React.ReactNode }) => {
       if (!desiredGpsActive.current) return;
       try {
         const { isRunning } = await NativeGps.isGpsRunning();
-        if (!isRunning || !isGpsActive) {
+        if (!isRunning) {
           console.log("[GPS Lifecycle] App reaberto/visível com GPS inativo. Reativando...");
           await reactivateGps();
         }
@@ -311,7 +318,7 @@ export const GpsProvider = ({ children }: { children: React.ReactNode }) => {
         appStateHandle.remove();
       }
     };
-  }, [autoReactivate, isGpsActive, reactivateGps]);
+  }, [autoReactivate, reactivateGps]);
 
   const value: GpsContextType = {
     location,

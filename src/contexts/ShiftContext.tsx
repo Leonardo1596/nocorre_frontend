@@ -48,28 +48,39 @@ export const ShiftProvider = ({ children }: { children: React.ReactNode }) => {
   } = useGps();
 
   useEffect(() => {
+    let isMounted = true;
+
     const restoreState = async () => {
       try {
         const storedState = await NativeGps.getShiftState();
         if (storedState && storedState.isShiftActive) {
-          setIsShiftActive(true);
-          setIsPaused(storedState.isPaused || false);
-          setShiftDistance(storedState.shiftDistance || 0);
-          setProductiveDistance(storedState.productiveDistance || 0);
-          setTotalPausedKm(storedState.totalPausedKm || 0);
-          setKmAtPauseStart(storedState.kmAtPauseStart || 0);
+          if (isMounted) {
+            setIsShiftActive(true);
+            setIsPaused(storedState.isPaused || false);
+            setShiftDistance(storedState.shiftDistance || 0);
+            setProductiveDistance(storedState.productiveDistance || 0);
+            setTotalPausedKm(storedState.totalPausedKm || 0);
+            setKmAtPauseStart(storedState.kmAtPauseStart || 0);
+          }
+          await startGps();
         } else {
-          setIsShiftActive(false);
+          if (isMounted) setIsShiftActive(false);
           await stopGps();
         }
       } catch (e) {
         console.error("Error restoring shift state", e);
-        setIsShiftActive(false);
+        if (isMounted) setIsShiftActive(false);
         await stopGps();
       }
     };
+
     restoreState();
-  }, [stopGps]);
+
+    return () => {
+      isMounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const saveState = async () => {
@@ -109,9 +120,16 @@ export const ShiftProvider = ({ children }: { children: React.ReactNode }) => {
   const startShift = useCallback(async () => {
     try {
       await NativeGps.clearGpsLog();
-      await NativeGps.clearShiftState();
+      await NativeGps.setShiftState({
+        isShiftActive: true,
+        isPaused: false,
+        shiftDistance: 0,
+        productiveDistance: 0,
+        totalPausedKm: 0,
+        kmAtPauseStart: 0,
+      });
     } catch (e) {
-      console.error("Error clearing GPS log", e);
+      console.error("Error saving initial shift state", e);
     }
     await resetAccumulatedDistance();
     await startGps();
@@ -120,6 +138,7 @@ export const ShiftProvider = ({ children }: { children: React.ReactNode }) => {
     setTotalPausedKm(0);
     setKmAtPauseStart(0);
     setProductiveDistance(0);
+    setShiftDistance(0);
   }, [startGps, resetAccumulatedDistance]);
 
   const stopShift = useCallback(async () => {
@@ -149,16 +168,6 @@ export const ShiftProvider = ({ children }: { children: React.ReactNode }) => {
     setTotalPausedKm((prev) => prev + pausedKm);
     setIsPaused(false);
   }, [shiftDistance, kmAtPauseStart]);
-
-  useEffect(() => {
-    if (isShiftActive && !isGpsActive) {
-      console.warn("[ShiftContext] Turno ativo com GPS inativo. Solicitando reativação...");
-      startGps();
-    } else if (!isShiftActive && isGpsActive) {
-      console.log("[ShiftContext] Turno inativo com GPS rodando. Encerrando GPS...");
-      stopGps();
-    }
-  }, [isGpsActive, isShiftActive, startGps, stopGps]);
 
   const value = {
     isShiftActive,
