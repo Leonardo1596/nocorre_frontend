@@ -35,6 +35,7 @@ public class NativeGpsService extends Service {
 
     private static final String TAG = "NativeGpsService";
     private static final String PENDING_LOCATIONS_FILE = "gps_pending_locations.log";
+    public static final String ACTION_STOP_GPS = "com.nocorre.app.ACTION_STOP_GPS";
     public static boolean isRunning = false;
 
     private static NativeGpsService instance;
@@ -47,6 +48,7 @@ public static NativeGpsService getInstance() {
     private LocationCallback locationCallback;
 
     private static final String CHANNEL_ID = "GpsServiceChannel";
+    private static final int NOTIFICATION_ID = 1;
     private static final String PREFS_NAME = "gps_state";
     private static final String KEY_DISTANCE = "distance";
     private static final float ACCURACY_THRESHOLD_METERS = 20.0f; // Ignore locations with accuracy > 20m
@@ -94,8 +96,13 @@ Log.d(TAG,
         int flags,
         int startId
     ) {
+        if (intent != null && ACTION_STOP_GPS.equals(intent.getAction())) {
+            Log.d(TAG, "ACTION_STOP_GPS recebido no onStartCommand");
+            stopLocationUpdates();
+            return START_NOT_STICKY;
+        }
 
-        Log.d(TAG, "onStartCommand");
+        Log.d(TAG, "onStartCommand - Iniciando GPS em primeiro plano");
         isRunning = true;
 
         Notification notification =
@@ -103,18 +110,20 @@ Log.d(TAG,
                 this,
                 CHANNEL_ID
             )
-                .setContentTitle("GPS Service")
-                .setContentText("Tracking your location.")
+                .setContentTitle("NoCorre - Turno em Andamento")
+                .setContentText("Monitorando quilometragem e velocidade.")
                 .setSmallIcon(
                     R.drawable.ic_launcher_background
                 )
+                .setOngoing(true)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
                 .build();
 
-        startForeground(1, notification);
+        startForeground(NOTIFICATION_ID, notification);
 
         startLocationUpdates();
 
-        return START_STICKY;
+        return START_NOT_STICKY;
     }
 
     private void createLocationCallback() {
@@ -286,26 +295,64 @@ try {
         }
     }
 
+    public void stopLocationUpdates() {
+        Log.d(TAG, "stopLocationUpdates");
+        isRunning = false;
+
+        if (fusedLocationClient != null && locationCallback != null) {
+            try {
+                fusedLocationClient.removeLocationUpdates(locationCallback);
+            } catch (Exception e) {
+                Log.e(TAG, "Error removing location updates", e);
+            }
+        }
+
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                stopForeground(STOP_FOREGROUND_REMOVE);
+            } else {
+                stopForeground(true);
+            }
+            NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+            if (manager != null) {
+                manager.cancel(NOTIFICATION_ID);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error stopping foreground notification", e);
+        }
+
+        stopSelf();
+    }
+
     @Override
     public void onDestroy() {
-
-        super.onDestroy();
-
         Log.d(TAG, "onDestroy");
         isRunning = false;
 
-        instance = null;
-
-        if (
-            fusedLocationClient != null &&
-            locationCallback != null
-        ) {
-
-            fusedLocationClient
-                .removeLocationUpdates(
-                    locationCallback
-                );
+        if (fusedLocationClient != null && locationCallback != null) {
+            try {
+                fusedLocationClient.removeLocationUpdates(locationCallback);
+            } catch (Exception e) {
+                Log.e(TAG, "Error removing location updates in onDestroy", e);
+            }
         }
+
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                stopForeground(STOP_FOREGROUND_REMOVE);
+            } else {
+                stopForeground(true);
+            }
+            NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+            if (manager != null) {
+                manager.cancel(NOTIFICATION_ID);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error dismissing notification in onDestroy", e);
+        }
+
+        instance = null;
+        super.onDestroy();
     }
 
     @Nullable
@@ -326,9 +373,10 @@ try {
             NotificationChannel serviceChannel =
                 new NotificationChannel(
                     CHANNEL_ID,
-                    "GPS Service Channel",
-                    NotificationManager.IMPORTANCE_DEFAULT
+                    "NoCorre GPS Service",
+                    NotificationManager.IMPORTANCE_LOW
                 );
+            serviceChannel.setDescription("Notificação contínua enquanto o turno estiver em andamento.");
 
             NotificationManager manager =
                 getSystemService(

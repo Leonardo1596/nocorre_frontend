@@ -322,14 +322,17 @@ public void stopGps(
 ) {
 
     try {
-
+        NativeGpsService service = NativeGpsService.getInstance();
+        if (service != null) {
+            service.stopLocationUpdates();
+        }
 
         Intent gpsIntent =
                 new Intent(
                         getContext(),
                         NativeGpsService.class
                 );
-
+        gpsIntent.setAction(NativeGpsService.ACTION_STOP_GPS);
 
         getContext()
                 .stopService(

@@ -223,9 +223,7 @@ export default function ShiftPage() {
       const id = response.data._id || response.data.id;
       setCurrentShift({ id, startTime: startedAt, isActive: true });
 
-      if (Capacitor.getPlatform() !== 'web') {
-        startShiftContext();
-      }
+      startShiftContext();
 
       toast({ title: "Turno iniciado" });
     } catch (error: any) {
@@ -245,9 +243,7 @@ export default function ShiftPage() {
     try {
       const totalKm = Number(shiftDistanceRef.current.toFixed(2));
 
-      if (Capacitor.getPlatform() !== 'web') {
-        stopShiftContext();
-      }
+      stopShiftContext();
 
       await api.patch(`/shifts/${currentShift.id}/finish`, { totalKm });
 

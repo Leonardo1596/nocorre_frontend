@@ -100,13 +100,21 @@ export const GpsProvider = ({ children }: { children: React.ReactNode }) => {
         const { isRunning } = await NativeGps.isGpsRunning();
         setIsGpsActive(isRunning);
 
-        // Se o storage indica que o GPS deveria estar rodando ou já estava ativo no Android
+        // Se o storage indica que o GPS deveria estar rodando (turno ativo)
         if (typeof window !== "undefined") {
           const storedDesired = localStorage.getItem(DESIRED_GPS_KEY) === "true";
-          if (storedDesired || isRunning) {
+          if (storedDesired) {
             desiredGpsActive.current = true;
             if (!isRunning) {
               reactivateGps();
+            }
+          } else {
+            // Nenhum turno ativo! Se o serviço nativo estava rodando, encerra imediatamente.
+            desiredGpsActive.current = false;
+            if (isRunning) {
+              console.log("[GPS] Serviço nativo estava rodando sem turno ativo. Parando...");
+              await NativeGps.stopGps();
+              setIsGpsActive(false);
             }
           }
         }
