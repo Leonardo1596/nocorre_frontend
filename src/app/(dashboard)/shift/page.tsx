@@ -12,7 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Play, Pause, StopCircle, Car, Timer, Loader2, MapPin } from "lucide-react";
+import { Play, Pause, StopCircle, Car, Timer, Loader2, MapPin, Clock } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 import { NativeGps } from "@/lib/gps"
 
@@ -94,7 +95,7 @@ export default function ShiftPage() {
 
 
 
-  const { location, speed, isGpsActive } = useGps();
+  const { location, speed, isGpsActive, isReactivating } = useGps();
   const { shiftDistance, startShift: startShiftContext, stopShift: stopShiftContext } = useShift();
 
   // Create a ref to hold the latest shiftDistance
@@ -389,24 +390,31 @@ export default function ShiftPage() {
 
         <div className="flex items-center gap-2">
           <Badge
-            variant={isGpsActive ? 'default' : 'outline'}
+            variant={isGpsActive ? 'default' : isReactivating ? 'secondary' : 'outline'}
             className={cn(
               "rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all",
-              isGpsActive 
-                ? "bg-primary/15 text-primary border-primary/30" 
-                : "bg-secondary text-muted-foreground border-border"
+              isReactivating
+                ? "bg-amber-500/15 text-amber-500 border-amber-500/30 animate-pulse"
+                : isGpsActive 
+                  ? "bg-primary/15 text-primary border-primary/30" 
+                  : "bg-secondary text-muted-foreground border-border"
             )}
           >
             <span className="relative flex h-2 w-2">
-              {isGpsActive && (
+              {(isGpsActive || isReactivating) && (
                 <span className={cn(
                   "absolute inline-flex h-full w-full rounded-full opacity-75",
-                  locationIndicator ? "bg-primary animate-ping" : "bg-primary/50"
+                  isReactivating
+                    ? "bg-amber-500 animate-ping"
+                    : locationIndicator ? "bg-primary animate-ping" : "bg-primary/50"
                 )} />
               )}
-              <span className={cn("relative inline-flex rounded-full h-2 w-2", isGpsActive ? "bg-primary" : "bg-muted-foreground")} />
+              <span className={cn(
+                "relative inline-flex rounded-full h-2 w-2",
+                isReactivating ? "bg-amber-500" : isGpsActive ? "bg-primary" : "bg-muted-foreground"
+              )} />
             </span>
-            {isGpsActive ? 'GPS Ativo' : 'Sem GPS'}
+            {isReactivating ? 'Reativando GPS...' : isGpsActive ? 'GPS Ativo' : 'Sem GPS'}
           </Badge>
         </div>
       </div>

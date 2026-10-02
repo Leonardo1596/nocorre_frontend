@@ -1,8 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://nocorre-backend-4w01.onrender.com',
-  // baseURL: 'http://localhost:8000',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://nocorre-backend-4w01.onrender.com',
   headers: {
     'Content-Type': 'application/json',
   },

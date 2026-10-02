@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useTheme } from 'next-themes';
+import { cn } from '@/lib/utils';
 import api from '@/lib/api';
 
 interface MaintenanceSettings {

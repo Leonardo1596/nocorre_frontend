@@ -17,20 +17,22 @@ interface ShiftState {
   isActive: boolean;
 }
 
-interface SessionState {
+export interface SessionState {
   id: string | null;
   startTime: string | null;
   isActive: boolean;
   isPaused: boolean;
+  pauseStartTime?: number | null;
+  totalPauseDuration?: number;
 }
 
 interface AppContextType {
   vehicle: VehicleConfig;
   updateVehicle: (config: VehicleConfig) => void;
   currentShift: ShiftState;
-  setCurrentShift: (shift: ShiftState) => void;
+  setCurrentShift: React.Dispatch<React.SetStateAction<ShiftState>>;
   currentSession: SessionState;
-  setCurrentSession: (session: SessionState) => void;
+  setCurrentSession: React.Dispatch<React.SetStateAction<SessionState>>;
   resetApp: () => void;
 }
 
@@ -111,9 +113,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       vehicle, 
       updateVehicle, 
       currentShift, 
-      setCurrentShift: (val) => setCurrentShift(val), 
+      setCurrentShift, 
       currentSession, 
-      setCurrentSession: (val) => setCurrentSession(val),
+      setCurrentSession,
       resetApp
     }}>
       {children}

@@ -507,7 +507,7 @@ export default function Dashboard() {
                         itemStyle={{ color: 'hsl(var(--popover-foreground))' }}
                       />
                       <Bar dataKey="earnings" radius={[4, 4, 0, 0]}>
-                        {chartData.map((entry, index) => (
+                        {chartData.map((entry: any, index: number) => (
                           <Cell key={`cell-${index}`} fill={entry.earnings > 0 ? '#10B981' : 'hsl(var(--muted))'} fillOpacity={0.8} />
                         ))}
                       </Bar>

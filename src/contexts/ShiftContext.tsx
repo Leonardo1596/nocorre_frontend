@@ -148,8 +148,11 @@ export const ShiftProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     if (isGpsActive) {
       setIsShiftActive(true);
+    } else if (isShiftActive) {
+      console.warn("[ShiftContext] Turno ativo com GPS inativo. Solicitando reativação...");
+      startGps();
     }
-  }, [isGpsActive]);
+  }, [isGpsActive, isShiftActive, startGps]);
 
   const value = {
     isShiftActive,
