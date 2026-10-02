@@ -12,8 +12,6 @@ public class UberTrip {
     public double tripDistanceKm;
     public String tripTime;
 
-    public double rating;
-
     public String origin;
     public String destination;
 
@@ -25,7 +23,6 @@ public class UberTrip {
                 ", pickupTime='" + pickupTime + '\'' +
                 ", tripDistanceKm=" + tripDistanceKm +
                 ", tripTime='" + tripTime + '\'' +
-                ", rating=" + rating +
                 ", origin='" + origin + '\'' +
                 ", destination='" + destination + '\'' +
                 '}';

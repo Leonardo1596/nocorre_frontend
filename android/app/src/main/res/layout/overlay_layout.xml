@@ -2,7 +2,7 @@
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/uberOverlayCard"
-    android:layout_width="320dp"
+    android:layout_width="300dp"
     android:layout_height="wrap_content"
     android:background="@drawable/bg_uber_overlay"
     android:paddingStart="14dp"
@@ -11,7 +11,7 @@
     android:paddingBottom="12dp"
     android:orientation="vertical">
 
-    <!-- LINHA 1: TÍTULOS DAS COLUNAS (R$/Km, R$/Hora, Nota) -->
+    <!-- LINHA 1: TÍTULOS DAS COLUNAS (R$/Km e R$/Hora) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -28,29 +28,20 @@
 
         <TextView
             android:layout_width="0dp"
-            android:layout_weight="1.2"
+            android:layout_weight="1"
             android:layout_height="wrap_content"
             android:text="R$/Hora"
             android:textColor="#A0AEC0"
             android:textSize="11sp"
             android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_weight="0.9"
-            android:layout_height="wrap_content"
-            android:text="Nota"
-            android:textColor="#A0AEC0"
-            android:textSize="11sp"
-            android:textStyle="bold" />
     </LinearLayout>
 
-    <!-- LINHA 2: VALORES EM DESTAQUE COM BARRA VERDE -->
+    <!-- LINHA 2: VALORES EM DESTAQUE COM BARRA NEON -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_marginTop="3dp"
+        android:layout_marginTop="4dp"
         android:gravity="center_vertical">
 
         <!-- Coluna R$/Km -->
@@ -63,7 +54,7 @@
 
             <View
                 android:id="@+id/indicatorKm"
-                android:layout_width="3.5dp"
+                android:layout_width="4dp"
                 android:layout_height="18dp"
                 android:background="@drawable/bg_indicator_green"
                 android:layout_marginEnd="6dp" />
@@ -82,14 +73,14 @@
         <!-- Coluna R$/Hora -->
         <LinearLayout
             android:layout_width="0dp"
-            android:layout_weight="1.2"
+            android:layout_weight="1"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical">
 
             <View
                 android:id="@+id/indicatorHora"
-                android:layout_width="3.5dp"
+                android:layout_width="4dp"
                 android:layout_height="18dp"
                 android:background="@drawable/bg_indicator_green"
                 android:layout_marginEnd="6dp" />
@@ -104,32 +95,6 @@
                 android:textStyle="bold"
                 android:includeFontPadding="false" />
         </LinearLayout>
-
-        <!-- Coluna Nota -->
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_weight="0.9"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
-
-            <View
-                android:id="@+id/indicatorRating"
-                android:layout_width="3.5dp"
-                android:layout_height="18dp"
-                android:background="@drawable/bg_indicator_green"
-                android:layout_marginEnd="6dp" />
-
-            <TextView
-                android:id="@+id/tvRatingValue"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="4.90"
-                android:textColor="#FFFFFF"
-                android:textSize="20sp"
-                android:textStyle="bold"
-                android:includeFontPadding="false" />
-        </LinearLayout>
     </LinearLayout>
 
     <!-- LINHA 3: INFORMAÇÕES DA CORRIDA (UBER, DURAÇÃO · DISTÂNCIA, VALOR BRUTO) -->
@@ -138,7 +103,7 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:layout_marginTop="8dp">
+        android:layout_marginTop="10dp">
 
         <TextView
             android:layout_width="wrap_content"
@@ -171,7 +136,7 @@
             android:layout_height="wrap_content"
             android:text="R$ 0,00"
             android:textColor="#00E676"
-            android:textSize="13sp"
+            android:textSize="14sp"
             android:textStyle="bold" />
     </LinearLayout>
 </LinearLayout>

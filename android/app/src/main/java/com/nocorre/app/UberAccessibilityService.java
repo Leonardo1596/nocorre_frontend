@@ -369,11 +369,6 @@ intent.putExtra(
         trip.destination
 );
 
-intent.putExtra(
-        "rating",
-        trip.rating
-);
-
 sendBroadcast(intent);
 
     }

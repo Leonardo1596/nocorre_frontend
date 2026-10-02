@@ -12,8 +12,8 @@ public class UberTripParser {
     private static final Pattern DISTANCE_TIME_PATTERN =
             Pattern.compile("([0-9]+(?:[\\.,][0-9]+)?)\\s*km\\s*\\((.*?)\\)");
 
-    private static final Pattern RATING_PATTERN =
-            Pattern.compile("(?:★|⭐|\\*|Nota)?\\s*([45][\\.,][0-9]{2})");
+    private static final Pattern TIME_DISTANCE_PATTERN =
+            Pattern.compile("(.*?)\\s*\\(([0-9]+(?:[\\.,][0-9]+)?)\\s*km\\)");
 
     public static UberTrip parse(List<String> texts) {
 
@@ -40,7 +40,6 @@ public class UberTripParser {
             // VALOR DA CORRIDA
             // Pega somente o PRIMEIRO "R$" encontrado.
             //----------------------------------------------------
-
             if (!trip.isOffer) {
 
                 Matcher fareMatcher =
@@ -64,11 +63,14 @@ public class UberTripParser {
             }
 
             //----------------------------------------------------
-            // DISTÂNCIA + TEMPO
+            // DISTÂNCIA + TEMPO (ex: 2.5 km (6 min) ou 6 min (2.5 km))
             //----------------------------------------------------
 
             Matcher distanceMatcher =
                     DISTANCE_TIME_PATTERN.matcher(current);
+
+            Matcher timeDistanceMatcher =
+                    TIME_DISTANCE_PATTERN.matcher(current);
 
             if (distanceMatcher.find()) {
 
@@ -95,20 +97,30 @@ public class UberTripParser {
 
                     foundTrip = true;
                 }
-            }
+            } else if (timeDistanceMatcher.find()) {
 
-            //----------------------------------------------------
-            // NOTA DO PASSAGEIRO (ex: 4.93 ou ★ 4,93)
-            //----------------------------------------------------
-            if (trip.rating == 0) {
-                Matcher ratingMatcher = RATING_PATTERN.matcher(current);
-                if (ratingMatcher.find()) {
-                    try {
-                        trip.rating = Double.parseDouble(
-                                ratingMatcher.group(1).replace(",", ".")
+                double distance =
+                        Double.parseDouble(
+                                timeDistanceMatcher.group(2)
+                                        .replace(",", ".")
                         );
-                    } catch (Exception ignored) {
-                    }
+
+                String time =
+                        timeDistanceMatcher.group(1);
+
+                if (!foundPickup) {
+
+                    trip.pickupDistanceKm = distance;
+                    trip.pickupTime = time;
+
+                    foundPickup = true;
+
+                } else if (!foundTrip) {
+
+                    trip.tripDistanceKm = distance;
+                    trip.tripTime = time;
+
+                    foundTrip = true;
                 }
             }
 
@@ -120,6 +132,7 @@ public class UberTripParser {
                     trip.origin == null &&
                     !current.contains("km") &&
                     !current.startsWith("R$") &&
+                    !current.matches("^[0-9]+[\\.,][0-9]+$") &&
                     !current.equalsIgnoreCase("Accept") &&
                     !current.equalsIgnoreCase("Match") &&
                     !current.equalsIgnoreCase("Aceitar") &&
@@ -141,6 +154,7 @@ public class UberTripParser {
                     trip.destination == null &&
                     !current.contains("km") &&
                     !current.startsWith("R$") &&
+                    !current.matches("^[0-9]+[\\.,][0-9]+$") &&
                     !current.equalsIgnoreCase("Accept") &&
                     !current.equalsIgnoreCase("Match") &&
                     !current.equalsIgnoreCase("Aceitar") &&

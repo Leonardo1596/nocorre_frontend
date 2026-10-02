@@ -29,12 +29,10 @@ public class UberOverlayService extends Service {
     private View uberOverlayCard;
     private TextView tvKmValue;
     private TextView tvHoraValue;
-    private TextView tvRatingValue;
     private TextView tvTripDetails;
     private TextView tvFareValue;
     private View indicatorKm;
     private View indicatorHora;
-    private View indicatorRating;
 
     private Handler handler = new Handler(Looper.getMainLooper());
 
@@ -62,12 +60,10 @@ public class UberOverlayService extends Service {
             uberOverlayCard = overlayView.findViewById(R.id.uberOverlayCard);
             tvKmValue = overlayView.findViewById(R.id.tvKmValue);
             tvHoraValue = overlayView.findViewById(R.id.tvHoraValue);
-            tvRatingValue = overlayView.findViewById(R.id.tvRatingValue);
             tvTripDetails = overlayView.findViewById(R.id.tvTripDetails);
             tvFareValue = overlayView.findViewById(R.id.tvFareValue);
             indicatorKm = overlayView.findViewById(R.id.indicatorKm);
             indicatorHora = overlayView.findViewById(R.id.indicatorHora);
-            indicatorRating = overlayView.findViewById(R.id.indicatorRating);
 
             // Permite fechar ao tocar no card
             overlayView.setOnClickListener(v -> stopSelf());
@@ -81,13 +77,13 @@ public class UberOverlayService extends Service {
                     PixelFormat.TRANSLUCENT
             );
 
-            // Posiciona no topo, centralizado horizontalmente (estilo da imagem de referência)
+            // Posiciona no topo, centralizado horizontalmente
             params.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
             params.y = dpToPx(55);
 
             windowManager.addView(overlayView, params);
 
-            Log.d(TAG, "Overlay Uber iniciado");
+            Log.d(TAG, "Overlay Uber iniciado com sucesso");
 
         } catch (Exception e) {
             Log.e(TAG, "Erro criando overlay Uber", e);
@@ -129,31 +125,37 @@ public class UberOverlayService extends Service {
                 double tripKm = trip.optDouble("tripDistanceKm", 0);
                 String pickupTime = trip.optString("pickupTime", "0");
                 String tripTime = trip.optString("tripTime", "0");
-                double rating = trip.optDouble("rating", 0);
 
                 int pickupMinutes = extractMinutes(pickupTime);
                 int tripMinutes = extractMinutes(tripTime);
                 int totalMinutes = pickupMinutes + tripMinutes;
+                if (totalMinutes <= 0) {
+                    if (pickupMinutes > 0) totalMinutes = pickupMinutes;
+                    else if (tripMinutes > 0) totalMinutes = tripMinutes;
+                }
 
                 double totalKm = pickupKm + tripKm;
-                if (totalKm <= 0 && tripKm > 0) totalKm = tripKm;
+                if (totalKm <= 0) {
+                    if (pickupKm > 0) totalKm = pickupKm;
+                    else if (tripKm > 0) totalKm = tripKm;
+                }
 
                 double ganhoKm = (totalKm > 0) ? (fare / totalKm) : 0;
                 double ganhoHora = (totalMinutes > 0) ? (fare / (totalMinutes / 60.0)) : 0;
 
                 if (tvKmValue != null) {
-                    tvKmValue.setText(String.format(Locale.US, "%.2f", ganhoKm));
+                    if (ganhoKm > 0) {
+                        tvKmValue.setText(String.format(Locale.GERMANY, "R$ %.2f", ganhoKm));
+                    } else {
+                        tvKmValue.setText("---");
+                    }
                 }
 
                 if (tvHoraValue != null) {
-                    tvHoraValue.setText(String.format(Locale.US, "%.2f", ganhoHora));
-                }
-
-                if (tvRatingValue != null) {
-                    if (rating > 0) {
-                        tvRatingValue.setText(String.format(Locale.US, "%.2f", rating));
+                    if (ganhoHora > 0) {
+                        tvHoraValue.setText(String.format(Locale.GERMANY, "R$ %.2f", ganhoHora));
                     } else {
-                        tvRatingValue.setText("4.93");
+                        tvHoraValue.setText("---");
                     }
                 }
 
@@ -163,7 +165,7 @@ public class UberOverlayService extends Service {
                     String timeFormatted = hours > 0
                             ? String.format(Locale.US, "%dh%02dm", hours, mins)
                             : String.format(Locale.US, "%02dm", mins);
-                    String kmFormatted = String.format(Locale.US, "%.2fkm", totalKm);
+                    String kmFormatted = String.format(Locale.GERMANY, "%.1f km", totalKm);
                     tvTripDetails.setText(timeFormatted + " · " + kmFormatted);
                 }
 
@@ -171,7 +173,7 @@ public class UberOverlayService extends Service {
                     tvFareValue.setText(String.format(Locale.GERMANY, "R$ %.2f", fare));
                 }
 
-                // Ajusta cor da borda baseado no R$/km (Sinalização inteligente)
+                // Ajusta cor do indicador e borda baseado no R$/km (Sinalização inteligente)
                 // Se R$/Km >= 2.0 -> Verde Neon (#00E676)
                 // Se R$/Km >= 1.5 -> Amarelo (#FFB300)
                 // Se R$/Km < 1.5  -> Vermelho (#FF5252)
@@ -208,10 +210,12 @@ public class UberOverlayService extends Service {
             if (time == null || time.isEmpty()) {
                 return 0;
             }
+
             String numbers = time.replaceAll("[^0-9]", "");
             if (numbers.isEmpty()) {
                 return 0;
             }
+
             return Integer.parseInt(numbers);
         } catch (Exception e) {
             return 0;
@@ -236,12 +240,10 @@ public class UberOverlayService extends Service {
         uberOverlayCard = null;
         tvKmValue = null;
         tvHoraValue = null;
-        tvRatingValue = null;
         tvTripDetails = null;
         tvFareValue = null;
         indicatorKm = null;
         indicatorHora = null;
-        indicatorRating = null;
         windowManager = null;
 
         super.onDestroy();
