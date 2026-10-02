@@ -284,13 +284,13 @@ export default function HistoryPage() {
               <Card className='relative overflow-hidden rounded-2xl border border-border/80 bg-card/80 p-4 shadow-sm group hover:border-border transition-all'>
                 <div className="space-y-2">
                   <p className='text-[10px] font-bold uppercase tracking-wider text-muted-foreground'>
-                    Distância Total
+                    Distância Produtiva
                   </p>
                   <p className='text-xl sm:text-2xl font-headline font-black text-foreground tabular-nums tracking-tight'>
-                    {dashboard.summary.totalKm.toFixed(1)} <span className="text-xs font-normal text-muted-foreground">km</span>
+                    {(dashboard.summary.productiveKm || 0).toFixed(1)} <span className="text-xs font-normal text-muted-foreground">km</span>
                   </p>
                   <p className='text-[9px] text-muted-foreground/80 font-medium'>
-                    Produtivo: {(dashboard.summary.productiveKm || 0).toFixed(1)} km
+                    Total: {dashboard.summary.totalKm.toFixed(1)} km
                   </p>
                 </div>
               </Card>
