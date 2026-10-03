@@ -186,11 +186,7 @@ public class UberOverlayService extends Service {
 
                 if (tvNetValue != null) {
                     tvNetValue.setText(String.format(Locale.GERMANY, "R$ %.2f", lucroEstimado));
-                    if (lucroEstimado < 0) {
-                        tvNetValue.setTextColor(Color.parseColor("#FF5252"));
-                    } else {
-                        tvNetValue.setTextColor(Color.parseColor("#00E676"));
-                    }
+                    tvNetValue.setTextColor(Color.parseColor("#00E676"));
                 }
 
                 // Sincroniza em segundo plano caso haja dados atualizados na API
@@ -202,39 +198,27 @@ public class UberOverlayService extends Service {
                         double freshLucro = currentGross - freshGasto;
                         if (tvNetValue != null) {
                             tvNetValue.setText(String.format(Locale.GERMANY, "R$ %.2f", freshLucro));
-                            if (freshLucro < 0) {
-                                tvNetValue.setTextColor(Color.parseColor("#FF5252"));
-                            } else {
-                                tvNetValue.setTextColor(Color.parseColor("#00E676"));
-                            }
+                            tvNetValue.setTextColor(Color.parseColor("#00E676"));
                         }
                     }
                 });
 
-                // Ajusta cor do indicador e borda baseado no R$/km (Sinalização inteligente)
-                // Se R$/Km >= 2.0 -> Verde Neon (#00E676)
-                // Se R$/Km >= 1.5 -> Amarelo (#FFB300)
-                // Se R$/Km < 1.5  -> Vermelho (#FF5252)
-                int strokeColor = Color.parseColor("#00E676");
-                if (ganhoKm > 0 && ganhoKm < 1.5) {
-                    strokeColor = Color.parseColor("#FF5252");
-                } else if (ganhoKm >= 1.5 && ganhoKm < 2.0) {
-                    strokeColor = Color.parseColor("#FFB300");
-                }
+                // Cor padrão única para todo o overlay (Verde #00E676)
+                int defaultGreen = Color.parseColor("#00E676");
 
                 if (uberOverlayCard != null && uberOverlayCard.getBackground() instanceof GradientDrawable) {
                     GradientDrawable bg = (GradientDrawable) uberOverlayCard.getBackground();
-                    bg.setStroke(dpToPx(3), strokeColor);
+                    bg.setStroke(dpToPx(3), defaultGreen);
                 }
 
                 if (indicatorKm != null && indicatorKm.getBackground() instanceof GradientDrawable) {
                     GradientDrawable indBg = (GradientDrawable) indicatorKm.getBackground();
-                    indBg.setColor(strokeColor);
+                    indBg.setColor(defaultGreen);
                 }
 
                 if (indicatorHora != null && indicatorHora.getBackground() instanceof GradientDrawable) {
                     GradientDrawable indBg = (GradientDrawable) indicatorHora.getBackground();
-                    indBg.setColor(strokeColor);
+                    indBg.setColor(defaultGreen);
                 }
 
             } catch (Exception e) {
