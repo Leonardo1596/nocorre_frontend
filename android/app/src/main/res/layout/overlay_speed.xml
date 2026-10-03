@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+
+    android:id="@+id/speedOverlay"
+
+    android:layout_width="75dp"
+    android:layout_height="75dp"
+
+    android:orientation="vertical"
+
+    android:gravity="center"
+
+    android:background="@drawable/bg_speed_overlay"
+
+    android:padding="4dp">
+
+
+    <TextView
+        android:id="@+id/speedText"
+
+        android:layout_width="wrap_content"
+
+        android:layout_height="wrap_content"
+
+        android:text="0"
+
+        android:textColor="#FFFFFF"
+
+        android:textSize="32sp"
+
+        android:textStyle="bold"
+
+        android:includeFontPadding="false"/>
+
+
+    <TextView
+
+        android:id="@+id/speedUnit"
+
+        android:layout_width="wrap_content"
+
+        android:layout_height="wrap_content"
+
+        android:text="km/h"
+
+        android:textColor="#FFFFFF"
+
+        android:textSize="11sp"
+
+        android:textStyle="bold"
+
+        android:includeFontPadding="false"/>
+
+
+</LinearLayout>

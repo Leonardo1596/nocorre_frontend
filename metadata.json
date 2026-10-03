@@ -1,0 +1,6 @@
+{
+  "name": "NoCorre",
+  "description": "Controle de ganhos e produtividade para motoristas de aplicativo.",
+  "permissions": [],
+  "capabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
