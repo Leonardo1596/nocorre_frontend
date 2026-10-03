@@ -35,14 +35,16 @@ public class VehicleCostHelper {
     }
 
     public static double getCostPerKm(Context context) {
-        if (context == null) return DEFAULT_COST_PER_KM;
+        if (context == null) return 0.0;
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        float cost = prefs.getFloat(KEY_COST_PER_KM, (float) DEFAULT_COST_PER_KM);
-        return cost > 0 ? (double) cost : DEFAULT_COST_PER_KM;
+        if (prefs.contains(KEY_COST_PER_KM)) {
+            return (double) prefs.getFloat(KEY_COST_PER_KM, 0f);
+        }
+        return DEFAULT_COST_PER_KM;
     }
 
     public static void saveCostPerKm(Context context, double costPerKm) {
-        if (context == null || costPerKm <= 0) return;
+        if (context == null || costPerKm < 0) return;
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         prefs.edit().putFloat(KEY_COST_PER_KM, (float) costPerKm).apply();
         Log.d(TAG, "Custo por km salvo no SharedPreferences: " + costPerKm);
