@@ -2,7 +2,7 @@
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/uberOverlayCard"
-    android:layout_width="310dp"
+    android:layout_width="340dp"
     android:layout_height="wrap_content"
     android:background="@drawable/bg_uber_overlay"
     android:paddingStart="14dp"
