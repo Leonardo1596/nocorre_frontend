@@ -25,6 +25,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
+import { NativeGps } from '@/lib/gps';
 
 interface MaintenanceSettings {
   fuelPrice: number;
@@ -37,6 +38,15 @@ interface MaintenanceSettings {
   rearTireKm: number;
   chainValue: number;
   chainKm: number;
+}
+
+export function computeCostPerKm(s: MaintenanceSettings): number {
+  const fuelCost = s.kmPerLiter > 0 ? (s.fuelPrice / s.kmPerLiter) : 0;
+  const oilCost = s.oilKm > 0 ? (s.oilValue / s.oilKm) : 0;
+  const frontTireCost = s.frontTireKm > 0 ? (s.frontTireValue / s.frontTireKm) : 0;
+  const rearTireCost = s.rearTireKm > 0 ? (s.rearTireValue / s.rearTireKm) : 0;
+  const chainCost = s.chainKm > 0 ? (s.chainValue / s.chainKm) : 0;
+  return fuelCost + oilCost + frontTireCost + rearTireCost + chainCost;
 }
 
 export default function SettingsPage() {
@@ -64,7 +74,7 @@ export default function SettingsPage() {
         const response = await api.get('/maintenance-settings');
         if (response.data) {
           const data = response.data;
-          setSettings({
+          const loadedSettings: MaintenanceSettings = {
             fuelPrice: Number(data.fuel?.fuelPrice || 0),
             kmPerLiter: Number(data.fuel?.kmPerLiter || 0),
             oilValue: Number(data.maintenance?.oil?.price || 0),
@@ -75,6 +85,14 @@ export default function SettingsPage() {
             rearTireKm: Number(data.maintenance?.rearTire?.lifespanKm || 0),
             chainValue: Number(data.maintenance?.chain?.price || 0),
             chainKm: Number(data.maintenance?.chain?.lifespanKm || 0),
+          };
+          setSettings(loadedSettings);
+
+          // Sincroniza custo por km com o serviço de overlay do Android
+          const costPerKm = computeCostPerKm(loadedSettings);
+          const token = typeof window !== 'undefined' ? localStorage.getItem('nocorre_token') || undefined : undefined;
+          NativeGps.setCostPerKm({ costPerKm, token }).catch((err) => {
+            console.warn('Erro ao sincronizar custo por km no overlay:', err);
           });
         }
       } catch (error) {
@@ -111,9 +129,17 @@ export default function SettingsPage() {
 
       await api.put('/maintenance-settings/update', payload);
       setSettings(newSettings);
+
+      // Sincroniza novo custo por km atualizado com o overlay do Android
+      const costPerKm = computeCostPerKm(newSettings);
+      const token = typeof window !== 'undefined' ? localStorage.getItem('nocorre_token') || undefined : undefined;
+      NativeGps.setCostPerKm({ costPerKm, token }).catch((err) => {
+        console.warn('Erro ao sincronizar novo custo por km no overlay:', err);
+      });
+
       toast({ 
         title: "Sucesso!", 
-        description: "Configurações atualizadas com sucesso." 
+        description: `Configurações salvas. Custo por KM: R$ ${costPerKm.toFixed(2)}/km` 
       });
     } catch (error) {
       console.error('Error updating settings:', error);
@@ -375,6 +401,22 @@ export default function SettingsPage() {
             </Card>
           </div>
         </div>
+
+        {/* Resumo do Custo por KM para o Overlay */}
+        <Card className="rounded-2xl border border-primary/30 bg-primary/5 p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Custo do Veículo por KM</p>
+              <p className="text-xs text-muted-foreground">Usado no overlay Uber para calcular o valor líquido da corrida</p>
+            </div>
+            <div className="text-right">
+              <span className="text-xl font-headline font-black text-primary tabular-nums">
+                R$ {computeCostPerKm(settings).toFixed(2)}
+              </span>
+              <span className="text-xs text-muted-foreground font-semibold">/km</span>
+            </div>
+          </div>
+        </Card>
 
         <Button 
           type="submit" 

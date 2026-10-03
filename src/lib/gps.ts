@@ -55,6 +55,8 @@ export interface NativeGpsPlugin {
   requestOverlayPermission(): Promise<{
     granted: boolean;
   }>;
+  setCostPerKm(options: { costPerKm: number; token?: string }): Promise<void>;
+  getCostPerKm(): Promise<{ costPerKm: number }>;
   showUberOverlay(
     trip: UberTrip
   ): Promise<void>;
@@ -192,6 +194,23 @@ export class NativeGpsWeb extends WebPlugin implements NativeGpsPlugin {
 
   async requestOverlayPermission(): Promise<{ granted: boolean }> {
     return { granted: false };
+  }
+
+  async setCostPerKm(options: { costPerKm: number; token?: string }): Promise<void> {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('nocorre_cost_per_km', options.costPerKm.toString());
+      if (options.token) {
+        localStorage.setItem('nocorre_token', options.token);
+      }
+    }
+  }
+
+  async getCostPerKm(): Promise<{ costPerKm: number }> {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('nocorre_cost_per_km');
+      if (saved) return { costPerKm: parseFloat(saved) };
+    }
+    return { costPerKm: 0.65 };
   }
 
   async showUberOverlay(_trip: UberTrip): Promise<void> {}

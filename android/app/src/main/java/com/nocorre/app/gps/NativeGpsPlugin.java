@@ -37,6 +37,7 @@ import org.json.JSONObject;
 
 import com.nocorre.app.UberOverlayService;
 import com.nocorre.app.OverlayService;
+import com.nocorre.app.VehicleCostHelper;
 
 @CapacitorPlugin(
     name = "NativeGps",
@@ -1023,6 +1024,41 @@ public void showUberOverlay(
                 e.getMessage()
         );
 
+    }
+}
+
+@PluginMethod
+public void setCostPerKm(PluginCall call) {
+    try {
+        Double cost = call.getDouble("costPerKm");
+        String token = call.getString("token");
+
+        if (cost != null && cost > 0) {
+            VehicleCostHelper.saveCostPerKm(getContext(), cost);
+        }
+        if (token != null && !token.trim().isEmpty()) {
+            VehicleCostHelper.saveAuthToken(getContext(), token);
+        }
+
+        JSObject ret = new JSObject();
+        ret.put("success", true);
+        ret.put("costPerKm", VehicleCostHelper.getCostPerKm(getContext()));
+        call.resolve(ret);
+    } catch (Exception e) {
+        Log.e(TAG, "Erro salvando custo por km", e);
+        call.reject("Erro salvando custo por km: " + e.getMessage());
+    }
+}
+
+@PluginMethod
+public void getCostPerKm(PluginCall call) {
+    try {
+        double cost = VehicleCostHelper.getCostPerKm(getContext());
+        JSObject ret = new JSObject();
+        ret.put("costPerKm", cost);
+        call.resolve(ret);
+    } catch (Exception e) {
+        call.reject("Erro obtendo custo por km: " + e.getMessage());
     }
 }
 

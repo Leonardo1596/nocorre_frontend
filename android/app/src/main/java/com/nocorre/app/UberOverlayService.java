@@ -31,6 +31,8 @@ public class UberOverlayService extends Service {
     private TextView tvHoraValue;
     private TextView tvTripDetails;
     private TextView tvFareValue;
+    private TextView tvNetValue;
+    private TextView tvCostPerKmBadge;
     private View indicatorKm;
     private View indicatorHora;
 
@@ -62,6 +64,8 @@ public class UberOverlayService extends Service {
             tvHoraValue = overlayView.findViewById(R.id.tvHoraValue);
             tvTripDetails = overlayView.findViewById(R.id.tvTripDetails);
             tvFareValue = overlayView.findViewById(R.id.tvFareValue);
+            tvNetValue = overlayView.findViewById(R.id.tvNetValue);
+            tvCostPerKmBadge = overlayView.findViewById(R.id.tvCostPerKmBadge);
             indicatorKm = overlayView.findViewById(R.id.indicatorKm);
             indicatorHora = overlayView.findViewById(R.id.indicatorHora);
 
@@ -173,6 +177,47 @@ public class UberOverlayService extends Service {
                     tvFareValue.setText(String.format(Locale.GERMANY, "R$ %.2f", fare));
                 }
 
+                // Custo por KM e Cálculo do Valor Líquido:
+                // Custo total da corrida = km total da corrida * custo por km
+                // Valor líquido = valor bruto - custo total da corrida
+                double costPerKm = VehicleCostHelper.getCostPerKm(this);
+                double tripCost = totalKm * costPerKm;
+                double netProfit = fare - tripCost;
+
+                if (tvNetValue != null) {
+                    tvNetValue.setText(String.format(Locale.GERMANY, "R$ %.2f", netProfit));
+                    if (netProfit < 0) {
+                        tvNetValue.setTextColor(Color.parseColor("#FF5252"));
+                    } else {
+                        tvNetValue.setTextColor(Color.parseColor("#00E676"));
+                    }
+                }
+
+                if (tvCostPerKmBadge != null) {
+                    tvCostPerKmBadge.setText(String.format(Locale.GERMANY, "Custo: R$ %.2f/km", costPerKm));
+                }
+
+                // Sincroniza em segundo plano caso haja dados atualizados na API
+                final double currentKm = totalKm;
+                final double currentGross = fare;
+                VehicleCostHelper.fetchCostPerKmAsync(this, freshCost -> {
+                    if (Math.abs(freshCost - costPerKm) > 0.001) {
+                        double freshTripCost = currentKm * freshCost;
+                        double freshNet = currentGross - freshTripCost;
+                        if (tvNetValue != null) {
+                            tvNetValue.setText(String.format(Locale.GERMANY, "R$ %.2f", freshNet));
+                            if (freshNet < 0) {
+                                tvNetValue.setTextColor(Color.parseColor("#FF5252"));
+                            } else {
+                                tvNetValue.setTextColor(Color.parseColor("#00E676"));
+                            }
+                        }
+                        if (tvCostPerKmBadge != null) {
+                            tvCostPerKmBadge.setText(String.format(Locale.GERMANY, "Custo: R$ %.2f/km", freshCost));
+                        }
+                    }
+                });
+
                 // Ajusta cor do indicador e borda baseado no R$/km (Sinalização inteligente)
                 // Se R$/Km >= 2.0 -> Verde Neon (#00E676)
                 // Se R$/Km >= 1.5 -> Amarelo (#FFB300)
@@ -242,6 +287,8 @@ public class UberOverlayService extends Service {
         tvHoraValue = null;
         tvTripDetails = null;
         tvFareValue = null;
+        tvNetValue = null;
+        tvCostPerKmBadge = null;
         indicatorKm = null;
         indicatorHora = null;
         windowManager = null;

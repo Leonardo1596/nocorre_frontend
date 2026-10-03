@@ -2,7 +2,7 @@
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/uberOverlayCard"
-    android:layout_width="300dp"
+    android:layout_width="310dp"
     android:layout_height="wrap_content"
     android:background="@drawable/bg_uber_overlay"
     android:paddingStart="14dp"
@@ -21,19 +21,21 @@
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
-            android:text="R$/Km"
-            android:textColor="#A0AEC0"
+            android:text="R$ / KM"
+            android:textColor="#94A3B8"
             android:textSize="11sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            android:letterSpacing="0.04" />
 
         <TextView
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
-            android:text="R$/Hora"
-            android:textColor="#A0AEC0"
+            android:text="R$ / HORA"
+            android:textColor="#94A3B8"
             android:textSize="11sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            android:letterSpacing="0.04" />
     </LinearLayout>
 
     <!-- LINHA 2: VALORES EM DESTAQUE COM BARRA NEON -->
@@ -55,9 +57,9 @@
             <View
                 android:id="@+id/indicatorKm"
                 android:layout_width="4dp"
-                android:layout_height="18dp"
+                android:layout_height="20dp"
                 android:background="@drawable/bg_indicator_green"
-                android:layout_marginEnd="6dp" />
+                android:layout_marginEnd="7dp" />
 
             <TextView
                 android:id="@+id/tvKmValue"
@@ -65,7 +67,7 @@
                 android:layout_height="wrap_content"
                 android:text="---"
                 android:textColor="#FFFFFF"
-                android:textSize="20sp"
+                android:textSize="21sp"
                 android:textStyle="bold"
                 android:includeFontPadding="false" />
         </LinearLayout>
@@ -81,9 +83,9 @@
             <View
                 android:id="@+id/indicatorHora"
                 android:layout_width="4dp"
-                android:layout_height="18dp"
+                android:layout_height="20dp"
                 android:background="@drawable/bg_indicator_green"
-                android:layout_marginEnd="6dp" />
+                android:layout_marginEnd="7dp" />
 
             <TextView
                 android:id="@+id/tvHoraValue"
@@ -91,13 +93,13 @@
                 android:layout_height="wrap_content"
                 android:text="---"
                 android:textColor="#FFFFFF"
-                android:textSize="20sp"
+                android:textSize="21sp"
                 android:textStyle="bold"
                 android:includeFontPadding="false" />
         </LinearLayout>
     </LinearLayout>
 
-    <!-- LINHA 3: INFORMAÇÕES DA CORRIDA (UBER, DURAÇÃO · DISTÂNCIA, VALOR BRUTO) -->
+    <!-- LINHA 3: DETALHES GERAIS DA CORRIDA (UBER, TEMPO · KM, CUSTO/KM) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -126,17 +128,90 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:text="0h00m · 0.00km"
-            android:textColor="#FFFFFF"
-            android:textSize="13sp"
+            android:textColor="#F1F5F9"
+            android:textSize="12sp"
             android:textStyle="bold" />
 
         <TextView
-            android:id="@+id/tvFareValue"
+            android:id="@+id/tvCostPerKmBadge"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="R$ 0,00"
-            android:textColor="#00E676"
-            android:textSize="14sp"
-            android:textStyle="bold" />
+            android:text="Custo: R$ 0,00/km"
+            android:textColor="#94A3B8"
+            android:textSize="10sp" />
+    </LinearLayout>
+
+    <!-- LINHA 4: RESUMO FINANCEIRO (BRUTO vs NOVO CAMPO LÍQUIDO) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/bg_uber_net_box"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="7dp"
+        android:paddingBottom="7dp">
+
+        <!-- Coluna Valor Bruto -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="BRUTO"
+                android:textColor="#94A3B8"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.06" />
+
+            <TextView
+                android:id="@+id/tvFareValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="R$ 0,00"
+                android:textColor="#E2E8F0"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Separador vertical sutil -->
+        <View
+            android:layout_width="1dp"
+            android:layout_height="24dp"
+            android:background="#233040"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="12dp" />
+
+        <!-- Coluna Valor Líquido (NOVO CAMPO EM DESTAQUE) -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="end">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="LÍQUIDO ESTIMADO"
+                android:textColor="#00E676"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.06" />
+
+            <TextView
+                android:id="@+id/tvNetValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="R$ 0,00"
+                android:textColor="#00E676"
+                android:textSize="17sp"
+                android:textStyle="bold" />
+        </LinearLayout>
     </LinearLayout>
 </LinearLayout>
