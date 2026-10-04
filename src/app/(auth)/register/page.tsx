@@ -13,26 +13,56 @@ import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import api from '@/lib/api';
-import { User, Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
+import { User, Mail, Lock, ArrowRight, Loader2, Bike, Car, Fuel, Gauge } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const schema = z.object({
   name: z.string().min(3, { message: "Nome deve ter pelo menos 3 caracteres" }),
   email: z.string().email({ message: "Email inválido" }),
   password: z.string().min(6, { message: "Senha deve ter pelo menos 6 caracteres" }),
+  vehicleType: z.enum(['MOTORCYCLE', 'CAR']),
+  kmPerLiter: z.coerce.number().min(1, { message: "Consumo deve ser maior que 0" }),
+  fuelPrice: z.coerce.number().min(0.1, { message: "Preço do combustível inválido" }),
 });
+
+type RegisterFormValues = z.infer<typeof schema>;
 
 export default function RegisterPage() {
   const { login } = useAuth();
   const { toast } = useToast();
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
-    resolver: zodResolver(schema)
+  const [vehicleType, setVehicleType] = React.useState<'MOTORCYCLE' | 'CAR'>('MOTORCYCLE');
+
+  const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<RegisterFormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      name: '',
+      email: '',
+      password: '',
+      vehicleType: 'MOTORCYCLE',
+      kmPerLiter: 35,
+      fuelPrice: 5.80,
+    }
   });
+
+  const handleSelectVehicle = (type: 'MOTORCYCLE' | 'CAR') => {
+    setVehicleType(type);
+    setValue('vehicleType', type);
+    setValue('kmPerLiter', type === 'MOTORCYCLE' ? 35 : 11);
+  };
 
   const onSubmit = async (data: any) => {
     try {
-      const response = await api.post('/auth/register', data);
+      const payload = {
+        name: data.name,
+        email: data.email,
+        password: data.password,
+        vehicleType: data.vehicleType,
+        kmPerLiter: Number(data.kmPerLiter),
+        fuelPrice: Number(data.fuelPrice),
+      };
+      const response = await api.post('/auth/register', payload);
       login(response.data.token, response.data.user);
-      toast({ title: "Bem-vindo!", description: "Sua conta foi criada com sucesso." });
+      toast({ title: "Bem-vindo!", description: "Sua conta foi criada com sucesso com o template do seu veículo." });
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -120,6 +150,82 @@ export default function RegisterPage() {
                   />
                 </div>
                 {errors.password && <p className="text-[11px] text-destructive font-medium">{errors.password.message as string}</p>}
+              </div>
+
+              {/* Seletor de Tipo de Veículo */}
+              <div className="space-y-2 pt-1 border-t border-border/60">
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
+                  Qual é o seu veículo de trabalho?
+                </Label>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => handleSelectVehicle('MOTORCYCLE')}
+                    className={cn(
+                      "flex items-center justify-center gap-2.5 p-3 rounded-2xl border text-sm font-bold transition-all",
+                      vehicleType === 'MOTORCYCLE'
+                        ? "border-emerald-500 bg-emerald-500/15 text-emerald-400 shadow-md shadow-emerald-500/10"
+                        : "border-border/80 bg-secondary/30 text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
+                    )}
+                  >
+                    <Bike className="w-5 h-5" />
+                    <span>Moto</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleSelectVehicle('CAR')}
+                    className={cn(
+                      "flex items-center justify-center gap-2.5 p-3 rounded-2xl border text-sm font-bold transition-all",
+                      vehicleType === 'CAR'
+                        ? "border-emerald-500 bg-emerald-500/15 text-emerald-400 shadow-md shadow-emerald-500/10"
+                        : "border-border/80 bg-secondary/30 text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
+                    )}
+                  >
+                    <Car className="w-5 h-5" />
+                    <span>Carro</span>
+                  </button>
+                </div>
+                <p className="text-[11px] text-muted-foreground/80">
+                  {vehicleType === 'MOTORCYCLE'
+                    ? 'Template com kit relação, óleo (3.000km) e pneus de moto'
+                    : 'Template com troca de óleo e filtros, 4 pneus, pastilhas e alinhamento'}
+                </p>
+              </div>
+
+              {/* Parâmetros Iniciais de Combustível */}
+              <div className="grid grid-cols-2 gap-2.5 pt-1">
+                <div className="space-y-1.5">
+                  <Label htmlFor="kmPerLiter" className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                    Consumo (km/L)
+                  </Label>
+                  <div className="relative">
+                    <Gauge className="w-3.5 h-3.5 text-muted-foreground/60 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <Input 
+                      id="kmPerLiter" 
+                      type="number"
+                      step="0.1"
+                      className="pl-8 h-10 rounded-xl bg-secondary/40 border-border/80 text-sm" 
+                      {...register('kmPerLiter')} 
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="fuelPrice" className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                    Preço Combustível
+                  </Label>
+                  <div className="relative">
+                    <Fuel className="w-3.5 h-3.5 text-muted-foreground/60 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <Input 
+                      id="fuelPrice" 
+                      type="number"
+                      step="0.01"
+                      className="pl-8 h-10 rounded-xl bg-secondary/40 border-border/80 text-sm" 
+                      {...register('fuelPrice')} 
+                    />
+                  </div>
+                </div>
               </div>
             </CardContent>
 

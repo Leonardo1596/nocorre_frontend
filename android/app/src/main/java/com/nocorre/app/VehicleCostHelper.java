@@ -26,7 +26,7 @@ public class VehicleCostHelper {
     // Custo padrão por km (caso o usuário ainda não tenha preenchido ajustes)
     public static final double DEFAULT_COST_PER_KM = 0.65;
 
-    private static final String API_URL = "https://nocorre-backend-4w01.onrender.com/maintenance-settings";
+    private static final String API_URL = "https://nocorre-backend-ob6p.onrender.com/maintenance-settings";
     private static final ExecutorService executor = Executors.newSingleThreadExecutor();
     private static final Handler mainHandler = new Handler(Looper.getMainLooper());
 
@@ -63,55 +63,88 @@ public class VehicleCostHelper {
     }
 
     /**
-     * Calcula o custo por km a partir da resposta do endpoint /maintenance-settings
+     * Calcula o custo por km a partir da resposta do endpoint /maintenance-settings.
+     * Suporta o novo modelo dinâmico com snapshot/items e contas legadas.
      */
     public static double calculateCostPerKm(JSONObject data) {
         if (data == null) return DEFAULT_COST_PER_KM;
 
         try {
-            JSONObject fuel = data.optJSONObject("fuel");
-            JSONObject maintenance = data.optJSONObject("maintenance");
+            // 1. Snapshot pré-calculado pelo motor de cálculo do backend
+            JSONObject snapshot = data.optJSONObject("snapshot");
+            if (snapshot != null && snapshot.has("totalCostPerKm")) {
+                double snapTotal = snapshot.optDouble("totalCostPerKm", 0);
+                if (snapTotal > 0) {
+                    Log.d(TAG, "Custo total por km obtido via snapshot: " + snapTotal);
+                    return snapTotal;
+                }
+            }
 
+            if (data.has("totalCostPerKm")) {
+                double total = data.optDouble("totalCostPerKm", 0);
+                if (total > 0) return total;
+            }
+
+            // 2. Combustível
+            JSONObject fuel = data.optJSONObject("fuel");
             double fuelPrice = fuel != null ? fuel.optDouble("fuelPrice", 0) : 0;
             double kmPerLiter = fuel != null ? fuel.optDouble("kmPerLiter", 0) : 0;
             double costFuel = kmPerLiter > 0 ? (fuelPrice / kmPerLiter) : 0;
 
-            double costOil = 0;
-            double costFrontTire = 0;
-            double costRearTire = 0;
-            double costChain = 0;
+            double itemsCost = 0;
 
-            if (maintenance != null) {
-                JSONObject oil = maintenance.optJSONObject("oil");
-                if (oil != null) {
-                    double price = oil.optDouble("price", 0);
-                    double lifespanKm = oil.optDouble("lifespanKm", 0);
-                    if (lifespanKm > 0) costOil = price / lifespanKm;
+            // 3. Novo modelo dinâmico: array de items
+            org.json.JSONArray items = data.optJSONArray("items");
+            if (items != null && items.length() > 0) {
+                for (int i = 0; i < items.length(); i++) {
+                    JSONObject item = items.optJSONObject(i);
+                    if (item == null) continue;
+                    boolean isActive = item.optBoolean("isActive", true);
+                    if (!isActive) continue;
+
+                    double itemCostPerKm = item.optDouble("costPerKm", -1);
+                    if (itemCostPerKm < 0) {
+                        double price = item.optDouble("price", 0);
+                        double lifespanKm = item.optDouble("lifespanKm", 0);
+                        itemCostPerKm = lifespanKm > 0 ? (price / lifespanKm) : 0;
+                    }
+                    itemsCost += itemCostPerKm;
                 }
+            } else {
+                // 4. Fallback legado (maintenance)
+                JSONObject maintenance = data.optJSONObject("maintenance");
+                if (maintenance != null) {
+                    JSONObject oil = maintenance.optJSONObject("oil");
+                    if (oil != null) {
+                        double price = oil.optDouble("price", 0);
+                        double lifespanKm = oil.optDouble("lifespanKm", 0);
+                        if (lifespanKm > 0) itemsCost += (price / lifespanKm);
+                    }
 
-                JSONObject frontTire = maintenance.optJSONObject("frontTire");
-                if (frontTire != null) {
-                    double price = frontTire.optDouble("price", 0);
-                    double lifespanKm = frontTire.optDouble("lifespanKm", 0);
-                    if (lifespanKm > 0) costFrontTire = price / lifespanKm;
-                }
+                    JSONObject frontTire = maintenance.optJSONObject("frontTire");
+                    if (frontTire != null) {
+                        double price = frontTire.optDouble("price", 0);
+                        double lifespanKm = frontTire.optDouble("lifespanKm", 0);
+                        if (lifespanKm > 0) itemsCost += (price / lifespanKm);
+                    }
 
-                JSONObject rearTire = maintenance.optJSONObject("rearTire");
-                if (rearTire != null) {
-                    double price = rearTire.optDouble("price", 0);
-                    double lifespanKm = rearTire.optDouble("lifespanKm", 0);
-                    if (lifespanKm > 0) costRearTire = price / lifespanKm;
-                }
+                    JSONObject rearTire = maintenance.optJSONObject("rearTire");
+                    if (rearTire != null) {
+                        double price = rearTire.optDouble("price", 0);
+                        double lifespanKm = rearTire.optDouble("lifespanKm", 0);
+                        if (lifespanKm > 0) itemsCost += (price / lifespanKm);
+                    }
 
-                JSONObject chain = maintenance.optJSONObject("chain");
-                if (chain != null) {
-                    double price = chain.optDouble("price", 0);
-                    double lifespanKm = chain.optDouble("lifespanKm", 0);
-                    if (lifespanKm > 0) costChain = price / lifespanKm;
+                    JSONObject chain = maintenance.optJSONObject("chain");
+                    if (chain != null) {
+                        double price = chain.optDouble("price", 0);
+                        double lifespanKm = chain.optDouble("lifespanKm", 0);
+                        if (lifespanKm > 0) itemsCost += (price / lifespanKm);
+                    }
                 }
             }
 
-            double totalCost = costFuel + costOil + costFrontTire + costRearTire + costChain;
+            double totalCost = costFuel + itemsCost;
             Log.d(TAG, "Calculado custo total por km: " + totalCost);
             return totalCost > 0 ? totalCost : DEFAULT_COST_PER_KM;
 

@@ -36,14 +36,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       if (res.data) {
         const data = res.data;
-        const fuelCost = data.fuel?.kmPerLiter > 0 ? (Number(data.fuel?.fuelPrice || 0) / Number(data.fuel?.kmPerLiter)) : 0;
-        const oilCost = data.maintenance?.oil?.lifespanKm > 0 ? (Number(data.maintenance?.oil?.price || 0) / Number(data.maintenance?.oil?.lifespanKm)) : 0;
-        const frontTireCost = data.maintenance?.frontTire?.lifespanKm > 0 ? (Number(data.maintenance?.frontTire?.price || 0) / Number(data.maintenance?.frontTire?.lifespanKm)) : 0;
-        const rearTireCost = data.maintenance?.rearTire?.lifespanKm > 0 ? (Number(data.maintenance?.rearTire?.price || 0) / Number(data.maintenance?.rearTire?.lifespanKm)) : 0;
-        const chainCost = data.maintenance?.chain?.lifespanKm > 0 ? (Number(data.maintenance?.chain?.price || 0) / Number(data.maintenance?.chain?.lifespanKm)) : 0;
-        const costPerKm = fuelCost + oilCost + frontTireCost + rearTireCost + chainCost;
+        let totalCostPerKm = 0;
+
+        if (data.snapshot?.totalCostPerKm != null) {
+          totalCostPerKm = Number(data.snapshot.totalCostPerKm);
+        } else if (data.totalCostPerKm != null) {
+          totalCostPerKm = Number(data.totalCostPerKm);
+        } else {
+          const fuelCost = data.fuel?.kmPerLiter > 0 ? (Number(data.fuel?.fuelPrice || 0) / Number(data.fuel?.kmPerLiter)) : 0;
+          let itemsCost = 0;
+
+          if (Array.isArray(data.items) && data.items.length > 0) {
+            itemsCost = data.items
+              .filter((it: any) => it.isActive !== false)
+              .reduce((sum: number, it: any) => {
+                const itemCost = it.costPerKm != null ? Number(it.costPerKm) : (it.lifespanKm > 0 ? Number(it.price || 0) / Number(it.lifespanKm) : 0);
+                return sum + itemCost;
+              }, 0);
+          } else if (data.maintenance) {
+            const oilCost = data.maintenance?.oil?.lifespanKm > 0 ? (Number(data.maintenance?.oil?.price || 0) / Number(data.maintenance?.oil?.lifespanKm)) : 0;
+            const frontTireCost = data.maintenance?.frontTire?.lifespanKm > 0 ? (Number(data.maintenance?.frontTire?.price || 0) / Number(data.maintenance?.frontTire?.lifespanKm)) : 0;
+            const rearTireCost = data.maintenance?.rearTire?.lifespanKm > 0 ? (Number(data.maintenance?.rearTire?.price || 0) / Number(data.maintenance?.rearTire?.lifespanKm)) : 0;
+            const chainCost = data.maintenance?.chain?.lifespanKm > 0 ? (Number(data.maintenance?.chain?.price || 0) / Number(data.maintenance?.chain?.lifespanKm)) : 0;
+            itemsCost = oilCost + frontTireCost + rearTireCost + chainCost;
+          }
+
+          totalCostPerKm = fuelCost + itemsCost;
+        }
         
-        await NativeGps.setCostPerKm({ costPerKm, token: tokenToUse });
+        await NativeGps.setCostPerKm({ costPerKm: totalCostPerKm, token: tokenToUse });
       }
     } catch {
       NativeGps.setCostPerKm({ costPerKm: 0, token: tokenToUse }).catch(() => {});
