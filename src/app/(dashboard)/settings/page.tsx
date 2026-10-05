@@ -113,6 +113,7 @@ export default function SettingsPage() {
   const [newItemPrice, setNewItemPrice] = useState(0);
   const [newItemKm, setNewItemKm] = useState(10000);
   const [addingItem, setAddingItem] = useState(false);
+  const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
 
   // Diálogo de confirmação para Reset de Template
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
@@ -279,18 +280,42 @@ export default function SettingsPage() {
     handleItemFieldChange(index, 'isActive', !items[index].isActive);
   };
 
-  // Remover item da lista
-  const handleDeleteItem = (index: number) => {
+  // Remover item via DELETE /maintenance-settings/items/:id (router.delete("/items/:id", deleteMaintenanceItem))
+  const handleDeleteItem = async (index: number) => {
     const item = items[index];
-    setItems(prev => prev.filter((_, i) => i !== index));
-    toast({ 
-      title: 'Item removido', 
-      description: `O item "${item.name}" foi removido da lista.` 
-    });
+    const itemId = item._id || item.id;
+
+    if (!itemId) {
+      setItems(prev => prev.filter((_, i) => i !== index));
+      toast({ 
+        title: 'Item removido', 
+        description: `O item "${item.name}" foi removido da lista.` 
+      });
+      return;
+    }
+
+    setDeletingItemId(itemId);
+    try {
+      await api.delete(`/maintenance-settings/items/${itemId}`);
+      setItems(prev => prev.filter((_, i) => i !== index));
+      toast({ 
+        title: 'Item removido!', 
+        description: `O item "${item.name}" foi excluído com sucesso.` 
+      });
+    } catch (err: any) {
+      console.error('Erro ao excluir item:', err);
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao remover item',
+        description: err.response?.data?.message || 'Não foi possível excluir o item no servidor.',
+      });
+    } finally {
+      setDeletingItemId(null);
+    }
   };
 
-  // Adicionar novo item
-  const handleAddNewItem = (e: React.FormEvent) => {
+  // Adicionar novo item via POST /maintenance-settings/items (router.post("/items", addMaintenanceItem))
+  const handleAddNewItem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newItemName.trim()) {
       toast({ variant: 'destructive', title: 'Nome obrigatório', description: 'Informe o nome do item de manutenção.' });
@@ -302,25 +327,42 @@ export default function SettingsPage() {
     }
 
     setAddingItem(true);
+    const payload = {
+      name: newItemName.trim(),
+      price: Number(newItemPrice),
+      lifespanKm: Number(newItemKm),
+    };
+
     try {
-      const createdItem: MaintenanceItem = {
-        key: newItemName.trim().toLowerCase().replace(/[\s/]+/g, '_'),
-        name: newItemName.trim(),
-        price: Number(newItemPrice),
-        lifespanKm: Number(newItemKm),
-        isDefault: false,
+      const res = await api.post('/maintenance-settings/items', payload);
+      const createdItem = res.data?.item || res.data;
+
+      const newItem: MaintenanceItem = {
+        _id: createdItem._id,
+        key: createdItem.key || payload.name.toLowerCase().replace(/[\s/]+/g, '_'),
+        name: createdItem.name || payload.name,
+        price: Number(createdItem.price ?? payload.price),
+        lifespanKm: Number(createdItem.lifespanKm ?? payload.lifespanKm),
+        isDefault: !!createdItem.isDefault,
         isActive: true,
-        costPerKm: Number(newItemPrice) / Number(newItemKm),
+        costPerKm: (createdItem.price ?? payload.price) / (createdItem.lifespanKm ?? payload.lifespanKm),
       };
 
-      setItems(prev => [...prev, createdItem]);
+      setItems(prev => [...prev, newItem]);
       setIsAddModalOpen(false);
       setNewItemName('');
       setNewItemPrice(0);
       setNewItemKm(10000);
       toast({ 
-        title: 'Item adicionado', 
-        description: 'Clique em "Salvar Custos & Manutenção" para gravar no banco de dados.' 
+        title: 'Item adicionado!', 
+        description: `O item "${newItem.name}" foi salvo com sucesso.` 
+      });
+    } catch (err: any) {
+      console.error('Erro ao adicionar item:', err);
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao adicionar item',
+        description: err.response?.data?.message || 'Não foi possível cadastrar o item no servidor.',
       });
     } finally {
       setAddingItem(false);
@@ -734,19 +776,11 @@ export default function SettingsPage() {
               <div className="space-y-2.5">
                 {items.map((item, index) => {
                   const itemCostKm = item.lifespanKm > 0 ? (item.price / item.lifespanKm) : 0;
-                  const weightPercent = totalCalculatedCostPerKm > 0 
-                    ? ((itemCostKm / totalCalculatedCostPerKm) * 100).toFixed(1) 
-                    : '0.0';
 
                   return (
                     <Card 
                       key={item._id || item.key || `item-${index}`} 
-                      className={cn(
-                        "rounded-2xl border transition-all duration-200 overflow-hidden shadow-sm",
-                        item.isActive 
-                          ? "border-border/80 bg-card/75" 
-                          : "border-border/40 bg-secondary/20 opacity-60"
-                      )}
+                      className="rounded-2xl border border-border/80 bg-card/75 shadow-sm transition-all duration-200 overflow-hidden"
                     >
                       <CardHeader className="p-3.5 pb-2">
                         <div className="flex items-center justify-between gap-2">
@@ -761,34 +795,28 @@ export default function SettingsPage() {
 
                           <div className="flex items-center gap-2 shrink-0">
                             <div className="text-right">
-                              <span className={cn(
-                                "text-xs font-bold tabular-nums block",
-                                item.isActive ? "text-emerald-400" : "text-muted-foreground"
-                              )}>
+                              <span className="text-xs font-bold tabular-nums block text-emerald-400">
                                 R$ {itemCostKm.toFixed(3)}/km
                               </span>
-                              {item.isActive && (
-                                <span className="text-[9px] text-muted-foreground/80 block">
-                                  {weightPercent}% do custo
-                                </span>
-                              )}
                             </div>
 
-                            <Switch
-                              checked={item.isActive}
-                              onCheckedChange={() => handleToggleItemActive(index)}
-                              aria-label={`Ativar ${item.name}`}
-                            />
-
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDeleteItem(index)}
-                              className="h-7 w-7 text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 rounded-lg"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
+                            {!item.isDefault && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                disabled={deletingItemId === (item._id || item.id)}
+                                onClick={() => handleDeleteItem(index)}
+                                className="h-7 w-7 text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 rounded-lg"
+                                title="Excluir item"
+                              >
+                                {deletingItemId === (item._id || item.id) ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin text-destructive" />
+                                ) : (
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                )}
+                              </Button>
+                            )}
                           </div>
                         </div>
                       </CardHeader>
