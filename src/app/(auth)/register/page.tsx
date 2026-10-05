@@ -13,7 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import api from '@/lib/api';
-import { User, Mail, Lock, ArrowRight, Loader2, Bike, Car, Fuel, Gauge } from 'lucide-react';
+import { User, Mail, Lock, ArrowRight, Loader2, Bike, Car } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const schema = z.object({
@@ -21,8 +21,6 @@ const schema = z.object({
   email: z.string().email({ message: "Email inválido" }),
   password: z.string().min(6, { message: "Senha deve ter pelo menos 6 caracteres" }),
   vehicleType: z.enum(['MOTORCYCLE', 'CAR']),
-  kmPerLiter: z.coerce.number().min(1, { message: "Consumo deve ser maior que 0" }),
-  fuelPrice: z.coerce.number().min(0.1, { message: "Preço do combustível inválido" }),
 });
 
 type RegisterFormValues = z.infer<typeof schema>;
@@ -39,30 +37,25 @@ export default function RegisterPage() {
       email: '',
       password: '',
       vehicleType: 'MOTORCYCLE',
-      kmPerLiter: 35,
-      fuelPrice: 5.80,
     }
   });
 
   const handleSelectVehicle = (type: 'MOTORCYCLE' | 'CAR') => {
     setVehicleType(type);
     setValue('vehicleType', type);
-    setValue('kmPerLiter', type === 'MOTORCYCLE' ? 35 : 11);
   };
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: RegisterFormValues) => {
     try {
       const payload = {
         name: data.name,
         email: data.email,
         password: data.password,
         vehicleType: data.vehicleType,
-        kmPerLiter: Number(data.kmPerLiter),
-        fuelPrice: Number(data.fuelPrice),
       };
       const response = await api.post('/auth/register', payload);
       login(response.data.token, response.data.user);
-      toast({ title: "Bem-vindo!", description: "Sua conta foi criada com sucesso com o template do seu veículo." });
+      toast({ title: "Bem-vindo!", description: "Sua conta foi criada com sucesso." });
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -185,46 +178,6 @@ export default function RegisterPage() {
                     <Car className="w-5 h-5" />
                     <span>Carro</span>
                   </button>
-                </div>
-                <p className="text-[11px] text-muted-foreground/80">
-                  {vehicleType === 'MOTORCYCLE'
-                    ? 'Template com kit relação, óleo (3.000km) e pneus de moto'
-                    : 'Template com troca de óleo e filtros, 4 pneus, pastilhas e alinhamento'}
-                </p>
-              </div>
-
-              {/* Parâmetros Iniciais de Combustível */}
-              <div className="grid grid-cols-2 gap-2.5 pt-1">
-                <div className="space-y-1.5">
-                  <Label htmlFor="kmPerLiter" className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                    Consumo (km/L)
-                  </Label>
-                  <div className="relative">
-                    <Gauge className="w-3.5 h-3.5 text-muted-foreground/60 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    <Input 
-                      id="kmPerLiter" 
-                      type="number"
-                      step="0.1"
-                      className="pl-8 h-10 rounded-xl bg-secondary/40 border-border/80 text-sm" 
-                      {...register('kmPerLiter')} 
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="fuelPrice" className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                    Preço Combustível
-                  </Label>
-                  <div className="relative">
-                    <Fuel className="w-3.5 h-3.5 text-muted-foreground/60 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    <Input 
-                      id="fuelPrice" 
-                      type="number"
-                      step="0.01"
-                      className="pl-8 h-10 rounded-xl bg-secondary/40 border-border/80 text-sm" 
-                      {...register('fuelPrice')} 
-                    />
-                  </div>
                 </div>
               </div>
             </CardContent>
