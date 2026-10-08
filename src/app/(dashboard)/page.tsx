@@ -14,7 +14,8 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   ChevronLeft,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
+  RotateCcw
 } from 'lucide-react';
 import {
   BarChart,
@@ -46,7 +47,7 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
 import Link from 'next/link';
-import { format, startOfWeek, endOfWeek, addDays, subDays } from 'date-fns';
+import { format, startOfWeek, endOfWeek, addDays, subDays, startOfDay, endOfDay, isSameDay, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { DateRange } from "react-day-picker";
@@ -137,10 +138,21 @@ export default function Dashboard() {
   const [updatingFuel, setUpdatingFuel] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
+  const [weeklyDaysCache, setWeeklyDaysCache] = useState<any[]>([]);
+
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: startOfWeek(new Date(), { weekStartsOn: 1 }),
     to: endOfWeek(new Date(), { weekStartsOn: 1 }),
   });
+
+  const isSingleDay = Boolean(
+    dateRange?.from &&
+    dateRange?.to &&
+    isSameDay(dateRange.from, dateRange.to)
+  );
+
+  const isTodaySelected = isSingleDay && dateRange?.from && isSameDay(dateRange.from, new Date());
+  const isYesterdaySelected = isSingleDay && dateRange?.from && isSameDay(dateRange.from, subDays(new Date(), 1));
 
   const fetchData = useCallback(async (start: Date, end: Date) => {
     try {
@@ -162,6 +174,10 @@ export default function Dashboard() {
 
       setData(dashRes.data);
       setPreviousWeekData(prevWeekRes.data);
+
+      if (dashRes.data?.days && dashRes.data.days.length > 1) {
+        setWeeklyDaysCache(dashRes.data.days);
+      }
 
       if (settingsRes.data?.fuel?.fuelPrice) {
         setFuelPrice(Number(settingsRes.data.fuel.fuelPrice));
@@ -241,12 +257,79 @@ export default function Dashboard() {
     }
   };
 
-  const navigateWeek = (direction: 'prev' | 'next') => {
+  const navigateDate = (direction: 'prev' | 'next') => {
     if (!dateRange?.from || !dateRange?.to) return;
-    const offset = direction === 'prev' ? -7 : 7;
-    const newFrom = addDays(dateRange.from, offset);
-    const newTo = addDays(dateRange.to, offset);
-    setDateRange({ from: newFrom, to: newTo });
+    if (isSingleDay) {
+      const offset = direction === 'prev' ? -1 : 1;
+      const newFrom = addDays(dateRange.from, offset);
+      setDateRange({ from: startOfDay(newFrom), to: endOfDay(newFrom) });
+    } else {
+      const offset = direction === 'prev' ? -7 : 7;
+      const newFrom = addDays(dateRange.from, offset);
+      const newTo = addDays(dateRange.to, offset);
+      setDateRange({ from: newFrom, to: newTo });
+    }
+  };
+
+  const handleFilterThisWeek = () => {
+    setDateRange({
+      from: startOfWeek(new Date(), { weekStartsOn: 1 }),
+      to: endOfWeek(new Date(), { weekStartsOn: 1 }),
+    });
+    toast({
+      title: "Semana Atual",
+      description: "Exibindo visão consolidada da semana.",
+    });
+  };
+
+  const handleFilterToday = () => {
+    const today = new Date();
+    setDateRange({
+      from: startOfDay(today),
+      to: endOfDay(today),
+    });
+    toast({
+      title: "Filtrando Hoje",
+      description: `Exibindo métricas de ${format(today, "dd 'de' MMMM", { locale: ptBR })}.`,
+    });
+  };
+
+  const handleFilterYesterday = () => {
+    const yesterday = subDays(new Date(), 1);
+    setDateRange({
+      from: startOfDay(yesterday),
+      to: endOfDay(yesterday),
+    });
+    toast({
+      title: "Filtrando Ontem",
+      description: `Exibindo métricas de ${format(yesterday, "dd 'de' MMMM", { locale: ptBR })}.`,
+    });
+  };
+
+  const handleBarClick = (state: any) => {
+    if (!state || !state.activePayload || state.activePayload.length === 0) return;
+    const item = state.activePayload[0].payload;
+    if (!item?.date) return;
+
+    const clickedDate = new Date(item.date);
+    if (isNaN(clickedDate.getTime())) return;
+
+    // Se já estiver filtrando exatamente este dia, volta para a semana completa
+    if (isSingleDay && dateRange?.from && isSameDay(dateRange.from, clickedDate)) {
+      handleFilterThisWeek();
+      return;
+    }
+
+    setDateRange({
+      from: startOfDay(clickedDate),
+      to: endOfDay(clickedDate),
+    });
+
+    const dayName = item.fullDayName || format(clickedDate, "EEEE", { locale: ptBR });
+    toast({
+      title: `Filtrando ${dayName}`,
+      description: `Métricas de ${format(clickedDate, "dd 'de' MMMM", { locale: ptBR })}.`,
+    });
   };
 
   if (loading && !data) {
@@ -293,14 +376,24 @@ export default function Dashboard() {
   // Métricas Totais (utilização total do veículo no turno)
   const grossPerTotalKm = totalKm > 0 ? grossAmount / totalKm : 0;
 
-  const chartData = days.map((day: any) => ({
-    day: day.dayName ? day.dayName.substring(0, 3) : day.date.substring(8, 10),
+  const displayDays = (isSingleDay && weeklyDaysCache.length > 0) ? weeklyDaysCache : days;
+
+  const chartData = displayDays.map((day: any) => ({
+    day: day.dayName ? day.dayName.substring(0, 3) : (day.date ? day.date.substring(8, 10) : ''),
+    fullDayName: day.dayName || '',
+    date: day.date,
     earnings: day.financial?.grossAmount || 0,
     profit: day.financial?.netProfit || 0,
   }));
 
   const formattedRange = dateRange?.from && dateRange?.to
-    ? `${format(dateRange.from, "dd MMM", { locale: ptBR })} - ${format(dateRange.to, "dd MMM", { locale: ptBR })}`
+    ? isSingleDay
+      ? isTodaySelected
+        ? `Hoje • ${format(dateRange.from, "dd 'de' MMM", { locale: ptBR })}`
+        : isYesterdaySelected
+          ? `Ontem • ${format(dateRange.from, "dd 'de' MMM", { locale: ptBR })}`
+          : format(dateRange.from, "EEE, dd 'de' MMM", { locale: ptBR })
+      : `${format(dateRange.from, "dd MMM", { locale: ptBR })} - ${format(dateRange.to, "dd MMM", { locale: ptBR })}`
     : dateRange?.from
       ? format(dateRange.from, "dd MMM", { locale: ptBR })
       : "Selecione o período";
@@ -309,7 +402,7 @@ export default function Dashboard() {
     <div className="p-6 space-y-8 max-w-md mx-auto pb-28">
 
       {/* HEADER */}
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-headline font-black tracking-tight text-foreground">Painel Financeiro</h2>
@@ -355,7 +448,8 @@ export default function Dashboard() {
             variant="ghost"
             size="icon"
             className="h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors text-muted-foreground"
-            onClick={() => navigateWeek('prev')}
+            onClick={() => navigateDate('prev')}
+            title={isSingleDay ? "Dia anterior" : "Semana anterior"}
           >
             <ChevronLeft className="w-4 h-4" />
           </Button>
@@ -367,7 +461,7 @@ export default function Dashboard() {
                 className="flex-1 h-9 gap-2 font-bold text-xs uppercase tracking-wider hover:bg-primary/5 text-foreground/90 rounded-xl"
               >
                 <CalendarIcon className="w-4 h-4 text-primary shrink-0" />
-                <span>{formattedRange}</span>
+                <span className="capitalize">{formattedRange}</span>
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0 rounded-2xl border-border" align="center">
@@ -391,10 +485,72 @@ export default function Dashboard() {
             variant="ghost"
             size="icon"
             className="h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors text-muted-foreground"
-            onClick={() => navigateWeek('next')}
+            onClick={() => navigateDate('next')}
+            title={isSingleDay ? "Próximo dia" : "Próxima semana"}
           >
             <ChevronRight className="w-4 h-4" />
           </Button>
+        </div>
+
+        {/* QUICK FILTER PILLS */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleFilterThisWeek}
+            className={cn(
+              "h-7 text-[11px] font-bold rounded-xl px-2.5 transition-all shrink-0",
+              !isSingleDay
+                ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                : "bg-secondary/40 text-muted-foreground border-border/60 hover:text-foreground"
+            )}
+          >
+            Esta Semana
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleFilterToday}
+            className={cn(
+              "h-7 text-[11px] font-bold rounded-xl px-2.5 transition-all shrink-0",
+              isTodaySelected
+                ? "bg-emerald-500 text-white border-emerald-500 shadow-sm shadow-emerald-500/20"
+                : "bg-secondary/40 text-muted-foreground border-border/60 hover:text-foreground"
+            )}
+          >
+            Hoje
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleFilterYesterday}
+            className={cn(
+              "h-7 text-[11px] font-bold rounded-xl px-2.5 transition-all shrink-0",
+              isYesterdaySelected
+                ? "bg-emerald-500 text-white border-emerald-500 shadow-sm shadow-emerald-500/20"
+                : "bg-secondary/40 text-muted-foreground border-border/60 hover:text-foreground"
+            )}
+          >
+            Ontem
+          </Button>
+
+          {isSingleDay && !isTodaySelected && !isYesterdaySelected && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleFilterThisWeek}
+              className="h-7 text-[11px] font-bold rounded-xl px-2.5 bg-emerald-500/15 text-emerald-400 border-emerald-500/30 shrink-0 gap-1 hover:bg-emerald-500/25"
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span>{format(dateRange!.from!, "dd/MM")} • Limpar</span>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -477,29 +633,82 @@ export default function Dashboard() {
 
             {/* 3. PERFORMANCE SEMANAL */}
             <Card className="border-border/50 bg-card/40 overflow-hidden">
-              <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0">
-                <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Faturamento por Dia</CardTitle>
-                <BarChart3 className="w-4 h-4 text-primary" />
+              <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0 pb-2">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                      Faturamento por Dia
+                    </CardTitle>
+                    {isSingleDay && (
+                      <span className="text-[10px] bg-emerald-500/20 text-emerald-400 font-bold px-1.5 py-0.5 rounded-md border border-emerald-500/30">
+                        Dia Filtrado
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    {isSingleDay
+                      ? "Toque na barra selecionada para voltar à semana completa"
+                      : "Toque em uma barra para filtrar o dia específico"}
+                  </p>
+                </div>
+
+                {isSingleDay ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleFilterThisWeek}
+                    className="h-7 text-[10px] font-bold text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 px-2 rounded-lg gap-1"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    Ver Semana
+                  </Button>
+                ) : (
+                  <BarChart3 className="w-4 h-4 text-primary" />
+                )}
               </CardHeader>
-              <CardContent className="p-4 pt-0 h-[180px]">
+              <CardContent className="p-4 pt-1 h-[190px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData}>
+                  <BarChart 
+                    data={chartData}
+                    onClick={handleBarClick}
+                    className="cursor-pointer"
+                  >
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                    <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} />
+                    <XAxis 
+                      dataKey="day" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} 
+                    />
                     <Tooltip
                       contentStyle={{
                         backgroundColor: 'hsl(var(--popover))',
                         border: '1px solid hsl(var(--border))',
-                        borderRadius: '12px'
+                        borderRadius: '12px',
+                        padding: '8px 12px'
                       }}
-                      cursor={{ fill: 'rgba(16, 185, 129, 0.05)' }}
+                      cursor={{ fill: 'rgba(16, 185, 129, 0.08)' }}
                       formatter={(value: any) => [formatBRL(value), 'Faturamento']}
-                      itemStyle={{ color: 'hsl(var(--popover-foreground))' }}
+                      labelFormatter={(label: any, payload: any) => {
+                        const item = payload?.[0]?.payload;
+                        return item?.fullDayName ? `${item.fullDayName} (Toque para filtrar)` : label;
+                      }}
+                      itemStyle={{ color: 'hsl(var(--popover-foreground))', fontWeight: 600 }}
                     />
                     <Bar dataKey="earnings" radius={[4, 4, 0, 0]}>
-                      {chartData.map((entry: any, index: number) => (
-                        <Cell key={`cell-${index}`} fill={entry.earnings > 0 ? '#10B981' : 'hsl(var(--muted))'} fillOpacity={0.8} />
-                      ))}
+                      {chartData.map((entry: any, index: number) => {
+                        const isSelected = isSingleDay && entry.date && isSameDay(new Date(entry.date), dateRange!.from!);
+                        return (
+                          <Cell 
+                            key={`cell-${index}`} 
+                            fill={isSelected ? '#10B981' : entry.earnings > 0 ? '#10B981' : 'hsl(var(--muted))'} 
+                            fillOpacity={isSingleDay ? (isSelected ? 1 : 0.3) : (entry.earnings > 0 ? 0.8 : 0.4)}
+                            stroke={isSelected ? '#34D399' : 'transparent'}
+                            strokeWidth={isSelected ? 2 : 0}
+                          />
+                        );
+                      })}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
