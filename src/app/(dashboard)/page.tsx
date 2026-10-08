@@ -284,11 +284,14 @@ export default function Dashboard() {
     ? Number(efficiency.totalExpenses)
     : (efficiencyFuelExpenses + efficiencyMaintenanceExpenses + foodExpenses + otherExpenses);
 
-  // Métricas Produtivas
+  // Métricas Produtivas (somente período efetivamente trabalhado)
+  const grossPerHourProductive = productiveHours > 0 ? grossAmount / productiveHours : 0;
   const netPerHourProductive = productiveHours > 0 ? netProfit / productiveHours : 0;
+  const productiveProfitPerKm = Number(summary.productiveProfitPerKm ?? (productiveKm > 0 ? netProfit / productiveKm : 0));
+  const grossAmountPerProductiveKm = Number(summary.grossAmountPerProductiveKm ?? (productiveKm > 0 ? grossAmount / productiveKm : 0));
 
-  // Métricas Totais
-  const grossPerHourTotal = summary.totalHours > 0 ? grossAmount / summary.totalHours : 0;
+  // Métricas Totais (utilização total do veículo no turno)
+  const grossPerTotalKm = totalKm > 0 ? grossAmount / totalKm : 0;
 
   const chartData = days.map((day: any) => ({
     day: day.dayName ? day.dayName.substring(0, 3) : day.date.substring(8, 10),
@@ -403,142 +406,149 @@ export default function Dashboard() {
           <TabsTrigger value="eficiencia" className="rounded-xl text-xs font-semibold data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all">Eficiência</TabsTrigger>
         </TabsList>
         <TabsContent value="geral">
-          <div>
+          <div className="space-y-6 mt-6">
             {/* 1. HERO METRICS */}
-            <section className="space-y-4 mt-6">
-              <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] px-1">Resumo da Semana</h3>
-              <div className="grid grid-cols-1 gap-4">
-                <HeroCard
-                  title="Lucro Líquido"
-                  value={formatBRL(netProfit)}
-                  icon={TrendingUp}
-                  subtext={profitComparison
-                    ? `${profitComparison.percentage}% a ${profitComparison.isIncrease ? 'mais' : 'menos'} que na semana anterior`
-                    : "Dinheiro real no seu bolso"}
-                  trendIcon={profitComparison ? (profitComparison.isIncrease ? ArrowUpRight : ArrowDownRight) : null}
-                  trendColor={profitComparison ? (profitComparison.isIncrease ? 'text-primary' : 'text-destructive') : 'text-muted-foreground'}
-                />
-                <div className="grid grid-cols-2 gap-4">
-                  <OperationCard
-                    title="Horas Ativas"
-                    value={totalHoursHuman}
-                    subtext="Tempo total em turno"
-                    icon={Clock}
-                    colorClass="text-primary"
-                  />
-                  <OperationCard
-                    title="Horas Trabalhadas"
-                    value={productiveHoursHuman}
-                    subtext="Tempo produtivo"
-                    icon={Clock}
-                    colorClass="text-blue-400"
-                  />
-                </div>
-              </div>
-            </section>
+            <HeroCard
+              title="Lucro Líquido"
+              value={formatBRL(netProfit)}
+              icon={TrendingUp}
+              subtext={profitComparison
+                ? `${profitComparison.percentage}% a ${profitComparison.isIncrease ? 'mais' : 'menos'} que na semana anterior`
+                : "Dinheiro real no seu bolso"}
+              trendIcon={profitComparison ? (profitComparison.isIncrease ? ArrowUpRight : ArrowDownRight) : null}
+              trendColor={profitComparison ? (profitComparison.isIncrease ? 'text-primary' : 'text-destructive') : 'text-muted-foreground'}
+            />
 
-            {/* 2. OPERAÇÃO */}
-            <section className="space-y-4 mt-6">
-              <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] px-1">Gestão da Operação</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <OperationCard
-                  title="Faturamento Bruto"
-                  value={formatBRL(grossAmount)}
-                  subtext="Total recebido"
-                  icon={DollarSign}
-                  colorClass="text-primary"
-                />
-                <Dialog open={showExpenseDetails} onOpenChange={setShowExpenseDetails}>
-                  <DialogTrigger asChild>
-                    <div className="cursor-pointer">
-                      <OperationCard
-                        title="Despesas Totais"
-                        value={formatBRL(totalExpenses)}
-                        subtext="Toque para ver detalhes"
-                        icon={Fuel}
-                        colorClass="text-orange-400"
-                      />
-                    </div>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-[90vw] rounded-3xl">
-                    <DialogHeader>
-                      <DialogTitle className="font-headline">Detalhes das Despesas</DialogTitle>
-                      <DialogDescription>
-                        Detalhes das despesas para o período selecionado.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="py-4">
-                      <Card className="border-border/50 bg-card/40">
-                        <CardContent className="p-4 divide-y divide-white/5">
-                          <AnalyticsRow label="Combustível" value={formatBRL(fuelExpenses)} />
-                          <AnalyticsRow label="Manutenção" value={formatBRL(maintenanceExpenses)} />
-                          <AnalyticsRow label="Alimentação" value={formatBRL(foodExpenses)} />
-                          <AnalyticsRow label="Outros" value={formatBRL(otherExpenses)} />
-                        </CardContent>
-                      </Card>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </section>
+            {/* 2. CARDS PEQUENOS */}
+            <div className="grid grid-cols-2 gap-3.5">
+              <OperationCard
+                title="Horas Ativas"
+                value={totalHoursHuman}
+                subtext="Tempo total em turno"
+                icon={Clock}
+                colorClass="text-primary"
+              />
+              <OperationCard
+                title="Horas Trabalhadas"
+                value={productiveHoursHuman}
+                subtext="Tempo produtivo"
+                icon={Clock}
+                colorClass="text-blue-400"
+              />
+              <OperationCard
+                title="Faturamento Bruto"
+                value={formatBRL(grossAmount)}
+                subtext="Total recebido"
+                icon={DollarSign}
+                colorClass="text-emerald-400"
+              />
+              <Dialog open={showExpenseDetails} onOpenChange={setShowExpenseDetails}>
+                <DialogTrigger asChild>
+                  <div className="cursor-pointer">
+                    <OperationCard
+                      title="Despesas Totais"
+                      value={formatBRL(totalExpenses)}
+                      subtext="Toque para ver detalhes"
+                      icon={Fuel}
+                      colorClass="text-orange-400"
+                    />
+                  </div>
+                </DialogTrigger>
+                <DialogContent className="max-w-[90vw] rounded-3xl">
+                  <DialogHeader>
+                    <DialogTitle className="font-headline">Detalhes das Despesas</DialogTitle>
+                    <DialogDescription>
+                      Detalhes das despesas para o período selecionado.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="py-4">
+                    <Card className="border-border/50 bg-card/40">
+                      <CardContent className="p-4 divide-y divide-white/5">
+                        <AnalyticsRow label="Combustível" value={formatBRL(fuelExpenses)} />
+                        <AnalyticsRow label="Manutenção" value={formatBRL(maintenanceExpenses)} />
+                        <AnalyticsRow label="Alimentação" value={formatBRL(foodExpenses)} />
+                        <AnalyticsRow label="Outros" value={formatBRL(otherExpenses)} />
+                      </CardContent>
+                    </Card>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
 
-            {/* 3. ANALYTICS */}
-            <section className="space-y-4 mt-6">
-              <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] px-1">Análise de Performance</h3>
-
-              <Card className="border-border/50 bg-card/40 overflow-hidden">
-                <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0">
-                  <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Faturamento Semanal</CardTitle>
-                  <BarChart3 className="w-4 h-4 text-primary" />
-                </CardHeader>
-                <CardContent className="p-4 pt-0 h-[180px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                      <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: 'hsl(var(--popover))',
-                          border: '1px solid hsl(var(--border))',
-                          borderRadius: '12px'
-                        }}
-                        cursor={{ fill: 'rgba(16, 185, 129, 0.05)' }}
-                        formatter={(value: any) => [formatBRL(value), 'Faturamento']}
-                        itemStyle={{ color: 'hsl(var(--popover-foreground))' }}
-                      />
-                      <Bar dataKey="earnings" radius={[4, 4, 0, 0]}>
-                        {chartData.map((entry: any, index: number) => (
-                          <Cell key={`cell-${index}`} fill={entry.earnings > 0 ? '#10B981' : 'hsl(var(--muted))'} fillOpacity={0.8} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </section>
+            {/* 3. PERFORMANCE SEMANAL */}
+            <Card className="border-border/50 bg-card/40 overflow-hidden">
+              <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0">
+                <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Faturamento por Dia</CardTitle>
+                <BarChart3 className="w-4 h-4 text-primary" />
+              </CardHeader>
+              <CardContent className="p-4 pt-0 h-[180px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                    <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--popover))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '12px'
+                      }}
+                      cursor={{ fill: 'rgba(16, 185, 129, 0.05)' }}
+                      formatter={(value: any) => [formatBRL(value), 'Faturamento']}
+                      itemStyle={{ color: 'hsl(var(--popover-foreground))' }}
+                    />
+                    <Bar dataKey="earnings" radius={[4, 4, 0, 0]}>
+                      {chartData.map((entry: any, index: number) => (
+                        <Cell key={`cell-${index}`} fill={entry.earnings > 0 ? '#10B981' : 'hsl(var(--muted))'} fillOpacity={0.8} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
         <TabsContent value="produtivo">
-          <div className="mt-6">
-            <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-4 mt-6">
+            <div className="space-y-1 px-0.5">
+              <h3 className="text-xs font-bold text-foreground">Desempenho em Trabalho Ativo</h3>
+              <p className="text-[11px] text-muted-foreground">Métricas calculadas exclusivamente durante o período de trabalho efetivo (em corrida).</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3.5">
+              <div className="col-span-2">
+                <OperationCard
+                  title="Distância Produtiva"
+                  value={`${productiveKm.toFixed(1)} km`}
+                  subtext="Total de quilômetros em corrida ativa"
+                  icon={TrendingUp}
+                  colorClass="text-emerald-400"
+                />
+              </div>
               <OperationCard
-                title="Distância Produtiva"
-                value={`${productiveKm.toFixed(1)} km`}
-                subtext="Km em corrida"
-                icon={TrendingUp}
-                colorClass="text-green-400"
-              />
-              <OperationCard
-                title="Lucro/Hora Produtiva"
-                value={formatBRL(netPerHourProductive)}
-                subtext="Líquido por hora em corrida"
+                title="Faturamento/Hora Produtiva"
+                value={formatBRL(grossPerHourProductive)}
+                subtext="Bruto ÷ horas trabalhadas"
                 icon={DollarSign}
                 colorClass="text-primary"
               />
               <OperationCard
+                title="Lucro/Hora Produtiva"
+                value={formatBRL(netPerHourProductive)}
+                subtext="Líquido ÷ horas trabalhadas"
+                icon={DollarSign}
+                colorClass="text-blue-400"
+              />
+              <OperationCard
+                title="Faturamento/KM Produtivo"
+                value={`${formatBRL(grossAmountPerProductiveKm)}/km`}
+                subtext="Bruto ÷ km produtivo"
+                icon={DollarSign}
+                colorClass="text-emerald-400"
+              />
+              <OperationCard
                 title="Lucro/KM Produtivo"
-                value={`${formatBRL(summary.productiveProfitPerKm)}/km`}
-                subtext="Líquido por km em corrida"
+                value={`${formatBRL(productiveProfitPerKm)}/km`}
+                subtext="Líquido ÷ km produtivo"
                 icon={DollarSign}
                 colorClass="text-cyan-400"
               />
@@ -546,8 +556,13 @@ export default function Dashboard() {
           </div>
         </TabsContent>
         <TabsContent value="total">
-          <div className="mt-6">
-            <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-4 mt-6">
+            <div className="space-y-1 px-0.5">
+              <h3 className="text-xs font-bold text-foreground">Utilização Total do Veículo</h3>
+              <p className="text-[11px] text-muted-foreground">Métricas considerando toda a distância percorrida e tempo em turno, incluindo deslocamentos.</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3.5">
               <OperationCard
                 title="Distância Total"
                 value={`${totalKm.toFixed(1)} km`}
@@ -556,18 +571,11 @@ export default function Dashboard() {
                 colorClass="text-blue-400"
               />
               <OperationCard
-                title="Faturamento/Hora"
-                value={formatBRL(grossPerHourTotal)}
-                subtext="Bruto por hora em turno"
-                icon={DollarSign}
-                colorClass="text-yellow-400"
-              />
-              <OperationCard
-                title="Faturamento/KM Produtivo"
-                value={`${formatBRL(summary.grossAmountPerProductiveKm)}/km`}
-                subtext="Bruto por km em corrida"
-                icon={DollarSign}
-                colorClass="text-orange-400"
+                title="Horas em Turno"
+                value={totalHoursHuman}
+                subtext="Tempo total em operação"
+                icon={Clock}
+                colorClass="text-primary"
               />
             </div>
           </div>
@@ -585,18 +593,23 @@ export default function Dashboard() {
               trendColor={efficiencyProfitComparison ? (efficiencyProfitComparison.isIncrease ? 'text-primary' : 'text-destructive') : 'text-muted-foreground'}
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1 px-0.5">
+              <h3 className="text-xs font-bold text-foreground">Impacto da Ociosidade & KM Mortos</h3>
+              <p className="text-[11px] text-muted-foreground">Quanto os deslocamentos e tempos sem corrida impactaram seus custos reais.</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3.5">
               <OperationCard
                 title="Tempo Ocioso"
                 value={efficiency.idleHoursHuman || '0h 0min'}
-                subtext="Tempo em turno sem corridas."
+                subtext="Tempo em turno sem corridas"
                 icon={Clock}
                 colorClass="text-amber-400"
               />
               <OperationCard
                 title="Lucro/Hora Turno"
                 value={formatBRL(efficiency.turnProfitPerHour || 0)}
-                subtext="Lucro líquido pelas horas totais do turno."
+                subtext="Líquido pelas horas totais do turno"
                 icon={DollarSign}
                 colorClass="text-blue-400"
               />
