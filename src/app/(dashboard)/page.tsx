@@ -57,6 +57,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 const formatBRL = (val: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
 
+// Converte strings 'YYYY-MM-DD' ou ISO em Date no fuso horário local exato sem deslocamento de UTC
+const parseDateString = (dateStr: string): Date => {
+  if (!dateStr) return new Date();
+  if (typeof dateStr === 'string' && dateStr.length >= 10) {
+    const ymd = dateStr.substring(0, 10);
+    const parts = ymd.split('-').map(Number);
+    if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+      return new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0);
+    }
+  }
+  return new Date(dateStr);
+};
+
 // --- Componentes Reutilizáveis ---
 
 const HeroCard = ({ title, value, subtext, icon: Icon, trendIcon: TrendIcon, trendColor }: any) => (
@@ -157,12 +170,14 @@ export default function Dashboard() {
   const fetchData = useCallback(async (start: Date, end: Date) => {
     try {
       setLoading(true);
+      const startDate = startOfDay(start);
+      const endDate = endOfDay(end);
       const timezoneOffset = new Date().getTimezoneOffset();
-      const startDateStr = start.toISOString();
-      const endDateStr = end.toISOString();
+      const startDateStr = startDate.toISOString();
+      const endDateStr = endDate.toISOString();
 
-      const prevWeekStart = subDays(start, 7);
-      const prevWeekEnd = subDays(end, 7);
+      const prevWeekStart = startOfDay(subDays(start, 7));
+      const prevWeekEnd = endOfDay(subDays(end, 7));
       const prevStartDateStr = prevWeekStart.toISOString();
       const prevEndDateStr = prevWeekEnd.toISOString();
 
@@ -272,37 +287,14 @@ export default function Dashboard() {
   };
 
   const handleFilterThisWeek = () => {
+    const baseDate = dateRange?.from || new Date();
     setDateRange({
-      from: startOfWeek(new Date(), { weekStartsOn: 1 }),
-      to: endOfWeek(new Date(), { weekStartsOn: 1 }),
+      from: startOfWeek(baseDate, { weekStartsOn: 1 }),
+      to: endOfWeek(baseDate, { weekStartsOn: 1 }),
     });
     toast({
-      title: "Semana Atual",
+      title: "Visão Semanal",
       description: "Exibindo visão consolidada da semana.",
-    });
-  };
-
-  const handleFilterToday = () => {
-    const today = new Date();
-    setDateRange({
-      from: startOfDay(today),
-      to: endOfDay(today),
-    });
-    toast({
-      title: "Filtrando Hoje",
-      description: `Exibindo métricas de ${format(today, "dd 'de' MMMM", { locale: ptBR })}.`,
-    });
-  };
-
-  const handleFilterYesterday = () => {
-    const yesterday = subDays(new Date(), 1);
-    setDateRange({
-      from: startOfDay(yesterday),
-      to: endOfDay(yesterday),
-    });
-    toast({
-      title: "Filtrando Ontem",
-      description: `Exibindo métricas de ${format(yesterday, "dd 'de' MMMM", { locale: ptBR })}.`,
     });
   };
 
@@ -311,10 +303,10 @@ export default function Dashboard() {
     const item = state.activePayload[0].payload;
     if (!item?.date) return;
 
-    const clickedDate = new Date(item.date);
+    const clickedDate = parseDateString(item.date);
     if (isNaN(clickedDate.getTime())) return;
 
-    // Se já estiver filtrando exatamente este dia, volta para a semana completa
+    // Se já estiver filtrando exatamente este dia, volta para a semana do período
     if (isSingleDay && dateRange?.from && isSameDay(dateRange.from, clickedDate)) {
       handleFilterThisWeek();
       return;
@@ -378,13 +370,17 @@ export default function Dashboard() {
 
   const displayDays = (isSingleDay && weeklyDaysCache.length > 0) ? weeklyDaysCache : days;
 
-  const chartData = displayDays.map((day: any) => ({
-    day: day.dayName ? day.dayName.substring(0, 3) : (day.date ? day.date.substring(8, 10) : ''),
-    fullDayName: day.dayName || '',
-    date: day.date,
-    earnings: day.financial?.grossAmount || 0,
-    profit: day.financial?.netProfit || 0,
-  }));
+  const chartData = displayDays.map((day: any) => {
+    const dayDate = day.date ? parseDateString(day.date) : null;
+    return {
+      day: day.dayName ? day.dayName.substring(0, 3) : (dayDate ? format(dayDate, 'dd') : ''),
+      fullDayName: day.dayName || (dayDate ? format(dayDate, 'EEEE', { locale: ptBR }) : ''),
+      date: day.date,
+      parsedDate: dayDate,
+      earnings: day.financial?.grossAmount || 0,
+      profit: day.financial?.netProfit || 0,
+    };
+  });
 
   const formattedRange = dateRange?.from && dateRange?.to
     ? isSingleDay
@@ -392,7 +388,7 @@ export default function Dashboard() {
         ? `Hoje • ${format(dateRange.from, "dd 'de' MMM", { locale: ptBR })}`
         : isYesterdaySelected
           ? `Ontem • ${format(dateRange.from, "dd 'de' MMM", { locale: ptBR })}`
-          : format(dateRange.from, "EEE, dd 'de' MMM", { locale: ptBR })
+          : format(dateRange.from, "EEEE, dd 'de' MMM", { locale: ptBR })
       : `${format(dateRange.from, "dd MMM", { locale: ptBR })} - ${format(dateRange.to, "dd MMM", { locale: ptBR })}`
     : dateRange?.from
       ? format(dateRange.from, "dd MMM", { locale: ptBR })
@@ -490,67 +486,6 @@ export default function Dashboard() {
           >
             <ChevronRight className="w-4 h-4" />
           </Button>
-        </div>
-
-        {/* QUICK FILTER PILLS */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleFilterThisWeek}
-            className={cn(
-              "h-7 text-[11px] font-bold rounded-xl px-2.5 transition-all shrink-0",
-              !isSingleDay
-                ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                : "bg-secondary/40 text-muted-foreground border-border/60 hover:text-foreground"
-            )}
-          >
-            Esta Semana
-          </Button>
-
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleFilterToday}
-            className={cn(
-              "h-7 text-[11px] font-bold rounded-xl px-2.5 transition-all shrink-0",
-              isTodaySelected
-                ? "bg-emerald-500 text-white border-emerald-500 shadow-sm shadow-emerald-500/20"
-                : "bg-secondary/40 text-muted-foreground border-border/60 hover:text-foreground"
-            )}
-          >
-            Hoje
-          </Button>
-
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleFilterYesterday}
-            className={cn(
-              "h-7 text-[11px] font-bold rounded-xl px-2.5 transition-all shrink-0",
-              isYesterdaySelected
-                ? "bg-emerald-500 text-white border-emerald-500 shadow-sm shadow-emerald-500/20"
-                : "bg-secondary/40 text-muted-foreground border-border/60 hover:text-foreground"
-            )}
-          >
-            Ontem
-          </Button>
-
-          {isSingleDay && !isTodaySelected && !isYesterdaySelected && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleFilterThisWeek}
-              className="h-7 text-[11px] font-bold rounded-xl px-2.5 bg-emerald-500/15 text-emerald-400 border-emerald-500/30 shrink-0 gap-1 hover:bg-emerald-500/25"
-            >
-              <RotateCcw className="w-3 h-3" />
-              <span>{format(dateRange!.from!, "dd/MM")} • Limpar</span>
-            </Button>
-          )}
         </div>
       </div>
 
@@ -698,7 +633,7 @@ export default function Dashboard() {
                     />
                     <Bar dataKey="earnings" radius={[4, 4, 0, 0]}>
                       {chartData.map((entry: any, index: number) => {
-                        const isSelected = isSingleDay && entry.date && isSameDay(new Date(entry.date), dateRange!.from!);
+                        const isSelected = isSingleDay && entry.parsedDate && isSameDay(entry.parsedDate, dateRange!.from!);
                         return (
                           <Cell 
                             key={`cell-${index}`} 
